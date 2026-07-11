@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Schedule health</title>
+<style>
+  :root {
+    --ink: #1c2b33; --paper: #f7f6f2; --line: #d8d5cc;
+    --muted: #6b6f73; --good: #2f8a55; --warn: #c17d1e; --bad: #b23a2e;
+    --card: #ffffff; --accent: #1c4e73;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--paper); color: var(--ink); margin: 0; padding: 24px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 20px; }
+  .nav button { padding: 10px 6px; font-size: 13px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--ink); }
+  .nav button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .view { display: none; }
+  .view.active { display: block; }
+  .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 40px 16px; text-align: center; background: var(--card); }
+  .drop input[type=file] { margin-top: 12px; }
+  .row { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+  button.btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-size: 13px; }
+  button.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.btn.tiny { padding: 4px 10px; font-size: 11px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+  .score-line { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .score-num { font-size: 28px; font-weight: 600; }
+  .bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; margin-bottom: 8px; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .issue { display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; background: var(--card); }
+  .issue.resolved { opacity: 0.5; }
+  .issue-name { font-size: 14px; font-weight: 500; margin: 0; }
+  .issue-sub { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
+  .issue-right { display: flex; align-items: center; gap: 8px; }
+  .badge { font-size: 12px; padding: 3px 10px; border-radius: 6px; white-space: nowrap; }
+  .badge.crit { background: #fbe4e1; color: var(--bad); }
+  .badge.risk { background: #fbeed9; color: var(--warn); }
+  .badge.resolved-badge { background: #e3f0e8; color: var(--good); }
+  select, input[type=text] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .metric { background: var(--paper); border-radius: 8px; padding: 10px; }
+  .metric .lab { font-size: 11px; color: var(--muted); }
+  .metric .val { font-size: 18px; font-weight: 600; margin-top: 2px; }
+  .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 30px 0; }
+  .error { color: var(--bad); font-size: 13px; text-align: center; padding: 20px 0; }
+  svg.spark { width: 100%; height: 50px; }
+  .auth-box { max-width: 340px; margin: 60px auto 0; }
+  .auth-box .card { display: flex; flex-direction: column; gap: 10px; }
+  .auth-box input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; width: 100%; }
+  .auth-toggle { font-size: 12px; color: var(--muted); text-align: center; margin: 4px 0 0; }
+  .auth-toggle a { color: var(--accent); cursor: pointer; }
+  .user-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .user-bar span { font-size: 12px; color: var(--muted); }
+  @media print {
+    .nav, .no-print { display: none !important; }
+    body { padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Schedule health</h1>
+  <p class="sub">Upload a schedule export, see what's wrong, track it over time. Backed by a real API — data persists across sessions and devices.</p>
+
+  <div id="authScreen" class="auth-box">
+    <div class="card">
+      <h2 id="authTitle" style="margin:0; font-size:16px;">Log in</h2>
+      <input type="email" id="authEmail" placeholder="Email" autocomplete="username">
+      <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">
+      <button class="btn primary" id="authSubmit">Log in</button>
+      <p id="authError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
+      <p class="auth-toggle"><span id="authToggleText">Don't have an account?</span> <a id="authToggleLink">Sign up</a></p>
+    </div>
+  </div>
+
+  <div id="appScreen" style="display:none;">
+    <div class="user-bar no-print">
+      <span id="userEmail"></span>
+      <button class="btn tiny" id="logoutBtn">Log out</button>
+    </div>
+
+    <div class="nav no-print">
+      <button data-step="upload" class="active">Upload</button>
+      <button data-step="health">Health</button>
+      <button data-step="issues">Issues</button>
+      <button data-step="trends">Trends</button>
+      <button data-step="portfolio">Portfolio</button>
+      <button data-step="report">Report</button>
+    </div>
+
+    <div id="v-upload" class="view active">
+      <div class="drop">
+        <div style="font-size:28px;">&#8593;</div>
+        <p style="font-weight:500; margin:10px 0 4px;">Drop your schedule file here</p>
+        <p style="font-size:13px; color:var(--muted); margin:0 0 10px;">Primavera .xer export, or a .csv with task_code, task_name, predecessors, total_float_days, duration_days columns</p>
+        <input type="file" id="fileInput" accept=".xer,.csv,.txt">
+        <div class="row">
+          <input type="text" id="projName" placeholder="Project name" value="Untitled project">
+          <button class="btn primary" id="loadSample">Load sample data instead</button>
+        </div>
+        <p id="uploadStatus" style="font-size:12px; color:var(--muted); margin-top:10px;"></p>
+      </div>
+    </div>
+
+    <div id="v-health" class="view">
+      <div id="healthContent"><p class="empty">Upload a file first to see the health score.</p></div>
+    </div>
+
+    <div id="v-issues" class="view">
+      <div id="issuesContent"><p class="empty">No analysis yet.</p></div>
+    </div>
+
+    <div id="v-trends" class="view">
+      <div class="row no-print" style="justify-content:flex-start; margin-bottom:12px;">
+        <select id="trendProjectSelect"></select>
+      </div>
+      <div id="trendsContent"><p class="empty">Analyze at least one file to start tracking trends.</p></div>
+    </div>
+
+    <div id="v-portfolio" class="view">
+      <div id="portfolioContent"><p class="empty">No projects analyzed yet.</p></div>
+    </div>
+
+    <div id="v-report" class="view">
+      <div id="reportContent"><p class="empty">No report yet — analyze a schedule first.</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = ''; // same-origin: server.js serves this file and the API together
+
+const navButtons = document.querySelectorAll('.nav button');
+function setView(step){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('v-' + step).classList.add('active');
+  navButtons.forEach(b => b.classList.toggle('active', b.dataset.step === step));
+  if (step === 'trends') renderTrends();
+  if (step === 'portfolio') renderPortfolio();
+}
+navButtons.forEach(b => b.addEventListener('click', () => setView(b.dataset.step)));
+
+let currentProject = null;
+let currentSnapshot = null;
+let currentIssues = [];
+
+async function api(path, options){
+  const res = await fetch(API + path, options);
+  if (res.status === 401 && !path.startsWith('/api/auth/')) {
+    showAuth();
+    throw new Error('Please log in');
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || ('Request failed: ' + res.status));
+  }
+  return res.json();
+}
+
+// --- Auth ---
+
+let authMode = 'login';
+
+function showAuth(){
+  document.getElementById('authScreen').style.display = '';
+  document.getElementById('appScreen').style.display = 'none';
+}
+
+function showApp(user){
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = '';
+  document.getElementById('userEmail').textContent = user.email;
+}
+
+function setAuthMode(mode){
+  authMode = mode;
+  document.getElementById('authTitle').textContent = mode === 'login' ? 'Log in' : 'Sign up';
+  document.getElementById('authSubmit').textContent = mode === 'login' ? 'Log in' : 'Sign up';
+  document.getElementById('authToggleText').textContent = mode === 'login' ? "Don't have an account?" : 'Already have an account?';
+  document.getElementById('authToggleLink').textContent = mode === 'login' ? 'Sign up' : 'Log in';
+  document.getElementById('authError').style.display = 'none';
+}
+
+document.getElementById('authToggleLink').addEventListener('click', () => setAuthMode(authMode === 'login' ? 'signup' : 'login'));
+
+document.getElementById('authSubmit').addEventListener('click', async () => {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authError');
+  errEl.style.display = 'none';
+  try {
+    const result = await api('/api/auth/' + authMode, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    showApp(result.user);
+    setView('upload');
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+  showAuth();
+});
+
+(async function checkAuth(){
+  try {
+    const { user } = await api('/api/auth/me');
+    if (user) showApp(user); else showAuth();
+  } catch (e) { showAuth(); }
+})();
+
+function renderHealth(snapshot){
+  const el = document.getElementById('healthContent');
+  el.innerHTML =
+    '<div class="score-line"><span class="score-num">' + snapshot.score + '</span>' +
+    '<span style="font-size:13px; color:var(--muted);">schedule health score, out of 100</span></div>' +
+    '<div class="bar">' +
+      '<div style="width:' + snapshot.healthy_pct + '%; background:var(--good);"></div>' +
+      '<div style="width:' + snapshot.risk_pct + '%; background:var(--warn);"></div>' +
+      '<div style="width:' + snapshot.crit_pct + '%; background:var(--bad);"></div>' +
+    '</div>' +
+    '<div class="legend">' +
+      '<span><span class="dot" style="background:var(--good);"></span>healthy ' + snapshot.healthy_pct + '%</span>' +
+      '<span><span class="dot" style="background:var(--warn);"></span>at risk ' + snapshot.risk_pct + '%</span>' +
+      '<span><span class="dot" style="background:var(--bad);"></span>critical ' + snapshot.crit_pct + '%</span>' +
+    '</div>' +
+    '<div class="card"><p style="margin:0 0 6px;">' + snapshot.crit_count + ' activities need attention now, ' + snapshot.risk_count + ' are worth watching.</p>' +
+    '<p style="margin:0; color:var(--muted); font-size:13px;">Based on ' + snapshot.total_activities + ' activities checked for missing logic, negative float, excessive float, long durations, and hard constraints. Saved to the server \u2014 ' + new Date(snapshot.created_at + 'Z').toLocaleString() + '.</p></div>';
+}
+
+function renderIssues(issues){
+  const el = document.getElementById('issuesContent');
+  if (!issues.length){ el.innerHTML = '<p class="empty">No issues found.</p>'; return; }
+  el.innerHTML = issues.map(i => {
+    const resolved = i.status === 'resolved';
+    return '<div class="issue' + (resolved ? ' resolved' : '') + '"><div><p class="issue-name">' + i.name + '</p><p class="issue-sub">' + i.sub + '</p></div>' +
+    '<div class="issue-right">' +
+      (resolved
+        ? '<span class="badge resolved-badge">resolved</span>'
+        : '<span class="badge ' + (i.severity === 'crit' ? 'crit">critical' : 'risk">at risk') + '</span>' +
+          '<button class="btn tiny no-print" onclick="resolveIssue(' + i.id + ')">Mark resolved</button>') +
+    '</div></div>';
+  }).join('');
+}
+
+async function resolveIssue(issueId){
+  try {
+    await api('/api/issues/' + issueId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'resolved' })
+    });
+    currentIssues = currentIssues.map(i => i.id === issueId ? { ...i, status: 'resolved' } : i);
+    renderIssues(currentIssues);
+  } catch (e) {
+    alert('Could not update issue: ' + e.message);
+  }
+}
+
+function renderReport(projectName, snapshot){
+  const el = document.getElementById('reportContent');
+  el.innerHTML = '<div class="card">' +
+    '<p style="font-weight:600; margin:0 0 2px;">' + projectName + ' \u2014 schedule status</p>' +
+    '<p style="font-size:12px; color:var(--muted); margin:0 0 14px;">Generated ' + new Date().toLocaleDateString() + '</p>' +
+    '<div class="metric-grid">' +
+      '<div class="metric"><div class="lab">Health score</div><div class="val">' + snapshot.score + '</div></div>' +
+      '<div class="metric"><div class="lab">Critical issues</div><div class="val">' + snapshot.crit_count + '</div></div>' +
+      '<div class="metric"><div class="lab">At-risk issues</div><div class="val">' + snapshot.risk_count + '</div></div>' +
+    '</div>' +
+    '<button class="btn primary no-print" onclick="window.print()">Export as PDF</button>' +
+    '</div>';
+}
+
+async function renderTrends(){
+  const content = document.getElementById('trendsContent');
+  const sel = document.getElementById('trendProjectSelect');
+  let projects;
+  try { projects = await api('/api/projects'); } catch (e) { content.innerHTML = '<p class="error">Could not reach the server: ' + e.message + '</p>'; return; }
+  if (!projects.length){ content.innerHTML = '<p class="empty">Analyze at least one file to start tracking trends.</p>'; sel.innerHTML=''; return; }
+  sel.innerHTML = projects.map(p => '<option value="' + p.name + '">' + p.name + '</option>').join('');
+  const chosen = sel.value || projects[0].name;
+  let history;
+  try { history = await api('/api/projects/' + encodeURIComponent(chosen) + '/history'); } catch (e) { content.innerHTML = '<p class="error">' + e.message + '</p>'; return; }
+  if (!history.length){ content.innerHTML = '<p class="empty">No history yet for this project.</p>'; return; }
+  const w = 200, hpad = 8, n = history.length;
+  const pts = history.map((h,i) => {
+    const x = n === 1 ? w/2 : (i/(n-1)) * (w - 2*hpad) + hpad;
+    const y = 50 - (h.score/100)*40 - 5;
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  const latest = history[history.length-1];
+  content.innerHTML = '<div class="card"><div style="display:flex; justify-content:space-between; margin-bottom:6px;">' +
+    '<span style="font-size:12px; color:var(--muted);">Health score over time</span><span style="font-weight:600;">' + latest.score + '</span></div>' +
+    '<svg class="spark" viewBox="0 0 200 50"><polyline points="' + pts + '" fill="none" stroke="var(--accent)" stroke-width="2"/></svg></div>' +
+    '<p style="font-size:13px; color:var(--muted);">' + n + ' snapshot' + (n===1?'':'s') + ' recorded for ' + chosen + ', stored on the server.</p>';
+  sel.onchange = renderTrends;
+}
+
+async function renderPortfolio(){
+  const el = document.getElementById('portfolioContent');
+  let rows;
+  try { rows = await api('/api/portfolio'); } catch (e) { el.innerHTML = '<p class="error">Could not reach the server: ' + e.message + '</p>'; return; }
+  if (!rows.length){ el.innerHTML = '<p class="empty">No projects analyzed yet.</p>'; return; }
+  el.innerHTML = rows.map(r =>
+    '<div class="issue"><div style="width:140px; font-size:13px; font-weight:500;">' + r.name + '</div>' +
+    '<div style="flex:1; display:flex; height:10px; border-radius:5px; overflow:hidden; margin:0 12px;">' +
+    '<div style="width:' + r.healthyPct + '%; background:var(--good);"></div>' +
+    '<div style="width:' + r.riskPct + '%; background:var(--warn);"></div>' +
+    '<div style="width:' + r.critPct + '%; background:var(--bad);"></div></div>' +
+    '<div style="font-weight:600; font-size:13px;">' + r.score + '</div></div>'
+  ).join('');
+}
+
+async function submitAnalysis(projectName, filename, content){
+  document.getElementById('uploadStatus').textContent = 'Analyzing\u2026';
+  try {
+    const result = await api('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project: projectName, filename, content })
+    });
+    currentProject = result.project.name;
+    currentSnapshot = result.snapshot;
+    currentIssues = result.issues;
+    document.getElementById('uploadStatus').textContent = 'Analyzed ' + result.snapshot.total_activities + ' activities \u2014 saved to server.';
+    renderHealth(currentSnapshot);
+    renderIssues(currentIssues);
+    renderReport(currentProject, currentSnapshot);
+    setView('health');
+  } catch (e) {
+    document.getElementById('uploadStatus').textContent = 'Error: ' + e.message;
+  }
+}
+
+document.getElementById('loadSample').addEventListener('click', () => {
+  const sampleXER =
+"%T\tTASK\n%F\ttask_id\ttask_code\ttask_name\ttotal_float_hr_cnt\tremain_drtn_hr_cnt\ttarget_drtn_hr_cnt\tstatus_code\ttask_type\tcstr_type\tact_start_date\tact_end_date\n" +
+"%R\t1\tA1010\tMobilize site\t40\t80\t80\tTK_Complete\tTT_Task\t\t2026-01-05\t2026-01-08\n" +
+"%R\t2\tA1040\tFoundation pour\t0\t120\t120\tTK_Active\tTT_Task\t\t2026-01-09\t\n" +
+"%R\t3\tA1120\tSteel delivery\t-8\t40\t40\tTK_Active\tTT_Task\t\t2026-01-15\t2026-01-16\n" +
+"%R\t4\tA1210\tRoofing\t400\t200\t200\tTK_NotStart\tTT_Task\t\t\t\n" +
+"%R\t5\tA1300\tMEP rough-in\t16\t500\t500\tTK_NotStart\tTT_Task\tCS_MSO\t\t\n" +
+"%R\t6\tA1400\tFinal inspection\t0\t16\t16\tTK_NotStart\tTT_Mile\t\t\t\n" +
+"%T\tTASKPRED\n%F\ttask_pred_id\ttask_id\tpred_task_id\tpred_type\tlag_hr_cnt\n" +
+"%R\t1\t2\t1\tPR_FS\t0\n" +
+"%R\t2\t3\t2\tPR_FS\t0\n";
+  const projectName = document.getElementById('projName').value || 'Sample construction project';
+  submitAnalysis(projectName, 'sample.xer', sampleXER);
+});
+
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    const projectName = document.getElementById('projName').value || file.name;
+    submitAnalysis(projectName, file.name, evt.target.result);
+  };
+  reader.readAsText(file);
+});
+</script>
+</body>
+</html>

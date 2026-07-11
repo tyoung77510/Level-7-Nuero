@@ -1,0 +1,13 @@
+{
+  "name": "schedule-health-backend",
+  "version": "0.1.0",
+  "description": "Dependency-free API backend for the Schedule Health app — parses XER/CSV schedules, runs DCMA-style health checks, and persists history to SQLite.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "license": "UNLICENSED"
+}
