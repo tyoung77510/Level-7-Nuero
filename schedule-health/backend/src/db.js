@@ -11,9 +11,14 @@ const db = new DatabaseSync(path.join(DATA_DIR, 'schedule-health.db'));
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
+    phone TEXT,
     password_hash TEXT NOT NULL,
     password_salt TEXT NOT NULL,
+    stripe_customer_id TEXT,
+    stripe_subscription_id TEXT,
+    subscription_status TEXT NOT NULL DEFAULT 'none',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -61,8 +66,9 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);
 `);
 
-function createUser(email, passwordHash, passwordSalt) {
-  db.prepare('INSERT INTO users (email, password_hash, password_salt) VALUES (?, ?, ?)').run(email, passwordHash, passwordSalt);
+function createUser(name, email, phone, passwordHash, passwordSalt) {
+  db.prepare('INSERT INTO users (name, email, phone, password_hash, password_salt) VALUES (?, ?, ?, ?, ?)')
+    .run(name, email, phone || null, passwordHash, passwordSalt);
   return db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 }
 
@@ -72,6 +78,25 @@ function getUserByEmail(email) {
 
 function getUserById(id) {
   return db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+}
+
+function getUserByStripeCustomerId(customerId) {
+  return db.prepare('SELECT * FROM users WHERE stripe_customer_id = ?').get(customerId);
+}
+
+function getUserByStripeSubscriptionId(subscriptionId) {
+  return db.prepare('SELECT * FROM users WHERE stripe_subscription_id = ?').get(subscriptionId);
+}
+
+function setStripeCustomerId(userId, customerId) {
+  db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, userId);
+  return getUserById(userId);
+}
+
+function setSubscriptionStatus(userId, status, subscriptionId) {
+  db.prepare('UPDATE users SET subscription_status = ?, stripe_subscription_id = COALESCE(?, stripe_subscription_id) WHERE id = ?')
+    .run(status, subscriptionId || null, userId);
+  return getUserById(userId);
 }
 
 function createSession(token, userId, expiresAt) {
@@ -169,5 +194,6 @@ module.exports = {
   getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio,
   getIssueOwnerUserId,
   createUser, getUserByEmail, getUserById,
+  getUserByStripeCustomerId, getUserByStripeSubscriptionId, setStripeCustomerId, setSubscriptionStatus,
   createSession, getSession, deleteSession, deleteExpiredSessions
 };

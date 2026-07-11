@@ -7,9 +7,30 @@ const url = require('node:url');
 const fs = require('node:fs');
 const path = require('node:path');
 
+// Tiny built-in .env loader — no dotenv dependency. Reads backend/.env if present.
+function loadEnvFile() {
+  const envPath = path.join(__dirname, '..', '.env');
+  if (!fs.existsSync(envPath)) return;
+  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let value = trimmed.slice(eq + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    if (!(key in process.env)) process.env[key] = value;
+  }
+}
+loadEnvFile();
+
 const analyzeMod = require('./analyze');
 const store = require('./db');
 const auth = require('./auth');
+const billing = require('./billing');
+const knock = require('./knock');
 
 store.deleteExpiredSessions();
 
@@ -88,21 +109,36 @@ function matchRoute(method, pathname) {
 
 // --- Auth routes (no session required) ---
 
+function publicUser(user) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    subscriptionStatus: user.subscription_status
+  };
+}
+
 route('POST', '/api/auth/signup', async (req, res) => {
   const body = await readBody(req);
   let payload;
   try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const name = String(payload.name || '').trim();
   const email = String(payload.email || '').trim().toLowerCase();
+  const phone = String(payload.phone || '').trim();
   const password = String(payload.password || '');
+  if (!name) return sendJSON(res, 400, { error: 'Enter your name' });
   if (!auth.EMAIL_RE.test(email)) return sendJSON(res, 400, { error: 'Enter a valid email address' });
+  if (!phone) return sendJSON(res, 400, { error: 'Enter your phone number' });
   if (password.length < 8) return sendJSON(res, 400, { error: 'Password must be at least 8 characters' });
   if (store.getUserByEmail(email)) return sendJSON(res, 409, { error: 'An account with that email already exists' });
 
   const { salt, hash } = auth.hashPassword(password);
-  const user = store.createUser(email, hash, salt);
+  const user = store.createUser(name, email, phone, hash, salt);
   const { token } = auth.createSession(user.id);
   res.setHeader('Set-Cookie', auth.sessionCookie(token, req, auth.SESSION_TTL_MS / 1000));
-  sendJSON(res, 200, { user: { id: user.id, email: user.email } });
+  knock.identifyUser(user).catch(() => {}); // never let a marketing-sync failure block signup
+  sendJSON(res, 200, { user: publicUser(user) });
 });
 
 route('POST', '/api/auth/login', async (req, res) => {
@@ -117,7 +153,7 @@ route('POST', '/api/auth/login', async (req, res) => {
   }
   const { token } = auth.createSession(user.id);
   res.setHeader('Set-Cookie', auth.sessionCookie(token, req, auth.SESSION_TTL_MS / 1000));
-  sendJSON(res, 200, { user: { id: user.id, email: user.email } });
+  sendJSON(res, 200, { user: publicUser(user) });
 });
 
 route('POST', '/api/auth/logout', async (req, res) => {
@@ -130,7 +166,77 @@ route('POST', '/api/auth/logout', async (req, res) => {
 route('GET', '/api/auth/me', async (req, res) => {
   const cookies = auth.parseCookies(req);
   const user = auth.getUserForToken(cookies.session);
-  sendJSON(res, 200, { user: user ? { id: user.id, email: user.email } : null });
+  sendJSON(res, 200, { user: user ? publicUser(user) : null });
+});
+
+// --- Billing routes (session required, active subscription NOT required — you need one to get one) ---
+
+route('POST', '/api/billing/checkout', async (req, res, params, user) => {
+  if (!billing.stripeConfigured()) return sendJSON(res, 503, { error: 'Billing is not configured yet' });
+  const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
+  try {
+    const session = await billing.createCheckoutSession({
+      userId: user.id,
+      email: user.email,
+      customerId: user.stripe_customer_id,
+      successUrl: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${origin}/?checkout=cancelled`
+    });
+    sendJSON(res, 200, { url: session.url });
+  } catch (e) {
+    sendJSON(res, 502, { error: 'Could not start checkout: ' + e.message });
+  }
+});
+
+route('GET', '/api/billing/verify', async (req, res, params, user) => {
+  if (!billing.stripeConfigured()) return sendJSON(res, 503, { error: 'Billing is not configured yet' });
+  const parsed = url.parse(req.url, true);
+  const sessionId = parsed.query.session_id;
+  if (!sessionId) return sendJSON(res, 400, { error: 'Missing session_id' });
+
+  let session;
+  try {
+    session = await billing.retrieveCheckoutSession(sessionId);
+  } catch (e) {
+    return sendJSON(res, 502, { error: 'Could not verify checkout: ' + e.message });
+  }
+  if (session.client_reference_id !== String(user.id)) {
+    return sendJSON(res, 403, { error: 'This checkout session does not belong to you' });
+  }
+  if (session.payment_status !== 'paid' && session.status !== 'complete') {
+    return sendJSON(res, 200, { subscriptionStatus: user.subscription_status, pending: true });
+  }
+
+  let updated = user;
+  if (session.customer) updated = store.setStripeCustomerId(user.id, session.customer);
+  const subscriptionStatus = session.subscription?.status || 'active';
+  const subscriptionId = session.subscription?.id;
+  updated = store.setSubscriptionStatus(user.id, subscriptionStatus, subscriptionId);
+  sendJSON(res, 200, { user: publicUser(updated) });
+});
+
+// Stripe webhook — not authenticated via session cookie; verified via Stripe-Signature instead.
+// Requires STRIPE_WEBHOOK_SECRET (from Stripe Dashboard -> Developers -> Webhooks) and a publicly
+// reachable URL registered there, so it's inert (204, no-op) until both are set up post-deploy.
+route('POST', '/api/billing/webhook', async (req, res) => {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  const raw = await readBody(req);
+  if (!secret) { res.writeHead(204); return res.end(); }
+
+  const signature = req.headers['stripe-signature'];
+  if (!billing.verifyWebhookSignature(raw.toString('utf8'), signature, secret)) {
+    return sendJSON(res, 400, { error: 'Invalid signature' });
+  }
+
+  let event;
+  try { event = JSON.parse(raw.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON' }); }
+
+  const sub = event.data?.object;
+  if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
+    const owner = store.getUserByStripeSubscriptionId(sub.id) || store.getUserByStripeCustomerId(sub.customer);
+    if (owner) store.setSubscriptionStatus(owner.id, event.type === 'customer.subscription.deleted' ? 'canceled' : sub.status, sub.id);
+  }
+  sendJSON(res, 200, { received: true });
 });
 
 // --- Project routes (session required — enforced in the server() dispatcher below) ---
@@ -247,10 +353,18 @@ const server = http.createServer(async (req, res) => {
     const match = matchRoute(req.method, pathname);
     if (!match) return sendJSON(res, 404, { error: 'No such route' });
 
-    const isAuthRoute = pathname.startsWith('/api/auth/');
+    const isPublicRoute = pathname.startsWith('/api/auth/') || pathname === '/api/billing/webhook';
+    const isBillingRoute = pathname.startsWith('/api/billing/');
     const cookies = auth.parseCookies(req);
     const user = auth.getUserForToken(cookies.session);
-    if (!isAuthRoute && !user) return sendJSON(res, 401, { error: 'Not authenticated' });
+    if (!isPublicRoute && !user) return sendJSON(res, 401, { error: 'Not authenticated' });
+
+    // Paid routes: once billing is configured, require an active (or trialing) subscription.
+    // Auth and billing routes themselves stay exempt — you need to be able to log in and pay
+    // before you can have a subscription.
+    if (!isPublicRoute && !isBillingRoute && billing.stripeConfigured() && !['active', 'trialing'].includes(user.subscription_status)) {
+      return sendJSON(res, 402, { error: 'An active subscription is required to use Schedule Health', subscriptionStatus: user.subscription_status });
+    }
 
     try {
       await match.handler(req, res, match.params, user);
