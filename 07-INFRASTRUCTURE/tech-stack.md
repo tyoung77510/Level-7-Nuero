@@ -37,6 +37,13 @@
 |--------|---------|:------:|
 | Stripe (via cto.new) | Payment processing | ⏳ Requires paid plan upgrade |
 
+## Notifications
+| System | Purpose | Status |
+|--------|---------|:------:|
+| Knock (linked to cto.new) | Notification infrastructure — workflows for onboarding, alerting, referrals, and other lifecycle messages across email/SMS/push/in-app | ✅ Connected, workflows not yet built |
+
+Knock centralizes trigger-based messaging (e.g., "quick win delivered," "response SLA breached," "contract renewal due") instead of sending it manually. Matches the automation opportunity flagged in [[05-CLIENT/relationship-management.md]] — SLAs and event-based comms are currently manual SOP steps, not automated workflows.
+
 ## Obsidian Cross-References
 - [[07-INFRASTRUCTURE/team-roles.md]] — Who manages each system
 - [[07-INFRASTRUCTURE/directory-structure.md]] — Where everything is stored

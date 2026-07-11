@@ -17,6 +17,7 @@
 | Domain | level7data.com (Cloudflare DNS, 301 redirect) |
 | Team | 7 agents: Lead, Sales, PM, Controls, Data/Process, Web, CS |
 | Storage | `/home/team/shared/` — all files, SOPs, client work, digital brain |
+| Notifications | Knock (linked to cto.new) — workflow-based messaging, not yet built out |
 
 ## Cross-References
 - [[03-DELIVERY/quality-standards.md]] — Quality standards apply to infrastructure docs

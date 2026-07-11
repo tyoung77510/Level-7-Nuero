@@ -18,6 +18,7 @@
 | 2026-07-11 | Adopted the Musk Algorithm (question → delete → simplify → accelerate → automate) as our standing method for building any system, SOP, or tool | Owner requested it as a build discipline, not a one-time fix | Owner | ✅ |
 | 2026-07-11 | Deleted 00-INDEX.md; consolidated to a single navigation hub (00-MOC-MASTER.md) | Two entry points had already drifted out of sync (Step 1–2 of the Musk Algorithm: question the requirement, delete the redundant part) | Data Agent | ✅ |
 | 2026-07-11 | Added README.md, LICENSE, .gitignore; standardized "Last Updated" metadata across all brain files | Repo had no GitHub-native orientation and no consistent freshness tracking — audit gap closed | Data Agent | ✅ |
+| 2026-07-11 | Documented Knock (linked to cto.new) as notification infrastructure in tech-stack.md | Was connected but undocumented; workflows not yet built | Owner | ✅ |
 
 ## Open Action Items
 | Item | Why It Matters | Owner Action Needed |
