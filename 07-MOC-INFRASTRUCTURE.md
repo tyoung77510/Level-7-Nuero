@@ -1,5 +1,5 @@
 # 07-MOC-INFRASTRUCTURE — Infrastructure Map of Content
-> **Status:** ✅ Active | **Purpose:** Index for tech stack, team roles, and directory structure
+> **Status:** ✅ Active | **Purpose:** Index for tech stack, team roles, and directory structure | **Last Updated:** 2026-07-11
 
 ## 🔗 Key Notes in This Section
 

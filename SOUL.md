@@ -1,5 +1,5 @@
 # SOUL.md — Mission, Values & Core Principles
-> **Status:** ✅ Active | **Last Updated:** 2026-07-10
+> **Status:** ✅ Active | **Last Updated:** 2026-07-11
 > **Purpose:** The why behind Level 7 Consulting — our mission, values, and non-negotiable principles.
 
 ## Our Mission
@@ -36,6 +36,17 @@ Enterprise-grade output for every client, regardless of engagement size. The sam
 We build systems that work without heroes. Documented processes. Repeatable methodologies. Standardized templates. If the business depends on a single person's knowledge, that's a risk we eliminate.
 
 > *"Heroes burn out. Systems endure."*
+
+## Our Build Method: The Musk Algorithm
+Before we build or approve any system, SOP, tool, or process — ours or a client's — we run it through five steps, in this order. Skipping the order is how organizations end up automating a mistake.
+
+1. **Question every requirement.** Every requirement traces back to a person, not a department. Ask why it exists. "We've always done it that way" is not an answer.
+2. **Delete the part or process.** If you're not adding at least 10% of what you deleted back in, you didn't delete enough. Subtract before you redesign.
+3. **Simplify or optimize.** Only after questioning and deleting — never optimize a step that shouldn't exist.
+4. **Accelerate cycle time.** Speed comes after the first three steps, not instead of them.
+5. **Automate.** Automate last. An automated bad process just produces bad outcomes faster.
+
+This applies to our own SOPs and internal tooling as much as anything we build for a client.
 
 ## Our Non-Negotiables (From SOP-003)
 1. **Integrity** — Never hide bad news. Surface risks early.

@@ -1,5 +1,5 @@
 # Project Controls — Delivery Summary
-> **Source:** SOP-PC-001 (EVM Implementation), SOP-PC-002 (Cost/Schedule Control), SOP-PC-003 (Dashboards & Reporting)
+> **Source:** SOP-PC-001 (EVM Implementation), SOP-PC-002 (Cost/Schedule Control), SOP-PC-003 (Dashboards & Reporting) | **Last Updated:** 2026-07-11
 
 ## EVM Fundamentals
 Earned Value Management integrates scope, schedule, and cost into one framework.

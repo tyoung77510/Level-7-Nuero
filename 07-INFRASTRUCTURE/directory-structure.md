@@ -1,5 +1,5 @@
 # Shared Directory Structure
-> **Source:** System prompt, SOP-001, file system inspection
+> **Source:** System prompt, SOP-001, file system inspection | **Last Updated:** 2026-07-11
 
 ## Top-Level Layout
 ```

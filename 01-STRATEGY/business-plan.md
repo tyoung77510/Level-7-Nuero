@@ -1,5 +1,5 @@
 # Level 7 Consulting — Business Plan & Strategy
-> **Source:** System prompt (Business Plan Revision 4), INFRA-001
+> **Source:** System prompt (Business Plan Revision 4), INFRA-001 | **Last Updated:** 2026-07-11
 
 ## Value Proposition
 A specialized consulting agency that brings order to operational chaos. We help industrial and engineering organizations install professional project management frameworks, implement robust project controls (cost, schedule, EVM), deploy and optimize CMMS platforms, and clean up messy data, processes, and workflows — so they stop fighting fires and start running smoothly.

@@ -1,5 +1,5 @@
 # Sales Materials — Deck, One-Pager, Case Study
-> **Source:** sales-deck.md, one-pager.md, case-study-template.md, branded-service-packages.md
+> **Source:** sales-deck.md, one-pager.md, case-study-template.md, branded-service-packages.md | **Last Updated:** 2026-07-11
 
 ## One-Pager Summary
 **Title:** Stop Firefighting. Start Running.

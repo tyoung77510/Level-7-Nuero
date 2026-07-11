@@ -1,5 +1,5 @@
 # Competitive Positioning
-> **Source:** System prompt, branded-service-packages.md, services.md, outreach-templates.md
+> **Source:** System prompt, branded-service-packages.md, services.md, outreach-templates.md | **Last Updated:** 2026-07-11
 
 ## Market Position
 Level 7 Consulting sits in a specific, underserved niche:

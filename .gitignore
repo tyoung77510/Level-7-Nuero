@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Obsidian local config (workspace layout, not brain content)
+.obsidian/
+
+# Local env / secrets
+.env
+.env.*

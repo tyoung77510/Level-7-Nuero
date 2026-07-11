@@ -1,5 +1,5 @@
 # Brand Identity — Level 7 Consulting
-> **Source:** services.md, sales-deck.md, one-pager.md, linkedin-content.md
+> **Source:** services.md, sales-deck.md, one-pager.md, linkedin-content.md | **Last Updated:** 2026-07-11
 
 ## Core Identity
 | Element | Detail |

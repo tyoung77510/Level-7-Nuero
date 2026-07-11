@@ -19,8 +19,8 @@ The Digital Brain is structured in 7 sections:
 - **07-INFRASTRUCTURE** — Tech stack (cto.new, Turso, TanStack), team roles (7 agents), directory structure
 
 ## Navigation
-- **00-MOC-MASTER.md** — Master Map of Content with quick-start paths
-- **00-INDEX.md** — Alternative entry point
+- **README.md** — GitHub-facing overview for anyone browsing outside Obsidian
+- **00-MOC-MASTER.md** — Master Map of Content with quick-start paths (single entry point)
 - **09-QUICK-REFERENCE.md** — 16-question cheat sheet for instant answers
 - **08-DECISIONS.md** — Decision log
 
@@ -31,6 +31,7 @@ The Digital Brain is structured in 7 sections:
 4. All deliverables must reflect the brand voice (Truth-Teller, direct, no fluff)
 5. Capability transfer to the client is a core value — document everything
 6. Follow the 5 non-negotiables: Integrity, Transparency, Accountability, Excellence, Service
+7. When building or changing any system, SOP, or tool: apply the Musk Algorithm — question the requirement, delete, simplify, accelerate, automate, in that order (see [[SOUL.md]])
 
 ## Key Facts
 - **Website:** level7dc.ctonew.app (redirect from level7data.com)

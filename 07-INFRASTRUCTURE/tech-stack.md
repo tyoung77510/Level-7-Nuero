@@ -1,5 +1,5 @@
 # Technology Stack
-> **Source:** INFRA-002 (Technology Stack)
+> **Source:** INFRA-002 (Technology Stack) | **Last Updated:** 2026-07-11
 
 ## Core Platform
 | System | Purpose | Access |

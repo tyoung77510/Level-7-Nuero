@@ -1,5 +1,5 @@
 # 06-MOC-BRAND — Brand Map of Content
-> **Status:** ✅ Active | **Purpose:** Index for brand identity and visual assets
+> **Status:** ✅ Active | **Purpose:** Index for brand identity and visual assets | **Last Updated:** 2026-07-11
 
 ## 🔗 Key Notes in This Section
 

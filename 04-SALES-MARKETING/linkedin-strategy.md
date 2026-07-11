@@ -1,5 +1,5 @@
 # LinkedIn Content Strategy
-> **Source:** linkedin-content.md, linkedin-assessment-posts.md
+> **Source:** linkedin-content.md, linkedin-assessment-posts.md | **Last Updated:** 2026-07-11
 
 ## Strategy Overview
 | Element | Detail |

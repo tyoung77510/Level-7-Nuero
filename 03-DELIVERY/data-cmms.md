@@ -1,5 +1,5 @@
 # Data & CMMS — Delivery Summary
-> **Source:** SOP-DP-001 (Data Audits & Cleansing), SOP-DP-002 (Process Redesign & SOPs), SOP-DP-003 (CMMS Deployment)
+> **Source:** SOP-DP-001 (Data Audits & Cleansing), SOP-DP-002 (Process Redesign & SOPs), SOP-DP-003 (CMMS Deployment) | **Last Updated:** 2026-07-11
 
 ## Data Quality Audit Framework
 

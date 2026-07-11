@@ -1,5 +1,5 @@
 # Client Onboarding Process
-> **Source:** SOP-001 (Client Onboarding)
+> **Source:** SOP-001 (Client Onboarding) | **Last Updated:** 2026-07-11
 
 ## Process Flow
 ```
