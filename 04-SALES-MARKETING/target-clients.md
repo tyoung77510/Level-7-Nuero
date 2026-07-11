@@ -1,5 +1,5 @@
 # Target Clients & Channels
-> **Source:** target-client-list.md
+> **Source:** target-client-list.md | **Last Updated:** 2026-07-11
 
 ## Target Company Profile
 | Attribute | Range |

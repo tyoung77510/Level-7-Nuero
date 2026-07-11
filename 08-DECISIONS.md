@@ -1,5 +1,6 @@
 # Level 7 Consulting — Key Decisions Log
 > **Purpose:** Track every significant decision, its rationale, who made it, and why.
+> **Status:** ✅ Active | **Last Updated:** 2026-07-11
 
 ## Decision Log
 | Date | Decision | Rationale | Made By | Status |
@@ -14,6 +15,15 @@
 | 2026-07-06 | Three-channel acquisition strategy | Diversified pipeline risk reduction | Sales Agent | ✅ |
 | 2026-07-08 | Digital Brain at `/home/team/shared/digital-brain/` | Centralized AI-accessible knowledge | Data Agent | ✅ |
 | 2026-07-10 | Digital Brain: Obsidian-compatible MOC structure + USER/SOUL/IDENTITY foundation | Owner requested AI OS Playbook compatibility | Data Agent | ✅ |
+| 2026-07-11 | Adopted the Musk Algorithm (question → delete → simplify → accelerate → automate) as our standing method for building any system, SOP, or tool | Owner requested it as a build discipline, not a one-time fix | Owner | ✅ |
+| 2026-07-11 | Deleted 00-INDEX.md; consolidated to a single navigation hub (00-MOC-MASTER.md) | Two entry points had already drifted out of sync (Step 1–2 of the Musk Algorithm: question the requirement, delete the redundant part) | Data Agent | ✅ |
+| 2026-07-11 | Added README.md, LICENSE, .gitignore; standardized "Last Updated" metadata across all brain files | Repo had no GitHub-native orientation and no consistent freshness tracking — audit gap closed | Data Agent | ✅ |
+
+## Open Action Items
+| Item | Why It Matters | Owner Action Needed |
+|------|-----------------|----------------------|
+| Stripe payment processing ⏳ | No live path to collect on a signed SOW without it | Upgrade cto.new plan to enable Stripe |
+| Digital Brain ↔ shared filesystem sync | This repo mirrors `/home/team/shared/digital-brain/` but nothing enforces they stay in sync | Decide: GitHub becomes canonical, or set up a scheduled sync |
 
 ## Decision Principles
 1. **Default to documented** — If not written down, it didn't happen

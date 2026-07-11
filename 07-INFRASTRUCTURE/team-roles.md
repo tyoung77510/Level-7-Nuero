@@ -1,5 +1,5 @@
 # Team Roles & Capabilities
-> **Source:** INFRA-003 (Team Structure), System prompt
+> **Source:** INFRA-003 (Team Structure), System prompt | **Last Updated:** 2026-07-11
 
 ## Organization Structure
 ```

@@ -1,5 +1,5 @@
 # 03-MOC-DELIVERY — Delivery Map of Content
-> **Status:** ✅ Active | **Purpose:** Index for all delivery methodologies and quality standards
+> **Status:** ✅ Active | **Purpose:** Index for all delivery methodologies and quality standards | **Last Updated:** 2026-07-11
 
 ## 🔗 Key Notes in This Section
 
@@ -14,15 +14,15 @@
 ## How the Pillars Connect
 
 ```
-[[pm-frameworks.md]] ◄──sets methodology for──► [[project-controls.md]]
+pm-frameworks.md ◄──sets methodology for──► project-controls.md
          ▲                                            ▲
          │                                            │
-         │    [[data-cmms.md]] ◄──provides data──►    │
+         │    data-cmms.md ◄──provides data──►        │
          │                                            │
-         └────both governed by──► [[quality-standards.md]]
+         └────both governed by──► quality-standards.md
                                                │
                                                ▼
-                                  [[engagement-lifecycle.md]]
+                                  engagement-lifecycle.md
 ```
 
 ## Cross-References

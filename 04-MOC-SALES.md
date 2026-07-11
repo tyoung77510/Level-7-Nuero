@@ -1,5 +1,5 @@
 # 04-MOC-SALES — Sales & Marketing Map of Content
-> **Status:** ✅ Active | **Purpose:** Index for outreach, targeting, content, and sales materials
+> **Status:** ✅ Active | **Purpose:** Index for outreach, targeting, content, and sales materials | **Last Updated:** 2026-07-11
 
 ## 🔗 Key Notes in This Section
 

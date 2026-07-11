@@ -1,5 +1,5 @@
 # Engagement Lifecycle — The 5-Phase Delivery Model
-> **Source:** SOP-002 (Engagement Lifecycle)
+> **Source:** SOP-002 (Engagement Lifecycle) | **Last Updated:** 2026-07-11
 
 ## Overview
 ```

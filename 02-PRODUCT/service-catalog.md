@@ -1,5 +1,5 @@
 # Level 7 Consulting — Service Catalog
-> **Source:** branded-service-packages.md, services.md, pricing.md, case-study-template.md
+> **Source:** branded-service-packages.md, services.md, pricing.md, case-study-template.md | **Last Updated:** 2026-07-11
 
 ## Service Package Overview
 

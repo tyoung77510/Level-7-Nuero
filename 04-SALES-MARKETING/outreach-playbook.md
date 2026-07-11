@@ -1,5 +1,5 @@
 # Outreach Playbook — Sales & Marketing
-> **Source:** outreach-templates.md, 5-client-acquisition-plan.md, batch results files
+> **Source:** outreach-templates.md, 5-client-acquisition-plan.md, batch results files | **Last Updated:** 2026-07-11
 
 ## Three-Channel Strategy
 ```

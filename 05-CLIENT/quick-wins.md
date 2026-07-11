@@ -1,5 +1,5 @@
 # Quick-Win Delivery System
-> **Source:** SOP-009 (Client Relationship Management — Quick Wins section)
+> **Source:** SOP-009 (Client Relationship Management — Quick Wins section) | **Last Updated:** 2026-07-11
 
 ## What Is a Quick Win?
 A tangible, visible improvement delivered within the first **7 days** of an engagement. Proves value immediately and builds trust.

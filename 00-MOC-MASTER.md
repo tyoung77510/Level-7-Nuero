@@ -1,5 +1,5 @@
 # 00-MOC-MASTER — Map of Content
-> **Status:** ✅ Active | **Last Updated:** 2026-07-10
+> **Status:** ✅ Active | **Last Updated:** 2026-07-11
 > **Purpose:** The gateway to everything in the Digital Brain. Start here.
 
 ## 🧭 How to Navigate
@@ -21,15 +21,15 @@
 
 ## 📂 Section MOCs
 
-| MOC | Domain | Key Files |
-|-----|--------|-----------|
-| [[01-MOC-STRATEGY]] | Business plan, competitive positioning | `business-plan.md`, `competitive-positioning.md` |
-| [[02-MOC-PRODUCT]] | Services, pricing, packages | `service-catalog.md` |
-| [[03-MOC-DELIVERY]] | PMO, controls, data/CMMS, quality | `pm-frameworks.md`, `project-controls.md`, `data-cmms.md`, `engagement-lifecycle.md`, `quality-standards.md` |
-| [[04-MOC-SALES]] | Outreach, targeting, LinkedIn, sales assets | `outreach-playbook.md`, `target-clients.md`, `linkedin-strategy.md`, `sales-materials.md` |
-| [[05-MOC-CLIENT]] | Onboarding, relationship management, quick wins | `onboarding.md`, `relationship-management.md`, `quick-wins.md` |
-| [[06-MOC-BRAND]] | Brand identity, visual assets | `brand-identity.md`, `visual-assets.md` |
-| [[07-MOC-INFRASTRUCTURE]] | Tech stack, team roles, directory structure | `tech-stack.md`, `team-roles.md`, `directory-structure.md` |
+| MOC | Domain | Folder | Key Files |
+|-----|--------|--------|-----------|
+| [[01-MOC-STRATEGY]] | Business plan, competitive positioning | `01-STRATEGY/` | `business-plan.md`, `competitive-positioning.md` |
+| [[02-MOC-PRODUCT]] | Services, pricing, packages | `02-PRODUCT/` | `service-catalog.md` |
+| [[03-MOC-DELIVERY]] | PMO, controls, data/CMMS, quality | `03-DELIVERY/` | `pm-frameworks.md`, `project-controls.md`, `data-cmms.md`, `engagement-lifecycle.md`, `quality-standards.md` |
+| [[04-MOC-SALES]] | Outreach, targeting, LinkedIn, sales assets | `04-SALES-MARKETING/` | `outreach-playbook.md`, `target-clients.md`, `linkedin-strategy.md`, `sales-materials.md` |
+| [[05-MOC-CLIENT]] | Onboarding, relationship management, quick wins | `05-CLIENT/` | `onboarding.md`, `relationship-management.md`, `quick-wins.md` |
+| [[06-MOC-BRAND]] | Brand identity, visual assets | `06-BRAND/` | `brand-identity.md`, `visual-assets.md` |
+| [[07-MOC-INFRASTRUCTURE]] | Tech stack, team roles, directory structure | `07-INFRASTRUCTURE/` | `tech-stack.md`, `team-roles.md`, `directory-structure.md` |
 
 ## 🔗 Key Cross-References
 
@@ -70,4 +70,4 @@
 ---
 
 > 🔗 **MOC conventions:** `[[wikilinks]]` connect to related notes. `MOC` files index their domain. Section folders contain detailed content.
-> **Built by:** Data & Process Agent | **Last rebuilt:** 2026-07-10
+> **Built by:** Data & Process Agent | **Last rebuilt:** 2026-07-11

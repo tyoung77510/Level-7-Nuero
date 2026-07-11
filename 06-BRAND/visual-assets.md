@@ -1,5 +1,5 @@
 # Visual Assets Inventory
-> **Source:** `/home/team/shared/visuals/`, `/home/team/shared/site/public/images/`
+> **Source:** `/home/team/shared/visuals/`, `/home/team/shared/site/public/images/` | **Last Updated:** 2026-07-11
 
 ## Shared Visuals Directory
 Location: `/home/team/shared/visuals/`

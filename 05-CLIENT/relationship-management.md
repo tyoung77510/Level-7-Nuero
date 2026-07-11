@@ -1,5 +1,5 @@
 # Client Relationship Management
-> **Source:** SOP-009 (Client Relationship Management)
+> **Source:** SOP-009 (Client Relationship Management) | **Last Updated:** 2026-07-11
 
 ## Philosophy
 > *"We know our clients inside and out. Their business, their challenges, their goals, their team — and their birthday."*

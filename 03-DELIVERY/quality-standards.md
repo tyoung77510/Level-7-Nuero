@@ -1,5 +1,5 @@
 # Quality Standards
-> **Source:** SOP-003 (Quality Standards)
+> **Source:** SOP-003 (Quality Standards) | **Last Updated:** 2026-07-11
 
 ## Our Quality Promise
 Every deliverable must meet the standard that we would be proud to show Elon Musk, Satya Nadella, or Sundar Pichai. No shortcuts. No "good enough."
