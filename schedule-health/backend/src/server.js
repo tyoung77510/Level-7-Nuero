@@ -119,8 +119,14 @@ function publicUser(user) {
     phone: user.phone,
     subscriptionStatus: user.subscription_status,
     planTier: user.plan_tier,
-    creditBalance: user.credit_balance
+    creditBalance: user.credit_balance,
+    emailVerified: !!user.email_verified
   };
+}
+
+function verificationUrl(req, token) {
+  const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
+  return `${origin}/?verify=${token}`;
 }
 
 route('POST', '/api/auth/signup', async (req, res) => {
@@ -137,12 +143,46 @@ route('POST', '/api/auth/signup', async (req, res) => {
   if (password.length < 8) return sendJSON(res, 400, { error: 'Password must be at least 8 characters' });
   if (store.getUserByEmail(email)) return sendJSON(res, 409, { error: 'An account with that email already exists' });
 
+  // Verification is only required once a workflow is actually configured (see knock.js) — local
+  // dev and any environment without that set up stays frictionless, same pattern as billing.
+  const requireVerification = knock.verificationConfigured();
   const { salt, hash } = auth.hashPassword(password);
-  const user = store.createUser(name, email, phone, hash, salt, pricing.FREE_SIGNUP_CREDITS);
+  const user = store.createUser(name, email, phone, hash, salt, pricing.FREE_SIGNUP_CREDITS, !requireVerification);
   const { token } = auth.createSession(user.id);
   res.setHeader('Set-Cookie', auth.sessionCookie(token, req, auth.SESSION_TTL_MS / 1000));
   knock.identifyUser(user).catch(() => {}); // never let a marketing-sync failure block signup
+  if (requireVerification) {
+    const verifyToken = auth.createVerificationToken(user.id);
+    knock.sendVerificationEmail(user, verificationUrl(req, verifyToken)).catch(() => {});
+  }
   sendJSON(res, 200, { user: publicUser(user) });
+});
+
+route('POST', '/api/auth/verify', async (req, res) => {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const token = String(payload.token || '');
+  if (!token) return sendJSON(res, 400, { error: 'Missing verification token' });
+
+  const userId = auth.verifyEmailToken(token);
+  if (!userId) return sendJSON(res, 400, { error: 'This verification link is invalid or has expired' });
+
+  const user = store.setEmailVerified(userId);
+  sendJSON(res, 200, { user: publicUser(user) });
+});
+
+route('POST', '/api/auth/resend-verification', async (req, res, params, user) => {
+  // /api/auth/* is exempt from the dispatcher's blanket auth check (see below), since signup/
+  // login/verify all need to work without a session — so this route checks for itself.
+  if (!user) return sendJSON(res, 401, { error: 'Not authenticated' });
+  if (user.email_verified) return sendJSON(res, 200, { ok: true, alreadyVerified: true });
+  if (!knock.verificationConfigured()) return sendJSON(res, 503, { error: 'Email verification is not configured yet' });
+
+  const verifyToken = auth.createVerificationToken(user.id);
+  const sent = await knock.sendVerificationEmail(user, verificationUrl(req, verifyToken));
+  if (!sent) return sendJSON(res, 502, { error: 'Could not send verification email right now — try again in a moment' });
+  sendJSON(res, 200, { ok: true });
 });
 
 route('POST', '/api/auth/login', async (req, res) => {
@@ -545,6 +585,14 @@ const server = http.createServer(async (req, res) => {
     // Every account (including the free tier) can use the core app — there is no longer a
     // blanket "subscribe or you're locked out" gate. The only thing a plan/credit balance
     // restricts is AI narrative generation, enforced in that route itself (see /api/snapshots/:id/narrative).
+
+    // Unverified accounts are blocked everywhere except the auth routes themselves (so they can
+    // still log out, check /api/auth/me, or resend the verification email). Only applies to
+    // accounts created while verification was configured — see the DEFAULT 1 migration note in
+    // db.js for why existing/grandfathered accounts are never affected by this.
+    if (!isPublicRoute && user && !user.email_verified) {
+      return sendJSON(res, 403, { error: 'Verify your email to continue', code: 'EMAIL_NOT_VERIFIED' });
+    }
 
     try {
       await match.handler(req, res, match.params, user);

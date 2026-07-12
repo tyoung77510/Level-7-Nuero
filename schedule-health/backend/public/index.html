@@ -189,7 +189,18 @@
       <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">
       <button class="btn primary" id="authSubmit">Log in</button>
       <p id="authError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
+      <p id="authNotice" style="display:none; padding:6px 0 0; font-size:12px; color:var(--good); text-align:center;"></p>
       <p class="auth-toggle"><span id="authToggleText">Don't have an account?</span> <a id="authToggleLink">Sign up</a></p>
+    </div>
+  </div>
+
+  <div id="verifyScreen" class="auth-box" style="display:none;">
+    <div class="card">
+      <h2 style="margin:0 0 2px; font-size:16px;">Verify your email</h2>
+      <p style="font-size:13px; color:var(--muted); margin:0;">We sent a link to <strong id="verifyEmailAddr"></strong> — click it to unlock your account.</p>
+      <button class="btn primary" id="resendVerification">Resend email</button>
+      <p id="verifyStatus" style="font-size:12px; color:var(--muted); text-align:center; margin:4px 0 0;"></p>
+      <p class="auth-toggle"><a id="verifyLogout" style="color:var(--muted); cursor:pointer;">Log out</a></p>
     </div>
   </div>
 
@@ -408,13 +419,24 @@ function showAuth(){
   currentUser = null;
   document.body.classList.add('auth-mode');
   document.getElementById('authScreen').style.display = '';
+  document.getElementById('verifyScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'none';
+}
+
+function showVerify(user){
+  currentUser = user;
+  document.body.classList.add('auth-mode');
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('verifyScreen').style.display = '';
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('verifyEmailAddr').textContent = user.email;
 }
 
 function showApp(user){
   currentUser = user;
   document.body.classList.remove('auth-mode');
   document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('verifyScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = '';
   document.getElementById('userEmail').textContent = user.email;
   updateCreditPill(user);
@@ -430,10 +452,12 @@ function updateCreditPill(user){
   el.textContent = tierLabel(user.planTier) + ' · ' + (user.creditBalance ?? 0) + ' credits';
 }
 
-// Every account — including the free tier — gets straight into the app. There's no more
-// forced subscribe-or-you're-locked-out screen; upgrading happens voluntarily from the Plan tab.
+// Every account — including the free tier — gets straight into the app once verified. There's
+// no more forced subscribe-or-you're-locked-out screen; upgrading happens voluntarily from the
+// Plan tab. Verification (when configured, see knock.js) is the only remaining gate.
 function routeForUser(user){
-  showApp(user);
+  if (!user.emailVerified) showVerify(user);
+  else showApp(user);
 }
 
 function setAuthMode(mode){
@@ -446,6 +470,7 @@ function setAuthMode(mode){
   document.getElementById('authName').style.display = isSignup ? '' : 'none';
   document.getElementById('authPhone').style.display = isSignup ? '' : 'none';
   document.getElementById('authError').style.display = 'none';
+  document.getElementById('authNotice').style.display = 'none';
 }
 
 document.getElementById('authToggleLink').addEventListener('click', () => setAuthMode(authMode === 'login' ? 'signup' : 'login'));
@@ -457,6 +482,7 @@ document.getElementById('authSubmit').addEventListener('click', async () => {
   const password = document.getElementById('authPassword').value;
   const errEl = document.getElementById('authError');
   errEl.style.display = 'none';
+  document.getElementById('authNotice').style.display = 'none';
   const payload = authMode === 'signup' ? { name, email, phone, password } : { email, password };
   try {
     const result = await api('/api/auth/' + authMode, {
@@ -477,6 +503,22 @@ async function doLogout(){
   showAuth();
 }
 document.getElementById('logoutBtn').addEventListener('click', doLogout);
+document.getElementById('verifyLogout').addEventListener('click', doLogout);
+
+document.getElementById('resendVerification').addEventListener('click', async () => {
+  const btn = document.getElementById('resendVerification');
+  const status = document.getElementById('verifyStatus');
+  btn.disabled = true;
+  status.textContent = 'Sending…';
+  try {
+    await api('/api/auth/resend-verification', { method: 'POST' });
+    status.textContent = 'Sent — check your inbox.';
+  } catch (e) {
+    status.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 // --- Feedback ---
 
@@ -630,12 +672,49 @@ async function handleCheckoutRedirect(){
   return false;
 }
 
+async function handleVerifyRedirect(loggedInUser){
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('verify');
+  if (!token) return false;
+  history.replaceState({}, '', window.location.pathname);
+
+  try {
+    const result = await api('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    });
+    if (loggedInUser && result.user && result.user.id === loggedInUser.id) {
+      // Verifying from the same browser session that signed up — unlock the app directly.
+      showApp(result.user);
+    } else {
+      // A different device/browser (e.g. opened from a phone's mail app) — no session to resume,
+      // so send them to log in instead of silently signing anyone in via just the link.
+      showAuth();
+      const notice = document.getElementById('authNotice');
+      notice.textContent = 'Email verified — log in below.';
+      notice.style.display = 'block';
+    }
+  } catch (e) {
+    showAuth();
+    const errEl = document.getElementById('authError');
+    errEl.textContent = 'Could not verify: ' + e.message;
+    errEl.style.display = 'block';
+  }
+  return true;
+}
+
 (async function checkAuth(){
   try {
     const { user } = await api('/api/auth/me');
-    if (!user) { showAuth(); return; }
+    if (!user) {
+      const handled = await handleVerifyRedirect(null);
+      if (!handled) showAuth();
+      return;
+    }
     routeForUser(user);
     await handleCheckoutRedirect();
+    await handleVerifyRedirect(user);
   } catch (e) { showAuth(); }
 })();
 

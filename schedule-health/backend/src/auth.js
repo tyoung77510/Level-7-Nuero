@@ -6,6 +6,7 @@ const crypto = require('node:crypto');
 const store = require('./db');
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SCRYPT_KEYLEN = 64;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -40,6 +41,23 @@ function getUserForToken(token) {
   return store.getUserById(session.user_id);
 }
 
+function createVerificationToken(userId) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + VERIFICATION_TTL_MS).toISOString();
+  store.createVerificationToken(token, userId, expiresAt);
+  return token;
+}
+
+// Consumes (deletes) the token whether or not it's expired/valid, so a token can only ever be
+// used once — a leaked verification link found in browser history or a logfile can't be replayed.
+function verifyEmailToken(token) {
+  const row = store.getVerificationToken(token);
+  if (!row) return null;
+  store.deleteVerificationToken(token);
+  if (new Date(row.expires_at).getTime() < Date.now()) return null;
+  return row.user_id;
+}
+
 function parseCookies(req) {
   const header = req.headers.cookie;
   const cookies = {};
@@ -70,5 +88,6 @@ function clearCookie(req) {
 
 module.exports = {
   hashPassword, verifyPassword, createSession, getUserForToken,
-  parseCookies, sessionCookie, clearCookie, EMAIL_RE, SESSION_TTL_MS
+  createVerificationToken, verifyEmailToken,
+  parseCookies, sessionCookie, clearCookie, EMAIL_RE, SESSION_TTL_MS, VERIFICATION_TTL_MS
 };

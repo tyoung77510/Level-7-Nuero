@@ -23,10 +23,18 @@ db.exec(`
     subscription_status TEXT NOT NULL DEFAULT 'none',
     plan_tier TEXT NOT NULL DEFAULT 'free',
     credit_balance INTEGER NOT NULL DEFAULT 0,
+    email_verified INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
   CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS verification_tokens (
     token TEXT PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -109,6 +117,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_chat_messages_snapshot ON chat_messages(snapshot_id);
   CREATE INDEX IF NOT EXISTS idx_ai_usage_user ON ai_usage(user_id);
   CREATE INDEX IF NOT EXISTS idx_credit_purchases_user ON credit_purchases(user_id);
+  CREATE INDEX IF NOT EXISTS idx_verification_tokens_user ON verification_tokens(user_id);
 `);
 
 // Lightweight migration: CREATE TABLE IF NOT EXISTS doesn't add columns to a table that already
@@ -123,11 +132,21 @@ function ensureColumn(table, column, definition) {
 ensureColumn('snapshots', 'narrative', 'TEXT');
 ensureColumn('users', 'plan_tier', "TEXT NOT NULL DEFAULT 'free'");
 ensureColumn('users', 'credit_balance', 'INTEGER NOT NULL DEFAULT 0');
+// DEFAULT 1 here (not 0!) — this migration runs against real existing accounts created before
+// email verification existed (including live production users). They should be grandfathered in
+// as verified, not retroactively locked out. New signups always pass an explicit value via
+// createUser() regardless of this table-level default.
+ensureColumn('users', 'email_verified', 'INTEGER NOT NULL DEFAULT 1');
 
-function createUser(name, email, phone, passwordHash, passwordSalt, signupCredits) {
-  db.prepare('INSERT INTO users (name, email, phone, password_hash, password_salt, credit_balance) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(name, email, phone || null, passwordHash, passwordSalt, signupCredits || 0);
+function createUser(name, email, phone, passwordHash, passwordSalt, signupCredits, emailVerified) {
+  db.prepare('INSERT INTO users (name, email, phone, password_hash, password_salt, credit_balance, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(name, email, phone || null, passwordHash, passwordSalt, signupCredits || 0, emailVerified ? 1 : 0);
   return db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+}
+
+function setEmailVerified(userId) {
+  db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(userId);
+  return getUserById(userId);
 }
 
 function getUserByEmail(email) {
@@ -219,6 +238,22 @@ function deleteSession(token) {
 
 function deleteExpiredSessions() {
   db.prepare("DELETE FROM sessions WHERE expires_at < datetime('now')").run();
+}
+
+function createVerificationToken(token, userId, expiresAt) {
+  db.prepare('INSERT INTO verification_tokens (token, user_id, expires_at) VALUES (?, ?, ?)').run(token, userId, expiresAt);
+}
+
+function getVerificationToken(token) {
+  return db.prepare('SELECT * FROM verification_tokens WHERE token = ?').get(token);
+}
+
+function deleteVerificationToken(token) {
+  db.prepare('DELETE FROM verification_tokens WHERE token = ?').run(token);
+}
+
+function deleteExpiredVerificationTokens() {
+  db.prepare("DELETE FROM verification_tokens WHERE expires_at < datetime('now')").run();
 }
 
 function getOrCreateProject(userId, name) {
@@ -324,10 +359,11 @@ module.exports = {
   getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio,
   getIssueOwnerUserId, createFeedback,
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
-  createUser, getUserByEmail, getUserById,
+  createUser, getUserByEmail, getUserById, setEmailVerified,
   getUserByStripeCustomerId, getUserByStripeSubscriptionId, setStripeCustomerId, setSubscriptionStatus,
   setUserTier, deductCredits, addCredits, logAiUsage,
   getCreditPurchaseBySessionId, recordCreditPurchase,
   getChatMessages, addChatMessage,
-  createSession, getSession, deleteSession, deleteExpiredSessions
+  createSession, getSession, deleteSession, deleteExpiredSessions,
+  createVerificationToken, getVerificationToken, deleteVerificationToken, deleteExpiredVerificationTokens
 };

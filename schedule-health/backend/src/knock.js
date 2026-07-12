@@ -71,4 +71,42 @@ async function notifyFeedback(user, message) {
   }
 }
 
-module.exports = { knockConfigured, identifyUser, notifyFeedback };
+// Email verification uses its own opt-in flag (KNOCK_VERIFICATION_WORKFLOW_KEY) rather than just
+// knockConfigured(), since it changes signup behavior (see server.js): verification is only
+// required at all once this workflow is actually set up. Local dev without it stays frictionless.
+function verificationConfigured() {
+  return knockConfigured() && Boolean(process.env.KNOCK_VERIFICATION_WORKFLOW_KEY);
+}
+
+// Sends the "verify your email" link by triggering a Knock workflow you build in the dashboard
+// (e.g. one that emails the user with a "Verify your email" button linking to `verifyUrl`).
+async function sendVerificationEmail(user, verifyUrl) {
+  const workflowKey = process.env.KNOCK_VERIFICATION_WORKFLOW_KEY;
+  if (!verificationConfigured()) {
+    console.warn(`[knock] Verification email skipped (KNOCK_API_KEY or KNOCK_VERIFICATION_WORKFLOW_KEY not set) for ${user.email}`);
+    return null;
+  }
+  try {
+    const res = await fetch(`${KNOCK_API}/workflows/${encodeURIComponent(workflowKey)}/trigger`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.KNOCK_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        recipients: [{ id: String(user.id), email: user.email, name: user.name }],
+        data: { userName: user.name, verifyUrl }
+      })
+    });
+    if (!res.ok) {
+      console.error(`[knock] Failed to trigger verification workflow: ${res.status} ${await res.text().catch(() => '')}`);
+      return null;
+    }
+    return res.json();
+  } catch (e) {
+    console.error('[knock] Failed to trigger verification workflow:', e.message);
+    return null;
+  }
+}
+
+module.exports = { knockConfigured, identifyUser, notifyFeedback, verificationConfigured, sendVerificationEmail };

@@ -57,17 +57,41 @@ Every project belongs to the user who created it. All `/api/*` routes except
 
 | Method | Path | What it does |
 |---|---|---|
-| `POST` | `/api/auth/signup` | `{name, email, phone, password}` (password ≥ 8 chars; name and phone required) — creates a user, starts a session, sets the session cookie, and fires a (non-blocking) Knock lead sync |
+| `POST` | `/api/auth/signup` | `{name, email, phone, password}` (password ≥ 8 chars; name and phone required) — creates a user, starts a session, sets the session cookie, fires a (non-blocking) Knock lead sync, and — if email verification is configured (see below) — sends a verification email instead of granting immediate access |
 | `POST` | `/api/auth/login` | `{email, password}` — verifies credentials, starts a session, sets the session cookie |
 | `POST` | `/api/auth/logout` | Deletes the current session and clears the cookie |
-| `GET` | `/api/auth/me` | Returns `{user}` (or `{user: null}`) for the current session — used by the frontend on load to decide whether to show the login screen, the paywall, or the app |
+| `GET` | `/api/auth/me` | Returns `{user}` (or `{user: null}`) for the current session — used by the frontend on load to decide whether to show the login screen, the verify-email screen, or the app |
+| `POST` | `/api/auth/verify` | `{token}` — consumes a verification token (single-use) and marks the account verified. Works without an active session, since the link may be opened on a different device than the one that signed up |
+| `POST` | `/api/auth/resend-verification` | Requires an active session; re-sends the verification email for the logged-in (but not yet verified) account. 503 if verification isn't configured |
+
+### Email verification
+
+Enforced only once `KNOCK_VERIFICATION_WORKFLOW_KEY` is set (see `.env.example`) — same
+graceful-degradation pattern as the rest of this app. Without it, new signups get immediate
+access, no email step at all (good for local dev). Once configured:
+
+- Signup creates the account with `email_verified = 0` and sends a verification link
+  (`https://yourdomain/?verify=TOKEN`) via a Knock workflow you build in the dashboard.
+- Every non-auth route returns `403 {code: "EMAIL_NOT_VERIFIED"}` until the account is verified —
+  enforced server-side in the dispatcher, not just hidden in the UI.
+- Tokens are single-use (24-hour expiry) and stored in a `verification_tokens` table — clicking
+  the link a second time, or after it expires, fails cleanly rather than silently re-verifying.
+- Clicking the link **in the same browser session that signed up** unlocks the app directly.
+  Clicking it from a different device/browser (the common case — verifying from a phone's mail
+  app) marks the account verified server-side but sends that browser to the login screen instead
+  of silently starting a session — the verification token isn't treated as login credentials.
+- **Existing accounts are never retroactively locked out.** The `email_verified` column's
+  migration default is `1` (verified), specifically so that turning this feature on doesn't lock
+  out real users who signed up before it existed — only new signups after `KNOCK_VERIFICATION_WORKFLOW_KEY`
+  is set are required to verify.
 
 The frontend (`public/index.html`) gates the whole app behind a login/signup
 screen: on load it calls `/api/auth/me`; if there's no valid session it shows
 a small login/signup form (toggle between the two — signup additionally asks
-for name and phone), otherwise it goes straight into the app — every account,
-including the free tier, has full access to the core product (see Pricing
-and AI credits below for what's actually gated) — with the logged-in user's
+for name and phone). If there's a session but the account isn't verified, it shows a
+"verify your email" screen with a resend button instead of the app. Otherwise it goes straight
+into the app — every verified account, including the free tier, has full access to the core
+product (see Pricing and AI credits below for what's actually gated) — with the logged-in user's
 email, plan/credit pill, and a "Log out" button above the nav.
 
 ## Pricing and AI credits
@@ -231,9 +255,10 @@ curl -b cookies.txt -X POST http://localhost:3000/api/analyze \
 
 ## Database
 
-SQLite, stored at `data/schedule-health.db`. Nine tables:
-- `users` — one row per account (name, email, phone, hashed password + salt, Stripe customer/subscription IDs, subscription status, `plan_tier`, `credit_balance`)
+SQLite, stored at `data/schedule-health.db`. Ten tables:
+- `users` — one row per account (name, email, phone, hashed password + salt, Stripe customer/subscription IDs, subscription status, `plan_tier`, `credit_balance`, `email_verified`)
 - `sessions` — one row per active login (token, user, expiry)
+- `verification_tokens` — one row per pending email verification (token, user, expiry) — single-use, deleted on consumption whether valid or expired
 - `projects` — one row per project name, scoped to the user who created it (`UNIQUE(user_id, name)` — two users can each have a project called "River Bridge")
 - `snapshots` — one row per analysis run, with the score and breakdown, plus a cached `narrative` column for the AI-generated summary (null until generated)
 - `issues` — one row per flagged issue, linked to the snapshot it came from, with a status field for tracking resolution
@@ -299,5 +324,7 @@ The feedback feature (`POST /api/feedback`) was verified locally end-to-end — 
 **AI chat.** Confirmed live end-to-end with a real `ANTHROPIC_API_KEY`: asked a question about a real analyzed schedule and got a specific, contextual reply (not generic advice) referencing the actual flagged issues; asked a follow-up ("which one should I fix first?") and confirmed the reply correctly referenced the prior answer, proving conversation history is actually being resent to Claude, not just a single one-shot exchange. `GET /api/snapshots/:id/chat` returns all four turns in the correct order after that exchange. Ownership checks (403 cross-user, 404 nonexistent snapshot) and the 429 out-of-credits path were all verified via curl. Credits were deducted correctly per turn based on real token usage, same formula as the narrative feature. The frontend was screenshotted at each stage (empty state before any analysis, empty-conversation prompt after analyzing, and a full exchange with chat bubbles rendering correctly).
 
 **Starter tier and credit top-ups.** `POST /api/billing/topup/checkout` correctly rejects amounts under $10 and non-multiples of $10 (both via curl and the client-side check in the UI) before ever calling Stripe. The credit math (`pricing.creditsForTopupAmount`) was verified directly: $10 → 50 credits, $20 → 100, $50 → 250, matching the $0.20/credit retail rate exactly. Since Stripe itself is unreachable from this sandbox (same network block as the rest of billing), the `/api/billing/topup/verify` route's core logic — grant credits once per Stripe session, do nothing on a repeat call for the same session — was verified by driving `db.js` directly the way the route does: a simulated $20 top-up correctly took a user from 20 → 120 credits, and calling the same "verify" logic again for the identical session ID left the balance unchanged at 120. The `credit_purchases.stripe_session_id` `UNIQUE` constraint was also confirmed to reject a raw duplicate insert as a second line of defense. The 5-tier Plan view (Free/Starter/Pro/Teams/Enterprise) and the top-up card were both screenshotted and confirmed rendering correctly, including the "Starter" and "Pro" credit-pill labels.
+
+**Email verification.** Both configuration states were tested end-to-end: with `KNOCK_VERIFICATION_WORKFLOW_KEY` unset, a fresh signup gets `emailVerified: true` immediately and full access, confirming local dev stays frictionless. With it set, a fresh signup gets `emailVerified: false`, and every core route correctly returns `403 {code: "EMAIL_NOT_VERIFIED"}` while `/api/auth/me` still works. The real token generated at signup was pulled from the database and POSTed to `/api/auth/verify`, which correctly flipped the account to verified and unblocked access — and a second attempt with the same (now-consumed) token correctly failed with "invalid or expired," confirming single-use enforcement. Both post-verification UX paths were screenshotted: clicking the link in the same browser session that signed up unlocks the app directly; clicking it from a fresh browser (simulating a different device) correctly shows a "verify your email" screen. The `?verify=TOKEN` link handling in the frontend routes each case correctly. The migration's `DEFAULT 1` behavior was independently re-confirmed for this feature specifically (a hand-built database simulating a real pre-existing account came back `email_verified: 1`, not `0`) — critical since this app has real users on a live deployment, and a `DEFAULT 0` here would have retroactively locked all of them out.
 
 Not yet covered by an automated test suite — that's a reasonable next addition.
