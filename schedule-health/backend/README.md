@@ -182,6 +182,27 @@ returns `429` once a user's balance hits zero, distinct from the `503 not config
 |---|---|---|
 | `POST` | `/api/snapshots/:id/narrative` | Generates (or returns the cached) AI narrative for a snapshot — 403s if the snapshot doesn't belong to the current user, 503 if `ANTHROPIC_API_KEY` isn't set, 429 if the user is out of AI credits |
 
+## AI chat
+
+The "Ask AI" tab is a real multi-turn conversation about the current analysis — not just a
+one-shot summary. Claude gets the same schedule context (score, open issues) as a system prompt,
+plus the full prior conversation for that snapshot, so follow-up questions ("which one should I
+fix first?") work the way they would in an actual back-and-forth. History is persisted per
+snapshot in the `chat_messages` table, so it survives a page reload (as long as the same analysis
+is still the active one in the browser session — same caveat as the Report/Health views not
+reloading from the server on navigation, see Frontend section).
+
+To bound cost on long conversations, only the last `CHAT_HISTORY_LIMIT` (20) messages are resent
+to Claude as context on each new turn — older messages are still stored and returned by the GET
+endpoint, just not replayed. Every turn spends credits the same way narrative generation does
+(computed from that call's actual token usage, see Pricing and AI credits above) and 429s once
+the balance hits zero.
+
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/api/snapshots/:id/chat` | Returns the full message history for a snapshot, oldest first |
+| `POST` | `/api/snapshots/:id/chat` | `{message}` (1-2000 chars) — sends a message, gets a reply, and persists both turns. 503 if `ANTHROPIC_API_KEY` isn't set, 429 if out of credits, 403/404 for ownership/existence |
+
 ## API reference
 
 All routes below require an authenticated session (see Authentication) and are scoped to the current user's own projects.
@@ -210,15 +231,16 @@ curl -b cookies.txt -X POST http://localhost:3000/api/analyze \
 
 ## Database
 
-SQLite, stored at `data/schedule-health.db`. Eight tables:
+SQLite, stored at `data/schedule-health.db`. Nine tables:
 - `users` — one row per account (name, email, phone, hashed password + salt, Stripe customer/subscription IDs, subscription status, `plan_tier`, `credit_balance`)
 - `sessions` — one row per active login (token, user, expiry)
 - `projects` — one row per project name, scoped to the user who created it (`UNIQUE(user_id, name)` — two users can each have a project called "River Bridge")
 - `snapshots` — one row per analysis run, with the score and breakdown, plus a cached `narrative` column for the AI-generated summary (null until generated)
 - `issues` — one row per flagged issue, linked to the snapshot it came from, with a status field for tracking resolution
 - `feedback` — one row per feature suggestion/improvement submitted through the app, linked to the user who submitted it
-- `ai_usage` — one row per AI narrative generation, logging real token counts, actual Anthropic cost, and credits charged — the audit trail behind the credit math in Pricing and AI credits above
+- `ai_usage` — one row per AI narrative or chat generation, logging real token counts, actual Anthropic cost, and credits charged — the audit trail behind the credit math in Pricing and AI credits above
 - `credit_purchases` — one row per one-time credit top-up, keyed on the Stripe checkout session ID (`UNIQUE`) so a repeated verify call can't double-grant credits
+- `chat_messages` — one row per turn (user question or assistant reply) in a snapshot's AI chat, ordered by `id` to reconstruct the conversation
 
 This is genuinely persistent (survives restarts, unlike the browser-storage version) but is still a single SQLite file on one machine — see `docs/infrastructure-roadmap.md` in the main repo for what's needed to make this properly multi-tenant at scale (real Postgres, hosted, role-based access).
 
@@ -273,6 +295,8 @@ automatically.
 The feedback feature (`POST /api/feedback`) was verified locally end-to-end — the too-short-message validation and a successful submission — in both curl and a real browser. It's not credit-gated (only AI narrative generation spends credits).
 
 **AI narrative and credits.** Confirmed live end-to-end with a real `ANTHROPIC_API_KEY` (see above) — `POST /api/snapshots/:id/narrative` correctly 503s with no key set, 403s when the snapshot belongs to another user, 404s for a nonexistent snapshot, generates a real narrative and deducts the correct credits on success, returns the cached narrative (and no credit charge) on a second call, and 429s once the balance hits zero.
+
+**AI chat.** Confirmed live end-to-end with a real `ANTHROPIC_API_KEY`: asked a question about a real analyzed schedule and got a specific, contextual reply (not generic advice) referencing the actual flagged issues; asked a follow-up ("which one should I fix first?") and confirmed the reply correctly referenced the prior answer, proving conversation history is actually being resent to Claude, not just a single one-shot exchange. `GET /api/snapshots/:id/chat` returns all four turns in the correct order after that exchange. Ownership checks (403 cross-user, 404 nonexistent snapshot) and the 429 out-of-credits path were all verified via curl. Credits were deducted correctly per turn based on real token usage, same formula as the narrative feature. The frontend was screenshotted at each stage (empty state before any analysis, empty-conversation prompt after analyzing, and a full exchange with chat bubbles rendering correctly).
 
 **Starter tier and credit top-ups.** `POST /api/billing/topup/checkout` correctly rejects amounts under $10 and non-multiples of $10 (both via curl and the client-side check in the UI) before ever calling Stripe. The credit math (`pricing.creditsForTopupAmount`) was verified directly: $10 → 50 credits, $20 → 100, $50 → 250, matching the $0.20/credit retail rate exactly. Since Stripe itself is unreachable from this sandbox (same network block as the rest of billing), the `/api/billing/topup/verify` route's core logic — grant credits once per Stripe session, do nothing on a repeat call for the same session — was verified by driving `db.js` directly the way the route does: a simulated $20 top-up correctly took a user from 20 → 120 credits, and calling the same "verify" logic again for the identical session ID left the balance unchanged at 120. The `credit_purchases.stripe_session_id` `UNIQUE` constraint was also confirmed to reject a raw duplicate insert as a second line of defense. The 5-tier Plan view (Free/Starter/Pro/Teams/Enterprise) and the top-up card were both screenshotted and confirmed rendering correctly, including the "Starter" and "Pro" credit-pill labels.
 

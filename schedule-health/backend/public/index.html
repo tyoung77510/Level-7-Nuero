@@ -111,6 +111,9 @@
   @media (max-width: 480px) {
     .tier-grid { grid-template-columns: 1fr; }
   }
+  .chat-msg { max-width: 80%; padding: 8px 12px; border-radius: 10px; font-size: 13px; line-height: 1.5; white-space: pre-line; }
+  .chat-msg.user { align-self: flex-end; background: var(--navy); color: #fff; }
+  .chat-msg.assistant { align-self: flex-start; background: var(--paper); border: 1px solid var(--line); }
   @media print {
     .nav, .no-print { display: none !important; }
     body { padding: 0; }
@@ -154,6 +157,7 @@
       <button data-step="trends">Trends</button>
       <button data-step="portfolio">Portfolio</button>
       <button data-step="report">Report</button>
+      <button data-step="chat">Ask AI</button>
       <button data-step="pricing">Plan</button>
     </div>
 
@@ -278,6 +282,18 @@
       <div id="reportContent"><p class="empty">No report yet — analyze a schedule first.</p></div>
     </div>
 
+    <div id="v-chat" class="view">
+      <div id="chatEmpty" class="empty" style="display:none;">Analyze a schedule first, then come back here to ask questions about it.</div>
+      <div id="chatWrap" style="display:none;">
+        <div id="chatMessages" class="card" style="max-height:60vh; overflow-y:auto; display:flex; flex-direction:column; gap:10px;"></div>
+        <div class="row no-print" style="justify-content:flex-start; margin-top:10px; gap:8px;">
+          <input type="text" id="chatInput" placeholder="Ask about this schedule…" style="flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
+          <button class="btn primary" id="chatSend">Send</button>
+        </div>
+        <p id="chatError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
+      </div>
+    </div>
+
     <div id="v-feedback" class="view">
       <div class="card">
         <p style="font-weight:500; margin:0 0 4px;">What would make Ordo7 better for you?</p>
@@ -304,6 +320,7 @@ function setView(step){
   if (step === 'trends') renderTrends();
   if (step === 'portfolio') renderPortfolio();
   if (step === 'pricing') renderPricing();
+  if (step === 'chat') renderChat();
 }
 navButtons.forEach(b => b.addEventListener('click', () => setView(b.dataset.step)));
 
@@ -658,6 +675,79 @@ async function loadNarrative(snapshot){
     }
   });
 }
+
+function appendChatBubble(role, text){
+  const box = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function renderChat(){
+  const empty = document.getElementById('chatEmpty');
+  const wrap = document.getElementById('chatWrap');
+  if (!currentSnapshot) {
+    empty.style.display = '';
+    wrap.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  wrap.style.display = '';
+
+  const box = document.getElementById('chatMessages');
+  box.innerHTML = '';
+  try {
+    const result = await api('/api/snapshots/' + currentSnapshot.id + '/chat');
+    if (!result.messages.length) {
+      box.innerHTML = '<p class="empty" style="padding:10px 0;">Ask anything about this schedule — what\'s driving the score, what to fix first, whatever you need.</p>';
+    } else {
+      result.messages.forEach(m => appendChatBubble(m.role, m.content));
+    }
+  } catch (e) {
+    box.innerHTML = '<p class="error">Could not load chat history: ' + e.message + '</p>';
+  }
+}
+
+async function sendChatMessage(){
+  const input = document.getElementById('chatInput');
+  const errEl = document.getElementById('chatError');
+  const btn = document.getElementById('chatSend');
+  const message = input.value.trim();
+  if (!message || !currentSnapshot) return;
+  errEl.style.display = 'none';
+  input.value = '';
+  btn.disabled = true;
+  input.disabled = true;
+
+  const box = document.getElementById('chatMessages');
+  const emptyHint = box.querySelector('.empty');
+  if (emptyHint) emptyHint.remove();
+  appendChatBubble('user', message);
+
+  try {
+    const result = await api('/api/snapshots/' + currentSnapshot.id + '/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+    appendChatBubble('assistant', result.reply);
+    if (result.creditBalance != null && currentUser) { currentUser.creditBalance = result.creditBalance; updateCreditPill(currentUser); }
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    input.disabled = false;
+    input.focus();
+  }
+}
+
+document.getElementById('chatSend').addEventListener('click', sendChatMessage);
+document.getElementById('chatInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendChatMessage();
+});
 
 async function renderTrends(){
   const content = document.getElementById('trendsContent');

@@ -409,6 +409,55 @@ route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => 
   sendJSON(res, 200, { narrative: result.text, cached: false, creditsUsed: credits, creditBalance: updatedUser.credit_balance });
 });
 
+// How many prior turns get resent as conversation context on each new chat message — caps
+// runaway token/cost growth on long conversations. Older messages still exist in the database
+// and are returned by GET, just not replayed to Claude past this point.
+const CHAT_HISTORY_LIMIT = 20;
+
+route('GET', '/api/snapshots/:id/chat', async (req, res, params, user) => {
+  const snapshotId = Number(params.id);
+  const ownerId = store.getSnapshotOwnerUserId(snapshotId);
+  if (ownerId === null) return sendJSON(res, 404, { error: 'No such snapshot' });
+  if (ownerId !== user.id) return sendJSON(res, 403, { error: 'Not your project' });
+
+  sendJSON(res, 200, { messages: store.getChatMessages(snapshotId) });
+});
+
+route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
+  if (!ai.aiConfigured()) return sendJSON(res, 503, { error: 'AI chat is not configured yet' });
+  const snapshotId = Number(params.id);
+  const ownerId = store.getSnapshotOwnerUserId(snapshotId);
+  if (ownerId === null) return sendJSON(res, 404, { error: 'No such snapshot' });
+  if (ownerId !== user.id) return sendJSON(res, 403, { error: 'Not your project' });
+
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const message = String(payload.message || '').trim();
+  if (!message) return sendJSON(res, 400, { error: 'Message cannot be empty' });
+  if (message.length > 2000) return sendJSON(res, 400, { error: 'Keep questions under 2000 characters' });
+
+  if (user.credit_balance <= 0) {
+    return sendJSON(res, 429, { error: 'Out of AI credits — upgrade to Pro or wait for your next credit refill', creditBalance: user.credit_balance });
+  }
+
+  const snapshot = store.getSnapshotById(snapshotId);
+  const issues = store.getIssuesForSnapshot(snapshotId);
+  const history = store.getChatMessages(snapshotId).slice(-CHAT_HISTORY_LIMIT);
+
+  const result = await ai.generateChatReply(snapshot, issues, history, message);
+  if (!result) return sendJSON(res, 502, { error: 'Could not get a reply right now — try again in a moment' });
+
+  const cost = pricing.costUsd(result.inputTokens, result.outputTokens);
+  const credits = pricing.creditsForUsage(result.inputTokens, result.outputTokens);
+  store.addChatMessage(snapshotId, user.id, 'user', message);
+  store.addChatMessage(snapshotId, user.id, 'assistant', result.text);
+  store.logAiUsage(user.id, snapshotId, result.inputTokens, result.outputTokens, cost, credits);
+  const updatedUser = store.deductCredits(user.id, credits);
+
+  sendJSON(res, 200, { reply: result.text, creditsUsed: credits, creditBalance: updatedUser.credit_balance });
+});
+
 route('POST', '/api/feedback', async (req, res, params, user) => {
   const body = await readBody(req);
   let payload;

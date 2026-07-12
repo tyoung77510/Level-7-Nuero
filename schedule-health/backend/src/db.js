@@ -92,11 +92,21 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    snapshot_id INTEGER NOT NULL REFERENCES snapshots(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    role TEXT NOT NULL CHECK (role IN ('user','assistant')),
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_snapshots_project ON snapshots(project_id);
   CREATE INDEX IF NOT EXISTS idx_issues_snapshot ON issues(snapshot_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);
   CREATE INDEX IF NOT EXISTS idx_feedback_user ON feedback(user_id);
+  CREATE INDEX IF NOT EXISTS idx_chat_messages_snapshot ON chat_messages(snapshot_id);
   CREATE INDEX IF NOT EXISTS idx_ai_usage_user ON ai_usage(user_id);
   CREATE INDEX IF NOT EXISTS idx_credit_purchases_user ON credit_purchases(user_id);
 `);
@@ -183,6 +193,16 @@ function recordCreditPurchase(userId, sessionId, amountUsd, credits) {
     INSERT INTO credit_purchases (user_id, stripe_session_id, amount_usd, credits_purchased)
     VALUES (?, ?, ?, ?)
   `).run(userId, sessionId, amountUsd, credits);
+}
+
+function getChatMessages(snapshotId) {
+  return db.prepare('SELECT * FROM chat_messages WHERE snapshot_id = ? ORDER BY id ASC').all(snapshotId);
+}
+
+function addChatMessage(snapshotId, userId, role, content) {
+  db.prepare(`
+    INSERT INTO chat_messages (snapshot_id, user_id, role, content) VALUES (?, ?, ?, ?)
+  `).run(snapshotId, userId, role, content);
 }
 
 function createSession(token, userId, expiresAt) {
@@ -308,5 +328,6 @@ module.exports = {
   getUserByStripeCustomerId, getUserByStripeSubscriptionId, setStripeCustomerId, setSubscriptionStatus,
   setUserTier, deductCredits, addCredits, logAiUsage,
   getCreditPurchaseBySessionId, recordCreditPurchase,
+  getChatMessages, addChatMessage,
   createSession, getSession, deleteSession, deleteExpiredSessions
 };
