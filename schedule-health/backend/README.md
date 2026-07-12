@@ -98,6 +98,21 @@ configured to do) as soon as it comes in. Like the other Knock integration, this
 |---|---|---|
 | `POST` | `/api/feedback` | `{message}` (3–2000 chars) — saves the feedback under the current user and (if configured) notifies the team via Knock |
 
+## AI narrative
+
+The Report view has a "Generate AI summary" button that calls Claude (Haiku 4.5 by default) to
+write a short, direct narrative — overall health, what's driving the score, and the top 1-2 next
+actions — from that snapshot's score and open issues. Raw HTTPS calls to
+`https://api.anthropic.com/v1/messages` (no SDK dependency, same philosophy as the Stripe/Knock
+integrations), gated behind `ANTHROPIC_API_KEY`. The generated text is cached on the snapshot
+(`snapshots.narrative`) so it's only generated once per snapshot, not re-billed on every view.
+Without `ANTHROPIC_API_KEY` set, the button's endpoint returns a 503 and the rest of the app is
+unaffected.
+
+| Method | Path | What it does |
+|---|---|---|
+| `POST` | `/api/snapshots/:id/narrative` | Generates (or returns the cached) AI narrative for a snapshot — 403s if the snapshot doesn't belong to the current user, 503 if `ANTHROPIC_API_KEY` isn't set |
+
 ## API reference
 
 All routes below require an authenticated session (see Authentication) and are scoped to the current user's own projects.
@@ -110,6 +125,7 @@ All routes below require an authenticated session (see Authentication) and are s
 | `GET` | `/api/projects/:name/history` | Full snapshot history for one of the current user's projects, for the trends view |
 | `GET` | `/api/projects/:name/latest` | Latest snapshot + its issues for one of the current user's projects |
 | `PATCH` | `/api/issues/:id` | Update an issue's status (`open`, `acknowledged`, `resolved`) — 403s if the issue doesn't belong to one of the current user's projects |
+| `POST` | `/api/snapshots/:id/narrative` | Generate/fetch the AI narrative for a snapshot — see AI narrative section above |
 
 ### Example: sign up, then analyze a file
 
@@ -129,7 +145,7 @@ SQLite, stored at `data/schedule-health.db`. Six tables:
 - `users` — one row per account (name, email, phone, hashed password + salt, Stripe customer/subscription IDs, subscription status)
 - `sessions` — one row per active login (token, user, expiry)
 - `projects` — one row per project name, scoped to the user who created it (`UNIQUE(user_id, name)` — two users can each have a project called "River Bridge")
-- `snapshots` — one row per analysis run, with the score and breakdown
+- `snapshots` — one row per analysis run, with the score and breakdown, plus a cached `narrative` column for the AI-generated summary (null until generated)
 - `issues` — one row per flagged issue, linked to the snapshot it came from, with a status field for tracking resolution
 - `feedback` — one row per feature suggestion/improvement submitted through the app, linked to the user who submitted it
 
@@ -163,5 +179,7 @@ Verified working end-to-end during development: XER upload → snapshot + issues
 **Still needs testing in an environment with real internet access** (i.e., wherever this actually gets deployed, or on your own machine): the full happy path — clicking Subscribe, completing a real Stripe Checkout, landing back on `/api/billing/verify`, and confirming the account flips to `subscription_status: 'active'` and unlocks the app — plus the Knock dashboard actually showing synced users and, once a feedback workflow is built there, actually receiving a feedback notification. Recommend testing that against Stripe's **test mode** keys/price first (a live secret key and live price ID are what's configured right now) before trusting it with real cards.
 
 The feedback feature (`POST /api/feedback`) was verified locally end-to-end — including the paywall gate (blocked at `402` pre-subscription), the too-short-message validation, and a successful submission (with a test subscription activated directly in the local database, since real Stripe checkout couldn't be driven from this sandbox) — in both curl and a real browser.
+
+**AI narrative.** Unlike Stripe and Knock, the sandbox this was built in *can* reach `api.anthropic.com` — confirmed by pointing the app at a deliberately invalid key and seeing a real `401 authentication_error` come back from Anthropic's API (not a network-level block). Verified: `POST /api/snapshots/:id/narrative` correctly 503s with no `ANTHROPIC_API_KEY` set, 403s when the snapshot belongs to another user, 404s for a nonexistent snapshot, and reaches the live Claude API and surfaces a clean 502 (instead of crashing) when the key is invalid — all via curl. Generating an actual narrative end-to-end requires a valid `ANTHROPIC_API_KEY`, which hasn't been supplied yet as of this writing.
 
 Not yet covered by an automated test suite — that's a reasonable next addition.

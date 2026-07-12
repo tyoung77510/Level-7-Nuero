@@ -48,7 +48,8 @@ db.exec(`
     total_activities INTEGER NOT NULL,
     crit_count INTEGER NOT NULL,
     risk_count INTEGER NOT NULL,
-    source_filename TEXT
+    source_filename TEXT,
+    narrative TEXT
   );
 
   CREATE TABLE IF NOT EXISTS issues (
@@ -184,6 +185,25 @@ function getIssuesForSnapshot(snapshotId) {
   return db.prepare('SELECT * FROM issues WHERE snapshot_id = ? ORDER BY severity, id').all(snapshotId);
 }
 
+function getSnapshotById(snapshotId) {
+  return db.prepare('SELECT * FROM snapshots WHERE id = ?').get(snapshotId);
+}
+
+function getSnapshotOwnerUserId(snapshotId) {
+  const row = db.prepare(`
+    SELECT p.user_id AS user_id
+    FROM snapshots s
+    JOIN projects p ON p.id = s.project_id
+    WHERE s.id = ?
+  `).get(snapshotId);
+  return row ? row.user_id : null;
+}
+
+function setSnapshotNarrative(snapshotId, narrative) {
+  db.prepare('UPDATE snapshots SET narrative = ? WHERE id = ?').run(narrative, snapshotId);
+  return getSnapshotById(snapshotId);
+}
+
 function updateIssueStatus(issueId, status) {
   db.prepare('UPDATE issues SET status = ? WHERE id = ?').run(status, issueId);
   return db.prepare('SELECT * FROM issues WHERE id = ?').get(issueId);
@@ -206,6 +226,7 @@ module.exports = {
   db, getOrCreateProject, listProjects, saveSnapshot,
   getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio,
   getIssueOwnerUserId, createFeedback,
+  getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
   createUser, getUserByEmail, getUserById,
   getUserByStripeCustomerId, getUserByStripeSubscriptionId, setStripeCustomerId, setSubscriptionStatus,
   createSession, getSession, deleteSession, deleteExpiredSessions

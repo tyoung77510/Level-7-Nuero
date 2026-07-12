@@ -31,6 +31,7 @@ const store = require('./db');
 const auth = require('./auth');
 const billing = require('./billing');
 const knock = require('./knock');
+const ai = require('./ai');
 
 store.deleteExpiredSessions();
 
@@ -285,6 +286,24 @@ route('PATCH', '/api/issues/:id', async (req, res, params, user) => {
   if (ownerId !== user.id) return sendJSON(res, 403, { error: 'Not your project' });
   const updated = store.updateIssueStatus(issueId, payload.status);
   sendJSON(res, 200, updated);
+});
+
+route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => {
+  if (!ai.aiConfigured()) return sendJSON(res, 503, { error: 'AI narrative is not configured yet' });
+  const snapshotId = Number(params.id);
+  const ownerId = store.getSnapshotOwnerUserId(snapshotId);
+  if (ownerId === null) return sendJSON(res, 404, { error: 'No such snapshot' });
+  if (ownerId !== user.id) return sendJSON(res, 403, { error: 'Not your project' });
+
+  const snapshot = store.getSnapshotById(snapshotId);
+  if (snapshot.narrative) return sendJSON(res, 200, { narrative: snapshot.narrative, cached: true });
+
+  const issues = store.getIssuesForSnapshot(snapshotId);
+  const narrative = await ai.generateNarrative(snapshot, issues);
+  if (!narrative) return sendJSON(res, 502, { error: 'Could not generate narrative right now — try again in a moment' });
+
+  store.setSnapshotNarrative(snapshotId, narrative);
+  sendJSON(res, 200, { narrative, cached: false });
 });
 
 route('POST', '/api/feedback', async (req, res, params, user) => {
