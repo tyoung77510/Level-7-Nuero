@@ -79,7 +79,10 @@ function verificationConfigured() {
 }
 
 // Sends the "verify your email" link by triggering a Knock workflow you build in the dashboard
-// (e.g. one that emails the user with a "Verify your email" button linking to `verifyUrl`).
+// (e.g. one that emails the user with a "Verify your email" button linking to `verification_url`).
+// Payload shape (recipients as full objects + data.verification_url) matches the trigger data
+// schema generated for the `ordo7-verify-email` workflow in the Knock dashboard — the template
+// there reads {{ recipient.name }} and {{ data.verification_url }}, not data.userName/verifyUrl.
 async function sendVerificationEmail(user, verifyUrl) {
   const workflowKey = process.env.KNOCK_VERIFICATION_WORKFLOW_KEY;
   if (!verificationConfigured()) {
@@ -95,7 +98,7 @@ async function sendVerificationEmail(user, verifyUrl) {
       },
       body: JSON.stringify({
         recipients: [{ id: String(user.id), email: user.email, name: user.name }],
-        data: { userName: user.name, verifyUrl }
+        data: { verification_url: verifyUrl }
       })
     });
     if (!res.ok) {
