@@ -16,6 +16,26 @@ node src/server.js
 
 No `npm install` needed. Requires Node 22.5 or later (for `node:sqlite`).
 
+## Deploying
+
+This runs on any host that can run a long-lived Node 22.5+ process (Railway, Render, Fly.io, a
+plain VPS — not a purely serverless/functions platform, since it holds an open HTTP server and a
+local SQLite file). Two things matter beyond just running `node src/server.js`:
+
+- **`PORT`** — the server already reads `process.env.PORT`, which is how most hosts (Railway
+  included) tell your app which port to bind to. No changes needed.
+- **`DATA_DIR`** — set this to the path of a mounted persistent volume (e.g. `/data`) so the
+  SQLite database survives redeploys. Without it, the database defaults to a `data/` folder next
+  to the source code, which most hosts wipe and replace on every deploy — fine for quick testing,
+  not for anything you'd want to keep. Whatever `DATA_DIR` points to, the directory is created
+  automatically on first run if it doesn't exist.
+
+Once deployed with a real public URL, also: point your domain's DNS at the host, and register the
+Stripe webhook endpoint (`https://yourdomain/api/billing/webhook`) in the Stripe Dashboard →
+Developers → Webhooks, then set `STRIPE_WEBHOOK_SECRET` to the signing secret it gives you — this
+is what keeps subscription renewals/cancellations in sync automatically going forward (see
+Billing section below for what's already wired up vs. what needs that webhook specifically).
+
 ## Configuration
 
 Copy `.env.example` to `.env` and fill in real values (`.env` is gitignored — never commit it). The
@@ -57,8 +77,8 @@ scoring, issues, trends, portfolio, and reports regardless of plan. What's meter
 narrative generation** (see below), spent as credits:
 
 - **Free** — every signup gets 20 credits once, free, no card required.
-- **Starter — $19.99/month** — 150 credits/month, refilled each billing cycle.
-- **Pro — $49.99/month** — 500 credits/month, refilled each billing cycle.
+- **Starter — $20/month** — 150 credits/month, refilled each billing cycle.
+- **Pro — $49/month** — 500 credits/month, refilled each billing cycle.
 - **Teams / Enterprise** — shown in the Plan tab for lead-gen ("Contact us", mailing
   `admin@level7data.com`) but not wired up to real checkout — this app doesn't support multiple
   seats on one account yet, so building real billing for a feature that doesn't exist would just
@@ -81,21 +101,18 @@ change.
 
 **Top-up pricing is deliberately separate from subscription pricing.** Subscription tiers bundle
 credits into a flat monthly fee, so their effective per-credit rate is very cheap (Pro:
-$49.99/500cr ≈ $0.10/credit) — but that rate only makes sense because the subscription is paying for the whole
-product, not literally selling credits at cost. A one-time top-up has no such bundling, so it's
-priced at its own flat retail rate instead (`TOPUP_CREDIT_PRICE_USD`, currently $0.20/credit — 2x
-the Pro-bundled rate), so buying credits piecemeal never becomes cheaper than just subscribing.
+$49/500cr ≈ $0.10/credit) — but that rate only makes sense because the subscription is paying for
+the whole product, not literally selling credits at cost. A one-time top-up has no such bundling,
+so it's priced at its own flat retail rate instead (`TOPUP_CREDIT_PRICE_USD`, currently
+$0.20/credit — 2x the Pro-bundled rate), so buying credits piecemeal never becomes cheaper than
+just subscribing.
 
-**Note on the current numbers:** Stripe prices are immutable once created — there is no way to
-edit an existing price's amount, only create a new one and point the tier at that instead. Two
-mismatches currently exist between what the UI displays and what's actually configured to charge:
-- **Pro** displays "$49.99/month", but `STRIPE_PRICE_ID_PRO` is still the original **$49.00/month**
-  price from before tiers existed.
-- **Starter** displays "$19.99/month", but `STRIPE_PRICE_ID_STARTER` is a **$20.00/month** price.
-
-Until a genuinely new price is created in the Stripe Dashboard for each (and the corresponding
-env var updated to its ID), customers subscribing to either tier will be charged one cent less
-than the UI states.
+**Note:** the UI labels now match the actual configured Stripe prices exactly (Starter $20.00,
+Pro $49.00) — the earlier ".99" labels were reverted to prioritize shipping over a cosmetic price
+change, since Stripe prices are immutable and creating new ones was one more manual step standing
+between this app and its first real customer. Feel free to switch to $19.99/$49.99 later by
+creating new Stripe prices and updating `STRIPE_PRICE_ID_STARTER`/`STRIPE_PRICE_ID_PRO` — no code
+changes needed beyond the display labels in `pricing.js` and `public/index.html`.
 
 ## Billing (Stripe subscription)
 

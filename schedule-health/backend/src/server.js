@@ -511,5 +511,6 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Schedule health API running at http://localhost:${PORT}`);
-  console.log(`Database file: ${path.join(__dirname, '..', 'data', 'schedule-health.db')}`);
+  const dataDir = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
+  console.log(`Database file: ${path.join(dataDir, 'schedule-health.db')}`);
 });

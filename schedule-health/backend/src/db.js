@@ -3,7 +3,9 @@ const { DatabaseSync } = require('node:sqlite');
 const path = require('node:path');
 const fs = require('node:fs');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+// DATA_DIR is configurable so a deployed instance can point it at a mounted persistent volume
+// (e.g. Railway/Render), instead of the app's own source directory, which is wiped on redeploy.
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 const db = new DatabaseSync(path.join(DATA_DIR, 'schedule-health.db'));
