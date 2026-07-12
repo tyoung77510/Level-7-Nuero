@@ -62,6 +62,29 @@
   .auth-box input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; width: 100%; }
   .auth-toggle { font-size: 12px; color: var(--muted); text-align: center; margin: 4px 0 0; }
   .auth-toggle a { color: var(--accent); cursor: pointer; }
+
+  /* Hero-style landing layout for the logged-out screen */
+  body.auth-mode {
+    min-height: 100vh;
+    padding-top: 9vh;
+    background-image: radial-gradient(var(--line) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  body.auth-mode .wrap { max-width: 480px; }
+  body.auth-mode .brand { justify-content: center; gap: 8px; margin-bottom: 10px; }
+  body.auth-mode .brand h1.logo { font-size: 44px; }
+  body.auth-mode .powered-by { font-size: 12px; }
+  body.auth-mode .sub { text-align: center; font-size: 16px; max-width: 420px; margin: 0 auto 34px; }
+  body.auth-mode .auth-box { max-width: 420px; margin: 0 auto; }
+  body.auth-mode .auth-box .card {
+    border: none;
+    border-radius: 16px;
+    padding: 30px 28px;
+    box-shadow: 0 1px 2px rgba(28,43,51,0.04), 0 12px 32px rgba(28,43,51,0.08);
+    gap: 12px;
+  }
+  body.auth-mode .auth-box input { padding: 11px 12px; border-radius: 8px; font-size: 15px; }
+  body.auth-mode .auth-box button.btn.primary { padding: 11px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; }
   .user-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
   .user-bar span { font-size: 12px; color: var(--muted); }
   .paywall-box { max-width: 420px; margin: 40px auto 0; text-align: center; }
@@ -77,7 +100,7 @@
   }
 </style>
 </head>
-<body>
+<body class="auth-mode">
 <div class="wrap">
   <div class="brand">
     <h1 class="logo">Ordo<span class="seven">7</span></h1>
@@ -227,6 +250,7 @@ let authMode = 'login';
 
 function showAuth(){
   currentUser = null;
+  document.body.classList.add('auth-mode');
   document.getElementById('authScreen').style.display = '';
   document.getElementById('paywallScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'none';
@@ -234,6 +258,7 @@ function showAuth(){
 
 function showPaywall(user){
   currentUser = user;
+  document.body.classList.remove('auth-mode');
   document.getElementById('authScreen').style.display = 'none';
   document.getElementById('paywallScreen').style.display = '';
   document.getElementById('appScreen').style.display = 'none';
@@ -241,6 +266,7 @@ function showPaywall(user){
 
 function showApp(user){
   currentUser = user;
+  document.body.classList.remove('auth-mode');
   document.getElementById('authScreen').style.display = 'none';
   document.getElementById('paywallScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = '';
