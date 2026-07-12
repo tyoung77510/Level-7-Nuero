@@ -57,7 +57,7 @@ scoring, issues, trends, portfolio, and reports regardless of plan. What's meter
 narrative generation** (see below), spent as credits:
 
 - **Free** — every signup gets 20 credits once, free, no card required.
-- **Starter — $20/month** — 150 credits/month, refilled each billing cycle.
+- **Starter — $19.99/month** — 150 credits/month, refilled each billing cycle.
 - **Pro — $49.99/month** — 500 credits/month, refilled each billing cycle.
 - **Teams / Enterprise** — shown in the Plan tab for lead-gen ("Contact us", mailing
   `admin@level7data.com`) but not wired up to real checkout — this app doesn't support multiple
@@ -86,13 +86,16 @@ product, not literally selling credits at cost. A one-time top-up has no such bu
 priced at its own flat retail rate instead (`TOPUP_CREDIT_PRICE_USD`, currently $0.20/credit — 2x
 the Pro-bundled rate), so buying credits piecemeal never becomes cheaper than just subscribing.
 
-**Note on the current numbers:** the UI now labels Pro as "$49.99/month", but the Stripe price
-currently configured in this environment (`STRIPE_PRICE_ID_PRO`) is a pre-existing **$49/month**
-price from before tiers existed — Stripe prices are immutable, so that existing price can't be
-edited to $49.99 in place. A new $49.99/month price needs to be created in the Stripe Dashboard
-and `STRIPE_PRICE_ID_PRO` updated to its ID before what customers are actually charged matches
-what the UI says. `STRIPE_PRICE_ID_STARTER` also needs to be created fresh (a $20/month price) —
-there's no pre-existing one to reuse for that tier either.
+**Note on the current numbers:** Stripe prices are immutable once created — there is no way to
+edit an existing price's amount, only create a new one and point the tier at that instead. Two
+mismatches currently exist between what the UI displays and what's actually configured to charge:
+- **Pro** displays "$49.99/month", but `STRIPE_PRICE_ID_PRO` is still the original **$49.00/month**
+  price from before tiers existed.
+- **Starter** displays "$19.99/month", but `STRIPE_PRICE_ID_STARTER` is a **$20.00/month** price.
+
+Until a genuinely new price is created in the Stripe Dashboard for each (and the corresponding
+env var updated to its ID), customers subscribing to either tier will be charged one cent less
+than the UI states.
 
 ## Billing (Stripe subscription)
 
