@@ -1,11 +1,11 @@
 // billing.js — Stripe subscription billing via Stripe's plain REST API (no stripe npm SDK).
-// Reads STRIPE_SECRET_KEY and STRIPE_PRICE_ID from the environment; see backend/.env.example.
+// Reads STRIPE_SECRET_KEY and per-tier price IDs (see src/pricing.js) from the environment.
 const crypto = require('node:crypto');
 
 const STRIPE_API = 'https://api.stripe.com/v1';
 
 function stripeConfigured() {
-  return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID);
+  return Boolean(process.env.STRIPE_SECRET_KEY);
 }
 
 async function stripeRequest(method, path, params) {
@@ -38,10 +38,10 @@ async function stripeRequest(method, path, params) {
   return data;
 }
 
-function createCheckoutSession({ userId, email, customerId, successUrl, cancelUrl }) {
+function createCheckoutSession({ userId, email, customerId, priceId, successUrl, cancelUrl }) {
   const params = {
     mode: 'subscription',
-    'line_items[0][price]': process.env.STRIPE_PRICE_ID,
+    'line_items[0][price]': priceId,
     'line_items[0][quantity]': '1',
     success_url: successUrl,
     cancel_url: cancelUrl,
@@ -53,8 +53,11 @@ function createCheckoutSession({ userId, email, customerId, successUrl, cancelUr
   return stripeRequest('POST', '/checkout/sessions', params);
 }
 
+// Expands both the subscription and the purchased line items — the line item's price ID is how
+// we determine which tier was actually paid for (see pricing.tierForPriceId), rather than
+// trusting a client-supplied tier value.
 function retrieveCheckoutSession(sessionId) {
-  return stripeRequest('GET', `/checkout/sessions/${sessionId}`, { 'expand[]': 'subscription' });
+  return stripeRequest('GET', `/checkout/sessions/${sessionId}?expand[]=subscription&expand[]=line_items`);
 }
 
 // Verifies Stripe's webhook signature (HMAC-SHA256 of "{timestamp}.{rawBody}").

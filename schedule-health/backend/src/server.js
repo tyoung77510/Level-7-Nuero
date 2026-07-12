@@ -32,6 +32,7 @@ const auth = require('./auth');
 const billing = require('./billing');
 const knock = require('./knock');
 const ai = require('./ai');
+const pricing = require('./pricing');
 
 store.deleteExpiredSessions();
 
@@ -116,7 +117,9 @@ function publicUser(user) {
     name: user.name,
     email: user.email,
     phone: user.phone,
-    subscriptionStatus: user.subscription_status
+    subscriptionStatus: user.subscription_status,
+    planTier: user.plan_tier,
+    creditBalance: user.credit_balance
   };
 }
 
@@ -135,7 +138,7 @@ route('POST', '/api/auth/signup', async (req, res) => {
   if (store.getUserByEmail(email)) return sendJSON(res, 409, { error: 'An account with that email already exists' });
 
   const { salt, hash } = auth.hashPassword(password);
-  const user = store.createUser(name, email, phone, hash, salt);
+  const user = store.createUser(name, email, phone, hash, salt, pricing.FREE_SIGNUP_CREDITS);
   const { token } = auth.createSession(user.id);
   res.setHeader('Set-Cookie', auth.sessionCookie(token, req, auth.SESSION_TTL_MS / 1000));
   knock.identifyUser(user).catch(() => {}); // never let a marketing-sync failure block signup
@@ -174,12 +177,22 @@ route('GET', '/api/auth/me', async (req, res) => {
 
 route('POST', '/api/billing/checkout', async (req, res, params, user) => {
   if (!billing.stripeConfigured()) return sendJSON(res, 503, { error: 'Billing is not configured yet' });
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+
+  const tierDef = pricing.TIERS[payload.tier];
+  if (!tierDef) return sendJSON(res, 400, { error: 'Unknown plan' });
+  const priceId = process.env[tierDef.stripePriceEnvVar];
+  if (!priceId) return sendJSON(res, 503, { error: `The ${tierDef.name} plan is not configured yet` });
+
   const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
   try {
     const session = await billing.createCheckoutSession({
       userId: user.id,
       email: user.email,
       customerId: user.stripe_customer_id,
+      priceId,
       successUrl: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${origin}/?checkout=cancelled`
     });
@@ -208,11 +221,18 @@ route('GET', '/api/billing/verify', async (req, res, params, user) => {
     return sendJSON(res, 200, { subscriptionStatus: user.subscription_status, pending: true });
   }
 
+  // Determine the tier from what was actually purchased (the line item's price ID), not from
+  // anything the client claims — the success URL carries no tier parameter for that reason.
+  const purchasedPriceId = session.line_items?.data?.[0]?.price?.id || session.line_items?.data?.[0]?.price;
+  const tierKey = pricing.tierForPriceId(purchasedPriceId);
+
   let updated = user;
   if (session.customer) updated = store.setStripeCustomerId(user.id, session.customer);
   const subscriptionStatus = session.subscription?.status || 'active';
   const subscriptionId = session.subscription?.id;
   updated = store.setSubscriptionStatus(user.id, subscriptionStatus, subscriptionId);
+  if (tierKey) updated = store.setUserTier(user.id, tierKey, pricing.TIERS[tierKey].monthlyCredits);
+
   sendJSON(res, 200, { user: publicUser(updated) });
 });
 
@@ -232,10 +252,16 @@ route('POST', '/api/billing/webhook', async (req, res) => {
   let event;
   try { event = JSON.parse(raw.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON' }); }
 
-  const sub = event.data?.object;
+  const obj = event.data?.object;
   if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
-    const owner = store.getUserByStripeSubscriptionId(sub.id) || store.getUserByStripeCustomerId(sub.customer);
-    if (owner) store.setSubscriptionStatus(owner.id, event.type === 'customer.subscription.deleted' ? 'canceled' : sub.status, sub.id);
+    const owner = store.getUserByStripeSubscriptionId(obj.id) || store.getUserByStripeCustomerId(obj.customer);
+    if (owner) store.setSubscriptionStatus(owner.id, event.type === 'customer.subscription.deleted' ? 'canceled' : obj.status, obj.id);
+  }
+  // Refill credits to the plan's monthly allotment on each successful renewal invoice.
+  if (event.type === 'invoice.payment_succeeded') {
+    const owner = store.getUserByStripeCustomerId(obj.customer);
+    const tierDef = owner && pricing.TIERS[owner.plan_tier];
+    if (owner && tierDef) store.setUserTier(owner.id, owner.plan_tier, tierDef.monthlyCredits);
   }
   sendJSON(res, 200, { received: true });
 });
@@ -296,14 +322,26 @@ route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => 
   if (ownerId !== user.id) return sendJSON(res, 403, { error: 'Not your project' });
 
   const snapshot = store.getSnapshotById(snapshotId);
-  if (snapshot.narrative) return sendJSON(res, 200, { narrative: snapshot.narrative, cached: true });
+  if (snapshot.narrative) return sendJSON(res, 200, { narrative: snapshot.narrative, cached: true, creditBalance: user.credit_balance });
+
+  // 429, not 402 — this is a quota/rate concept ("out of credits this period"), distinct from
+  // the account-level "no active subscription" case, which no longer blocks the app at all now
+  // that every account has a free tier.
+  if (user.credit_balance <= 0) {
+    return sendJSON(res, 429, { error: 'Out of AI credits — upgrade to Pro or wait for your next credit refill', creditBalance: user.credit_balance });
+  }
 
   const issues = store.getIssuesForSnapshot(snapshotId);
-  const narrative = await ai.generateNarrative(snapshot, issues);
-  if (!narrative) return sendJSON(res, 502, { error: 'Could not generate narrative right now — try again in a moment' });
+  const result = await ai.generateNarrative(snapshot, issues);
+  if (!result) return sendJSON(res, 502, { error: 'Could not generate narrative right now — try again in a moment' });
 
-  store.setSnapshotNarrative(snapshotId, narrative);
-  sendJSON(res, 200, { narrative, cached: false });
+  const cost = pricing.costUsd(result.inputTokens, result.outputTokens);
+  const credits = pricing.creditsForUsage(result.inputTokens, result.outputTokens);
+  store.setSnapshotNarrative(snapshotId, result.text);
+  store.logAiUsage(user.id, snapshotId, result.inputTokens, result.outputTokens, cost, credits);
+  const updatedUser = store.deductCredits(user.id, credits);
+
+  sendJSON(res, 200, { narrative: result.text, cached: false, creditsUsed: credits, creditBalance: updatedUser.credit_balance });
 });
 
 route('POST', '/api/feedback', async (req, res, params, user) => {
@@ -386,17 +424,13 @@ const server = http.createServer(async (req, res) => {
     if (!match) return sendJSON(res, 404, { error: 'No such route' });
 
     const isPublicRoute = pathname.startsWith('/api/auth/') || pathname === '/api/billing/webhook';
-    const isBillingRoute = pathname.startsWith('/api/billing/');
     const cookies = auth.parseCookies(req);
     const user = auth.getUserForToken(cookies.session);
     if (!isPublicRoute && !user) return sendJSON(res, 401, { error: 'Not authenticated' });
 
-    // Paid routes: once billing is configured, require an active (or trialing) subscription.
-    // Auth and billing routes themselves stay exempt — you need to be able to log in and pay
-    // before you can have a subscription.
-    if (!isPublicRoute && !isBillingRoute && billing.stripeConfigured() && !['active', 'trialing'].includes(user.subscription_status)) {
-      return sendJSON(res, 402, { error: 'An active subscription is required to use Schedule Health', subscriptionStatus: user.subscription_status });
-    }
+    // Every account (including the free tier) can use the core app — there is no longer a
+    // blanket "subscribe or you're locked out" gate. The only thing a plan/credit balance
+    // restricts is AI narrative generation, enforced in that route itself (see /api/snapshots/:id/narrative).
 
     try {
       await match.handler(req, res, match.params, user);

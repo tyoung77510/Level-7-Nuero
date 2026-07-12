@@ -87,13 +87,27 @@
   body.auth-mode .auth-box button.btn.primary { padding: 11px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; }
   .user-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
   .user-bar span { font-size: 12px; color: var(--muted); }
-  .paywall-box { max-width: 420px; margin: 40px auto 0; text-align: center; }
-  .paywall-box .card { text-align: left; }
-  .price-line { font-size: 32px; font-weight: 700; color: var(--navy); margin: 4px 0; }
-  .price-line span { font-size: 14px; font-weight: 400; color: var(--muted); }
-  .paywall-features { list-style: none; padding: 0; margin: 14px 0; font-size: 13px; }
+  .credit-pill { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 2px 10px; font-weight: 600; margin-left: 4px; }
+  .tier-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; align-items: stretch; }
+  .tier-card { display: flex; flex-direction: column; position: relative; padding-top: 30px; }
+  .tier-card-popular { border-color: var(--navy); box-shadow: 0 4px 16px rgba(71,106,176,0.12); }
+  .tier-badge { position: absolute; top: 12px; left: 16px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 10px; }
+  .tier-badge-free { background: #eceae3; color: var(--muted); }
+  .tier-badge-popular { background: var(--navy); color: #fff; }
+  .tier-badge-soon { background: #eceae3; color: var(--muted); }
+  .tier-name { margin: 0 0 2px; font-size: 16px; }
+  .tier-tagline { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+  .price-line { font-size: 28px; font-weight: 700; color: var(--navy); margin: 4px 0; }
+  .price-line span { font-size: 13px; font-weight: 400; color: var(--muted); }
+  .paywall-features { list-style: none; padding: 0; margin: 10px 0 14px; font-size: 12px; flex: 1; }
   .paywall-features li { padding: 4px 0 4px 20px; position: relative; }
   .paywall-features li::before { content: "\2713"; position: absolute; left: 0; color: var(--good); font-weight: 700; }
+  @media (max-width: 900px) {
+    .tier-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .tier-grid { grid-template-columns: 1fr; }
+  }
   @media print {
     .nav, .no-print { display: none !important; }
     body { padding: 0; }
@@ -121,27 +135,9 @@
     </div>
   </div>
 
-  <div id="paywallScreen" class="paywall-box" style="display:none;">
-    <div class="card">
-      <h2 style="margin:0 0 2px; font-size:16px;">Subscribe to Ordo7</h2>
-      <p class="price-line">$49<span>/month</span></p>
-      <ul class="paywall-features">
-        <li>Unlimited projects and uploads</li>
-        <li>Plain-language health scoring, no jargon</li>
-        <li>DCMA-style issue detection</li>
-        <li>Trend tracking and portfolio rollup</li>
-        <li>Printable status reports</li>
-      </ul>
-      <button class="btn cta" id="subscribeBtn" style="width:100%;">Subscribe — $49/month</button>
-      <p id="paywallError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
-      <p id="paywallNote" style="font-size:12px; color:var(--muted); text-align:center; margin:10px 0 0;"></p>
-    </div>
-    <p style="font-size:12px; color:var(--muted); margin-top:10px;"><a id="paywallLogout" style="color:var(--muted); cursor:pointer;">Log out</a></p>
-  </div>
-
   <div id="appScreen" style="display:none;">
     <div class="user-bar no-print">
-      <span id="userEmail"></span>
+      <span><span id="userEmail"></span> <span id="creditPill" class="credit-pill"></span></span>
       <span>
         <a id="feedbackLink" style="font-size:12px; color:var(--navy); cursor:pointer; margin-right:12px;">Suggest a feature</a>
         <button class="btn tiny" id="logoutBtn">Log out</button>
@@ -155,6 +151,64 @@
       <button data-step="trends">Trends</button>
       <button data-step="portfolio">Portfolio</button>
       <button data-step="report">Report</button>
+      <button data-step="pricing">Plan</button>
+    </div>
+
+    <div id="v-pricing" class="view">
+      <div class="tier-grid">
+        <div class="card tier-card">
+          <span class="tier-badge tier-badge-free">Free</span>
+          <h2 class="tier-name">Free</h2>
+          <p class="tier-tagline">Get started with Ordo7</p>
+          <p class="price-line">$0<span>/month</span></p>
+          <ul class="paywall-features">
+            <li>Unlimited projects and uploads</li>
+            <li>Plain-language health scoring, no jargon</li>
+            <li>DCMA-style issue detection</li>
+            <li>Trend tracking and portfolio rollup</li>
+            <li>20 free AI summary credits on signup</li>
+          </ul>
+          <button class="btn" disabled style="width:100%;">Your plan by default</button>
+        </div>
+        <div class="card tier-card tier-card-popular">
+          <span class="tier-badge tier-badge-popular">Popular</span>
+          <h2 class="tier-name">Pro</h2>
+          <p class="tier-tagline">For teams running this every week</p>
+          <p class="price-line">$50<span>/month</span></p>
+          <ul class="paywall-features">
+            <li>Everything in Free, plus:</li>
+            <li>500 AI summary credits/month</li>
+            <li>Credits refill every billing cycle</li>
+          </ul>
+          <button class="btn cta" data-tier="pro" style="width:100%;">Subscribe — Pro</button>
+        </div>
+        <div class="card tier-card">
+          <span class="tier-badge tier-badge-soon">Coming soon</span>
+          <h2 class="tier-name">Teams</h2>
+          <p class="tier-tagline">Pooled credits across your team</p>
+          <p class="price-line">Custom</p>
+          <ul class="paywall-features">
+            <li>Everything in Pro, plus:</li>
+            <li>Multiple seats, one account</li>
+            <li>Pooled AI credits</li>
+          </ul>
+          <a class="btn" style="width:100%; text-align:center; display:block; text-decoration:none; box-sizing:border-box;" href="mailto:admin@level7data.com?subject=Ordo7%20Teams%20plan">Contact us</a>
+        </div>
+        <div class="card tier-card">
+          <span class="tier-badge tier-badge-soon">Custom</span>
+          <h2 class="tier-name">Enterprise</h2>
+          <p class="tier-tagline">Custom pricing for large organizations</p>
+          <p class="price-line">Custom</p>
+          <ul class="paywall-features">
+            <li>Everything in Teams, plus:</li>
+            <li>Dedicated support</li>
+            <li>Custom integrations</li>
+          </ul>
+          <a class="btn" style="width:100%; text-align:center; display:block; text-decoration:none; box-sizing:border-box;" href="mailto:admin@level7data.com?subject=Ordo7%20Enterprise%20plan">Contact us</a>
+        </div>
+      </div>
+      <p id="paywallError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
+      <p id="paywallNote" style="font-size:12px; color:var(--muted); text-align:center; margin:10px 0 0;"></p>
     </div>
 
     <div id="v-upload" class="view active">
@@ -219,6 +273,7 @@ function setView(step){
   navButtons.forEach(b => b.classList.toggle('active', b.dataset.step === step));
   if (step === 'trends') renderTrends();
   if (step === 'portfolio') renderPortfolio();
+  if (step === 'pricing') renderPricing();
 }
 navButtons.forEach(b => b.addEventListener('click', () => setView(b.dataset.step)));
 
@@ -232,10 +287,6 @@ async function api(path, options){
   if (res.status === 401 && !path.startsWith('/api/auth/')) {
     showAuth();
     throw new Error('Please log in');
-  }
-  if (res.status === 402) {
-    showPaywall(currentUser);
-    throw new Error('Subscription required');
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -252,15 +303,6 @@ function showAuth(){
   currentUser = null;
   document.body.classList.add('auth-mode');
   document.getElementById('authScreen').style.display = '';
-  document.getElementById('paywallScreen').style.display = 'none';
-  document.getElementById('appScreen').style.display = 'none';
-}
-
-function showPaywall(user){
-  currentUser = user;
-  document.body.classList.remove('auth-mode');
-  document.getElementById('authScreen').style.display = 'none';
-  document.getElementById('paywallScreen').style.display = '';
   document.getElementById('appScreen').style.display = 'none';
 }
 
@@ -268,14 +310,21 @@ function showApp(user){
   currentUser = user;
   document.body.classList.remove('auth-mode');
   document.getElementById('authScreen').style.display = 'none';
-  document.getElementById('paywallScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = '';
   document.getElementById('userEmail').textContent = user.email;
+  updateCreditPill(user);
 }
 
+function updateCreditPill(user){
+  const el = document.getElementById('creditPill');
+  const tierLabel = user.planTier === 'pro' ? 'Pro' : 'Free';
+  el.textContent = tierLabel + ' · ' + (user.creditBalance ?? 0) + ' credits';
+}
+
+// Every account — including the free tier — gets straight into the app. There's no more
+// forced subscribe-or-you're-locked-out screen; upgrading happens voluntarily from the Plan tab.
 function routeForUser(user){
-  const active = user.subscriptionStatus === 'active' || user.subscriptionStatus === 'trialing';
-  if (active) showApp(user); else showPaywall(user);
+  showApp(user);
 }
 
 function setAuthMode(mode){
@@ -319,7 +368,6 @@ async function doLogout(){
   showAuth();
 }
 document.getElementById('logoutBtn').addEventListener('click', doLogout);
-document.getElementById('paywallLogout').addEventListener('click', doLogout);
 
 // --- Feedback ---
 
@@ -354,23 +402,41 @@ document.getElementById('feedbackSubmit').addEventListener('click', async () => 
   }
 });
 
-// --- Billing / paywall ---
+// --- Billing / pricing ---
 
-document.getElementById('subscribeBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('subscribeBtn');
+function renderPricing(){
   const errEl = document.getElementById('paywallError');
-  errEl.style.display = 'none';
-  btn.disabled = true;
-  btn.textContent = 'Redirecting to checkout…';
-  try {
-    const { url } = await api('/api/billing/checkout', { method: 'POST' });
-    window.location.href = url;
-  } catch (e) {
-    errEl.textContent = e.message;
-    errEl.style.display = 'block';
-    btn.disabled = false;
-    btn.textContent = 'Subscribe — $49/month';
-  }
+  if (errEl) errEl.style.display = 'none';
+  document.querySelectorAll('#v-pricing [data-tier]').forEach(btn => {
+    if (currentUser && currentUser.planTier === btn.dataset.tier) {
+      btn.disabled = true;
+      btn.textContent = 'Current plan';
+    }
+  });
+}
+
+document.querySelectorAll('#v-pricing [data-tier]').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const tier = btn.dataset.tier;
+    const errEl = document.getElementById('paywallError');
+    errEl.style.display = 'none';
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = 'Redirecting to checkout…';
+    try {
+      const { url } = await api('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier })
+      });
+      window.location.href = url;
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
 });
 
 async function handleCheckoutRedirect(){
@@ -378,6 +444,7 @@ async function handleCheckoutRedirect(){
   const checkout = params.get('checkout');
   if (!checkout) return false;
   history.replaceState({}, '', window.location.pathname);
+  setView('pricing');
 
   if (checkout === 'cancelled') {
     document.getElementById('paywallNote').textContent = 'Checkout cancelled — no charge was made.';
@@ -388,7 +455,12 @@ async function handleCheckoutRedirect(){
     document.getElementById('paywallNote').textContent = 'Confirming your subscription…';
     try {
       const result = await api('/api/billing/verify?session_id=' + encodeURIComponent(sessionId));
-      if (result.user) { routeForUser(result.user); setView('upload'); }
+      if (result.user) {
+        currentUser = result.user;
+        updateCreditPill(result.user);
+        renderPricing();
+        document.getElementById('paywallNote').textContent = 'You\'re on the ' + (result.user.planTier === 'pro' ? 'Pro' : 'Free') + ' plan.';
+      }
       else { document.getElementById('paywallNote').textContent = 'Payment is still processing — refresh in a moment.'; }
     } catch (e) {
       document.getElementById('paywallNote').textContent = 'Could not confirm subscription: ' + e.message;
@@ -402,9 +474,8 @@ async function handleCheckoutRedirect(){
   try {
     const { user } = await api('/api/auth/me');
     if (!user) { showAuth(); return; }
-    currentUser = user;
-    const handled = await handleCheckoutRedirect();
-    if (!handled) routeForUser(user);
+    routeForUser(user);
+    await handleCheckoutRedirect();
   } catch (e) { showAuth(); }
 })();
 
@@ -494,6 +565,7 @@ async function loadNarrative(snapshot){
       const result = await api('/api/snapshots/' + snapshot.id + '/narrative', { method: 'POST' });
       snapshot.narrative = result.narrative;
       if (currentSnapshot && currentSnapshot.id === snapshot.id) currentSnapshot.narrative = result.narrative;
+      if (result.creditBalance != null && currentUser) { currentUser.creditBalance = result.creditBalance; updateCreditPill(currentUser); }
       box.innerHTML = '<p style="font-size:13px; line-height:1.6; white-space:pre-line;">' + escapeHtml(result.narrative) + '</p>';
     } catch (e) {
       status.textContent = 'Could not generate summary: ' + e.message;

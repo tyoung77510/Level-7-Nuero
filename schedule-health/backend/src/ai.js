@@ -48,7 +48,12 @@ async function generateNarrative(snapshot, issues) {
     }
     const data = await res.json();
     const text = (data.content || []).map(block => block.text || '').join('').trim();
-    return text || null;
+    if (!text) return null;
+    return {
+      text,
+      inputTokens: data.usage?.input_tokens || 0,
+      outputTokens: data.usage?.output_tokens || 0
+    };
   } catch (err) {
     console.error('[ai] generateNarrative failed', err.message);
     return null;

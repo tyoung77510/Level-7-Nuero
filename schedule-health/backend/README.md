@@ -45,37 +45,67 @@ Every project belongs to the user who created it. All `/api/*` routes except
 The frontend (`public/index.html`) gates the whole app behind a login/signup
 screen: on load it calls `/api/auth/me`; if there's no valid session it shows
 a small login/signup form (toggle between the two — signup additionally asks
-for name and phone), otherwise it routes to either the subscribe screen or
-the normal Upload → Health → Issues → Trends → Portfolio → Report flow,
-depending on `subscriptionStatus`, with the logged-in user's email and a
-"Log out" button above the nav.
+for name and phone), otherwise it goes straight into the app — every account,
+including the free tier, has full access to the core product (see Pricing
+and AI credits below for what's actually gated) — with the logged-in user's
+email, plan/credit pill, and a "Log out" button above the nav.
+
+## Pricing and AI credits
+
+There is no longer an all-or-nothing paywall. Every account gets full access to uploads, health
+scoring, issues, trends, portfolio, and reports regardless of plan. What's metered is **AI
+narrative generation** (see below), spent as credits:
+
+- **Free** — every signup gets 20 credits once, free, no card required.
+- **Pro — $50/month** — 500 credits/month, refilled each billing cycle.
+- **Teams / Enterprise** — shown in the Plan tab for lead-gen ("Contact us", mailing
+  `admin@level7data.com`) but not wired up to real checkout — this app doesn't support multiple
+  seats on one account yet, so building real billing for a feature that doesn't exist would just
+  be dead code. Add real multi-seat support first, then wire these up the same way Pro is wired.
+
+**How a credit is priced (`src/pricing.js`):** every AI call's real cost is computed from
+Anthropic's actual per-token price for the model in use (`claude-haiku-4-5`: $1/$5 per million
+input/output tokens), then multiplied by a fixed markup (`MARGIN_MULTIPLIER`, currently 4x — a
+75% margin over what Anthropic bills us) and converted to whole credits (`CREDIT_VALUE_USD`,
+currently $0.001/credit). This means credit cost always tracks real usage — a longer, more
+expensive generation costs more credits than a short one — rather than a flat "1 call = 1
+credit" guess. Every call's actual input/output token counts, cost, and credits charged are
+logged to the `ai_usage` table for margin auditing. To retune margin or credit pricing across
+every tier at once, change the constants at the top of `src/pricing.js` — nothing else needs to
+change.
+
+**Note on the current numbers:** the Stripe price currently configured in this environment
+(`STRIPE_PRICE_ID_PRO`) is a pre-existing **$49/month** price from before tiers existed; the UI
+now displays "Pro — $50/month". Either update the price in the Stripe Dashboard to $50 and use
+its new price ID, or change the `$50/month` label in `public/index.html`'s Pro tier card (and
+`priceLabel` in `pricing.js`) to say $49 — whichever you'd rather do, they just need to match.
 
 ## Billing (Stripe subscription)
 
-Once `STRIPE_SECRET_KEY` and `STRIPE_PRICE_ID` are set, every route except
-`/api/auth/*` and `/api/billing/*` starts requiring an **active or trialing**
-subscription (`402 Payment Required` otherwise) — this is the actual paywall.
-Without those env vars set, the paywall is off entirely (useful for local
-dev before billing is configured).
+Once `STRIPE_SECRET_KEY` and `STRIPE_PRICE_ID_PRO` are set, the Pro tier's "Subscribe" button in
+the Plan tab becomes live. Without them set, clicking it returns a clean "not configured yet"
+error; the rest of the app (including the free tier) is unaffected either way — billing is no
+longer a gate on using the product at all.
 
 Implemented via plain calls to Stripe's REST API (`node:https`/`fetch`), no
 `stripe` npm SDK — consistent with the zero-dependency approach used for auth.
 
 | Method | Path | What it does |
 |---|---|---|
-| `POST` | `/api/billing/checkout` | Creates a Stripe Checkout Session (`mode: subscription`) for the logged-in user and returns `{url}` to redirect the browser to Stripe's hosted checkout page |
-| `GET` | `/api/billing/verify?session_id=...` | Called by the frontend after Stripe redirects back on success; retrieves the Checkout Session server-side, confirms it belongs to the current user, and activates their subscription |
-| `POST` | `/api/billing/webhook` | Stripe webhook receiver for subscription lifecycle events (renewals, cancellations). Verifies `Stripe-Signature` against `STRIPE_WEBHOOK_SECRET`. **Inert (204, no-op) until that secret is set** — see below |
+| `POST` | `/api/billing/checkout` | `{tier: "pro"}` — creates a Stripe Checkout Session (`mode: subscription`) for the logged-in user and returns `{url}` to redirect the browser to Stripe's hosted checkout page |
+| `GET` | `/api/billing/verify?session_id=...` | Called by the frontend after Stripe redirects back on success; retrieves the Checkout Session server-side (expanding both `subscription` and `line_items`), confirms it belongs to the current user, determines the purchased tier from the actual line item price ID (never trusting a client-supplied tier), and sets `plan_tier` + refills `credit_balance` to that tier's monthly allotment |
+| `POST` | `/api/billing/webhook` | Stripe webhook receiver for subscription lifecycle events (renewals, cancellations) and `invoice.payment_succeeded` (refills credits on each renewal). Verifies `Stripe-Signature` against `STRIPE_WEBHOOK_SECRET`. **Inert (204, no-op) until that secret is set** — see below |
 
 **Why verification happens on redirect, not just via webhook:** Stripe webhooks require a
 publicly reachable HTTPS URL registered in the Stripe Dashboard, which `localhost` isn't. So the
-primary way a subscription gets activated is the `/api/billing/verify` call the frontend makes
-right after the successful-checkout redirect (Stripe embeds a `{CHECKOUT_SESSION_ID}` in the
-`success_url`, which the frontend then verifies server-side against the Stripe API — not just
-trusting the redirect happened). The webhook handler is written and ready for when this is
-deployed somewhere with a public URL: register the endpoint in Stripe Dashboard → Developers →
-Webhooks, put the resulting signing secret in `STRIPE_WEBHOOK_SECRET`, and cancellations/renewals
-will then update `subscription_status` automatically too.
+primary way a subscription gets activated (and credits refilled) is the `/api/billing/verify`
+call the frontend makes right after the successful-checkout redirect (Stripe embeds a
+`{CHECKOUT_SESSION_ID}` in the `success_url`, which the frontend then verifies server-side
+against the Stripe API — not just trusting the redirect happened). The webhook handler is written
+and ready for when this is deployed somewhere with a public URL: register the endpoint in Stripe
+Dashboard → Developers → Webhooks, put the resulting signing secret in `STRIPE_WEBHOOK_SECRET`,
+and cancellations/renewals (including the monthly credit refill) will then happen automatically
+too.
 
 ## Lead sync (Knock)
 
@@ -107,11 +137,12 @@ actions — from that snapshot's score and open issues. Raw HTTPS calls to
 integrations), gated behind `ANTHROPIC_API_KEY`. The generated text is cached on the snapshot
 (`snapshots.narrative`) so it's only generated once per snapshot, not re-billed on every view.
 Without `ANTHROPIC_API_KEY` set, the button's endpoint returns a 503 and the rest of the app is
-unaffected.
+unaffected. Every generation also spends AI credits — see Pricing and AI credits above — and
+returns `429` once a user's balance hits zero, distinct from the `503 not configured` case.
 
 | Method | Path | What it does |
 |---|---|---|
-| `POST` | `/api/snapshots/:id/narrative` | Generates (or returns the cached) AI narrative for a snapshot — 403s if the snapshot doesn't belong to the current user, 503 if `ANTHROPIC_API_KEY` isn't set |
+| `POST` | `/api/snapshots/:id/narrative` | Generates (or returns the cached) AI narrative for a snapshot — 403s if the snapshot doesn't belong to the current user, 503 if `ANTHROPIC_API_KEY` isn't set, 429 if the user is out of AI credits |
 
 ## API reference
 
@@ -141,15 +172,24 @@ curl -b cookies.txt -X POST http://localhost:3000/api/analyze \
 
 ## Database
 
-SQLite, stored at `data/schedule-health.db`. Six tables:
-- `users` — one row per account (name, email, phone, hashed password + salt, Stripe customer/subscription IDs, subscription status)
+SQLite, stored at `data/schedule-health.db`. Seven tables:
+- `users` — one row per account (name, email, phone, hashed password + salt, Stripe customer/subscription IDs, subscription status, `plan_tier`, `credit_balance`)
 - `sessions` — one row per active login (token, user, expiry)
 - `projects` — one row per project name, scoped to the user who created it (`UNIQUE(user_id, name)` — two users can each have a project called "River Bridge")
 - `snapshots` — one row per analysis run, with the score and breakdown, plus a cached `narrative` column for the AI-generated summary (null until generated)
 - `issues` — one row per flagged issue, linked to the snapshot it came from, with a status field for tracking resolution
 - `feedback` — one row per feature suggestion/improvement submitted through the app, linked to the user who submitted it
+- `ai_usage` — one row per AI narrative generation, logging real token counts, actual Anthropic cost, and credits charged — the audit trail behind the credit math in Pricing and AI credits above
 
 This is genuinely persistent (survives restarts, unlike the browser-storage version) but is still a single SQLite file on one machine — see `docs/infrastructure-roadmap.md` in the main repo for what's needed to make this properly multi-tenant at scale (real Postgres, hosted, role-based access).
+
+**Schema migrations:** `db.js` uses `CREATE TABLE IF NOT EXISTS`, which does nothing for a table
+that already exists — so a new column added to the schema (like `narrative`, `plan_tier`, or
+`credit_balance`) won't retroactively appear on an existing local `data/schedule-health.db` from
+before that column existed. `db.js` handles this with a small `ensureColumn()` helper that runs
+`ALTER TABLE ... ADD COLUMN` for anything missing, every time the server starts — so an older
+local database upgrades itself automatically the next time you run `node src/server.js`, no
+manual migration step needed.
 
 ## What this does NOT yet include
 
@@ -157,9 +197,11 @@ This is genuinely persistent (survives restarts, unlike the browser-storage vers
 - **Password reset / email verification** — signup and login only. No email sending is wired up.
 - **File upload size limits / virus scanning** — the multipart parser here is intentionally minimal; swap in a real library (e.g., `busboy`) before accepting uploads from untrusted users.
 - **MPP (MS Project) parsing** — still XER and CSV only. MPP needs a library like `mpxj`.
-- **Failed-payment / dunning handling** — a `past_due` or `unpaid` Stripe status just falls through to "no access" (not `active`/`trialing`); there's no dedicated "your payment failed, update your card" screen yet.
-- **Webhook-driven subscription updates** — written and ready, but inert until this is deployed with a public URL and registered in the Stripe Dashboard (see Billing section above). Until then, cancellations/renewals won't reflect here automatically.
+- **Failed-payment / dunning handling** — a `past_due` or `unpaid` Stripe status isn't specially handled; there's no dedicated "your payment failed, update your card" screen yet, and credits aren't clawed back if a renewal fails.
+- **Webhook-driven subscription updates** — written and ready, but inert until this is deployed with a public URL and registered in the Stripe Dashboard (see Billing section above). Until then, cancellations/renewals (and the credit refill on renewal) won't reflect here automatically — only the post-checkout verify call keeps things in sync.
 - **No in-app feedback review screen** — submissions land in the `feedback` table and (once configured) trigger a Knock notification, but there's no admin view in the app itself yet; reviewing them today means querying the database directly or reading the Knock notification.
+- **Teams/Enterprise tiers aren't real plans** — they're "Contact us" cards in the Plan tab with no checkout behind them, because this app has no multi-seat/org support to sell yet (see Pricing and AI credits above).
+- **No "buy more credits" purchase flow** — if a Pro user runs out of credits mid-cycle, the only options today are waiting for the next renewal or upgrading (there's no self-serve one-off credit top-up).
 
 ## Frontend
 
@@ -171,15 +213,27 @@ The original `app/index.html` in the repo root is the earlier browser-storage-on
 
 Verified working end-to-end during development: XER upload → snapshot + issues saved correctly (matches the browser prototype's DCMA-style checks), CSV upload path, project history endpoint, portfolio rollup, and issue status updates. Auth was verified end-to-end too: signup (including the new name/phone-required validation), login (wrong-password and duplicate-email rejection), logout, and that a second user cannot see or modify a first user's projects or issues (`/api/projects`, `/api/portfolio`, and `PATCH /api/issues/:id` all reject or 403 cross-user access) — tested both via curl and by driving the actual signup/login/upload/logout flow in a real browser.
 
-**Billing and lead-sync: what was and wasn't verified.** The environment this was built in has no outbound network access to `api.stripe.com` or `api.knock.app` (sandboxed for security), so the Stripe and Knock API calls themselves could not be exercised live. What *was* verified in that environment:
-- The paywall itself: signing up leaves `subscription_status: 'none'`, and every gated route correctly returns `402` until that changes — confirmed via curl and in the browser (new signups land on the $49/month subscribe screen, not the app).
-- Failure handling: hitting "Subscribe" with Stripe unreachable surfaces a clean error in the UI instead of hanging or crashing the server; the same is true for the Knock sync call on signup, which logs and moves on without blocking account creation.
-- The request shapes sent to Stripe (Checkout Session creation, session retrieval with `expand[]=subscription`) and to Knock (`PUT /v1/users/:id`) match their documented REST APIs.
+**Billing and lead-sync: what was and wasn't verified.** The environment this was built in has no outbound network access to `api.stripe.com` or `api.knock.app` (sandboxed for security, confirmed via a direct `curl` showing the CONNECT tunnel itself gets rejected — a network-level block, not a Stripe API error), so the Stripe and Knock API calls themselves could not be exercised live. What *was* verified in that environment:
+- Every account (free tier included) reaches the full app with no paywall — confirmed via curl and in the browser.
+- Failure handling: hitting "Subscribe — Pro" with Stripe unreachable surfaces a clean error in the UI (button re-enables, error message shown) instead of hanging or crashing the server; the same is true for the Knock sync call on signup, which logs and moves on without blocking account creation.
+- The request shapes sent to Stripe (Checkout Session creation with a tier-specific price ID, session retrieval with `expand[]=subscription&expand[]=line_items`) and to Knock (`PUT /v1/users/:id`) match their documented REST APIs.
 
-**Still needs testing in an environment with real internet access** (i.e., wherever this actually gets deployed, or on your own machine): the full happy path — clicking Subscribe, completing a real Stripe Checkout, landing back on `/api/billing/verify`, and confirming the account flips to `subscription_status: 'active'` and unlocks the app — plus the Knock dashboard actually showing synced users and, once a feedback workflow is built there, actually receiving a feedback notification. Recommend testing that against Stripe's **test mode** keys/price first (a live secret key and live price ID are what's configured right now) before trusting it with real cards.
+**AI credits: what was verified live.** Unlike Stripe/Knock, this sandbox *can* reach
+`api.anthropic.com`, so the credit math was tested against a real Claude API call, not just
+inspected: a fresh signup got 20 free credits, generating one real narrative logged actual token
+counts (233 input / 241 output) to `ai_usage`, computed real cost (~$0.00144), applied the 4x
+margin, and correctly deducted 6 credits (balance 20 → 14) — matching the formula in `pricing.js`
+by hand. Draining the balance to 0 and requesting another narrative correctly returned `429` with
+the "out of credits" message instead of calling Claude again. The `ensureColumn` migration was
+also verified against a hand-built pre-existing database using the old schema (no `plan_tier`,
+`credit_balance`, or `narrative` columns) — it added the missing columns cleanly with no data loss
+or crash, confirming a real local database from before this feature existed will upgrade itself
+automatically.
 
-The feedback feature (`POST /api/feedback`) was verified locally end-to-end — including the paywall gate (blocked at `402` pre-subscription), the too-short-message validation, and a successful submission (with a test subscription activated directly in the local database, since real Stripe checkout couldn't be driven from this sandbox) — in both curl and a real browser.
+**Still needs testing in an environment with real internet access** (i.e., wherever this actually gets deployed, or on your own machine): the full Pro checkout happy path — clicking Subscribe, completing a real Stripe Checkout, landing back on `/api/billing/verify`, and confirming the account flips to `plan_tier: 'pro'` with 500 credits — plus the Knock dashboard actually showing synced users and, once a feedback workflow is built there, actually receiving a feedback notification. Recommend testing checkout against Stripe's **test mode** keys/price first (a live secret key and live price ID are what's configured right now) before trusting it with real cards.
 
-**AI narrative.** Unlike Stripe and Knock, the sandbox this was built in *can* reach `api.anthropic.com` — confirmed by pointing the app at a deliberately invalid key and seeing a real `401 authentication_error` come back from Anthropic's API (not a network-level block). Verified: `POST /api/snapshots/:id/narrative` correctly 503s with no `ANTHROPIC_API_KEY` set, 403s when the snapshot belongs to another user, 404s for a nonexistent snapshot, and reaches the live Claude API and surfaces a clean 502 (instead of crashing) when the key is invalid — all via curl. Generating an actual narrative end-to-end requires a valid `ANTHROPIC_API_KEY`, which hasn't been supplied yet as of this writing.
+The feedback feature (`POST /api/feedback`) was verified locally end-to-end — the too-short-message validation and a successful submission — in both curl and a real browser. It's not credit-gated (only AI narrative generation spends credits).
+
+**AI narrative and credits.** Confirmed live end-to-end with a real `ANTHROPIC_API_KEY` (see above) — `POST /api/snapshots/:id/narrative` correctly 503s with no key set, 403s when the snapshot belongs to another user, 404s for a nonexistent snapshot, generates a real narrative and deducts the correct credits on success, returns the cached narrative (and no credit charge) on a second call, and 429s once the balance hits zero.
 
 Not yet covered by an automated test suite — that's a reasonable next addition.

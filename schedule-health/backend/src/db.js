@@ -19,6 +19,8 @@ db.exec(`
     stripe_customer_id TEXT,
     stripe_subscription_id TEXT,
     subscription_status TEXT NOT NULL DEFAULT 'none',
+    plan_tier TEXT NOT NULL DEFAULT 'free',
+    credit_balance INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -68,16 +70,41 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS ai_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    snapshot_id INTEGER NOT NULL REFERENCES snapshots(id),
+    input_tokens INTEGER NOT NULL,
+    output_tokens INTEGER NOT NULL,
+    cost_usd REAL NOT NULL,
+    credits_charged INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_snapshots_project ON snapshots(project_id);
   CREATE INDEX IF NOT EXISTS idx_issues_snapshot ON issues(snapshot_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);
   CREATE INDEX IF NOT EXISTS idx_feedback_user ON feedback(user_id);
+  CREATE INDEX IF NOT EXISTS idx_ai_usage_user ON ai_usage(user_id);
 `);
 
-function createUser(name, email, phone, passwordHash, passwordSalt) {
-  db.prepare('INSERT INTO users (name, email, phone, password_hash, password_salt) VALUES (?, ?, ?, ?, ?)')
-    .run(name, email, phone || null, passwordHash, passwordSalt);
+// Lightweight migration: CREATE TABLE IF NOT EXISTS doesn't add columns to a table that already
+// existed from an earlier version of this schema (e.g. a local dev database created before the
+// narrative/plan_tier/credit_balance columns existed). Add anything missing.
+function ensureColumn(table, column, definition) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!cols.some(c => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+ensureColumn('snapshots', 'narrative', 'TEXT');
+ensureColumn('users', 'plan_tier', "TEXT NOT NULL DEFAULT 'free'");
+ensureColumn('users', 'credit_balance', 'INTEGER NOT NULL DEFAULT 0');
+
+function createUser(name, email, phone, passwordHash, passwordSalt, signupCredits) {
+  db.prepare('INSERT INTO users (name, email, phone, password_hash, password_salt, credit_balance) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(name, email, phone || null, passwordHash, passwordSalt, signupCredits || 0);
   return db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 }
 
@@ -106,6 +133,25 @@ function setSubscriptionStatus(userId, status, subscriptionId) {
   db.prepare('UPDATE users SET subscription_status = ?, stripe_subscription_id = COALESCE(?, stripe_subscription_id) WHERE id = ?')
     .run(status, subscriptionId || null, userId);
   return getUserById(userId);
+}
+
+// Sets a user's plan and refills their credit balance to that plan's monthly allotment —
+// used both on initial checkout and (once webhooks are live post-deploy) on each renewal.
+function setUserTier(userId, tier, monthlyCredits) {
+  db.prepare('UPDATE users SET plan_tier = ?, credit_balance = ? WHERE id = ?').run(tier, monthlyCredits, userId);
+  return getUserById(userId);
+}
+
+function deductCredits(userId, amount) {
+  db.prepare('UPDATE users SET credit_balance = credit_balance - ? WHERE id = ?').run(amount, userId);
+  return getUserById(userId);
+}
+
+function logAiUsage(userId, snapshotId, inputTokens, outputTokens, costUsd, creditsCharged) {
+  db.prepare(`
+    INSERT INTO ai_usage (user_id, snapshot_id, input_tokens, output_tokens, cost_usd, credits_charged)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(userId, snapshotId, inputTokens, outputTokens, costUsd, creditsCharged);
 }
 
 function createSession(token, userId, expiresAt) {
@@ -229,5 +275,6 @@ module.exports = {
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
   createUser, getUserByEmail, getUserById,
   getUserByStripeCustomerId, getUserByStripeSubscriptionId, setStripeCustomerId, setSubscriptionStatus,
+  setUserTier, deductCredits, logAiUsage,
   createSession, getSession, deleteSession, deleteExpiredSessions
 };
