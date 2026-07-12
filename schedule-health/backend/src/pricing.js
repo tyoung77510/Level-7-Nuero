@@ -36,7 +36,7 @@ const TIERS = {
   pro: {
     key: 'pro',
     name: 'Pro',
-    priceLabel: '$50/month',
+    priceLabel: '$49.99/month',
     monthlyCredits: 500,
     stripePriceEnvVar: 'STRIPE_PRICE_ID_PRO'
   }
