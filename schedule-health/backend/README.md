@@ -84,6 +84,20 @@ your nurture/marketing workflows there. This never blocks or fails signup — if
 isn't set, or the Knock API call fails for any reason, it's logged to the console and signup
 proceeds normally.
 
+## Feedback
+
+Every logged-in, subscribed user sees a "Suggest a feature" link in the app (next to "Log out")
+that opens a one-box form — this is the feature-request/improvement channel: feedback is always
+saved to the `feedback` table (durable, survives restarts), and — once `KNOCK_FEEDBACK_WORKFLOW_KEY`
+and `KNOCK_FEEDBACK_RECIPIENT_EMAIL` are set and a matching workflow exists in your Knock dashboard
+— also triggers a Knock workflow so the team gets notified (email/Slack/whatever that workflow is
+configured to do) as soon as it comes in. Like the other Knock integration, this no-ops gracefully
+(with a console log, feedback still saved) until that's configured.
+
+| Method | Path | What it does |
+|---|---|---|
+| `POST` | `/api/feedback` | `{message}` (3–2000 chars) — saves the feedback under the current user and (if configured) notifies the team via Knock |
+
 ## API reference
 
 All routes below require an authenticated session (see Authentication) and are scoped to the current user's own projects.
@@ -111,12 +125,13 @@ curl -b cookies.txt -X POST http://localhost:3000/api/analyze \
 
 ## Database
 
-SQLite, stored at `data/schedule-health.db`. Five tables:
+SQLite, stored at `data/schedule-health.db`. Six tables:
 - `users` — one row per account (name, email, phone, hashed password + salt, Stripe customer/subscription IDs, subscription status)
 - `sessions` — one row per active login (token, user, expiry)
 - `projects` — one row per project name, scoped to the user who created it (`UNIQUE(user_id, name)` — two users can each have a project called "River Bridge")
 - `snapshots` — one row per analysis run, with the score and breakdown
 - `issues` — one row per flagged issue, linked to the snapshot it came from, with a status field for tracking resolution
+- `feedback` — one row per feature suggestion/improvement submitted through the app, linked to the user who submitted it
 
 This is genuinely persistent (survives restarts, unlike the browser-storage version) but is still a single SQLite file on one machine — see `docs/infrastructure-roadmap.md` in the main repo for what's needed to make this properly multi-tenant at scale (real Postgres, hosted, role-based access).
 
@@ -128,6 +143,7 @@ This is genuinely persistent (survives restarts, unlike the browser-storage vers
 - **MPP (MS Project) parsing** — still XER and CSV only. MPP needs a library like `mpxj`.
 - **Failed-payment / dunning handling** — a `past_due` or `unpaid` Stripe status just falls through to "no access" (not `active`/`trialing`); there's no dedicated "your payment failed, update your card" screen yet.
 - **Webhook-driven subscription updates** — written and ready, but inert until this is deployed with a public URL and registered in the Stripe Dashboard (see Billing section above). Until then, cancellations/renewals won't reflect here automatically.
+- **No in-app feedback review screen** — submissions land in the `feedback` table and (once configured) trigger a Knock notification, but there's no admin view in the app itself yet; reviewing them today means querying the database directly or reading the Knock notification.
 
 ## Frontend
 
@@ -144,6 +160,8 @@ Verified working end-to-end during development: XER upload → snapshot + issues
 - Failure handling: hitting "Subscribe" with Stripe unreachable surfaces a clean error in the UI instead of hanging or crashing the server; the same is true for the Knock sync call on signup, which logs and moves on without blocking account creation.
 - The request shapes sent to Stripe (Checkout Session creation, session retrieval with `expand[]=subscription`) and to Knock (`PUT /v1/users/:id`) match their documented REST APIs.
 
-**Still needs testing in an environment with real internet access** (i.e., wherever this actually gets deployed, or on your own machine): the full happy path — clicking Subscribe, completing a real Stripe Checkout, landing back on `/api/billing/verify`, and confirming the account flips to `subscription_status: 'active'` and unlocks the app — plus the Knock dashboard actually showing synced users. Recommend testing that against Stripe's **test mode** keys/price first (a live secret key and live price ID are what's configured right now) before trusting it with real cards.
+**Still needs testing in an environment with real internet access** (i.e., wherever this actually gets deployed, or on your own machine): the full happy path — clicking Subscribe, completing a real Stripe Checkout, landing back on `/api/billing/verify`, and confirming the account flips to `subscription_status: 'active'` and unlocks the app — plus the Knock dashboard actually showing synced users and, once a feedback workflow is built there, actually receiving a feedback notification. Recommend testing that against Stripe's **test mode** keys/price first (a live secret key and live price ID are what's configured right now) before trusting it with real cards.
+
+The feedback feature (`POST /api/feedback`) was verified locally end-to-end — including the paywall gate (blocked at `402` pre-subscription), the too-short-message validation, and a successful submission (with a test subscription activated directly in the local database, since real Stripe checkout couldn't be driven from this sandbox) — in both curl and a real browser.
 
 Not yet covered by an automated test suite — that's a reasonable next addition.

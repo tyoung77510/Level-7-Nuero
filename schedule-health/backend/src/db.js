@@ -60,10 +60,18 @@ db.exec(`
     status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','acknowledged','resolved'))
   );
 
+  CREATE TABLE IF NOT EXISTS feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    message TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_snapshots_project ON snapshots(project_id);
   CREATE INDEX IF NOT EXISTS idx_issues_snapshot ON issues(snapshot_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);
+  CREATE INDEX IF NOT EXISTS idx_feedback_user ON feedback(user_id);
 `);
 
 function createUser(name, email, phone, passwordHash, passwordSalt) {
@@ -181,6 +189,11 @@ function updateIssueStatus(issueId, status) {
   return db.prepare('SELECT * FROM issues WHERE id = ?').get(issueId);
 }
 
+function createFeedback(userId, message) {
+  db.prepare('INSERT INTO feedback (user_id, message) VALUES (?, ?)').run(userId, message);
+  return db.prepare('SELECT * FROM feedback WHERE user_id = ? ORDER BY id DESC LIMIT 1').get(userId);
+}
+
 function getPortfolio(userId) {
   const projects = listProjects(userId);
   return projects.map(p => {
@@ -192,7 +205,7 @@ function getPortfolio(userId) {
 module.exports = {
   db, getOrCreateProject, listProjects, saveSnapshot,
   getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio,
-  getIssueOwnerUserId,
+  getIssueOwnerUserId, createFeedback,
   createUser, getUserByEmail, getUserById,
   getUserByStripeCustomerId, getUserByStripeSubscriptionId, setStripeCustomerId, setSubscriptionStatus,
   createSession, getSession, deleteSession, deleteExpiredSessions

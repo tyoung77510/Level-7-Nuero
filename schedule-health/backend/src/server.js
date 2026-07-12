@@ -287,6 +287,19 @@ route('PATCH', '/api/issues/:id', async (req, res, params, user) => {
   sendJSON(res, 200, updated);
 });
 
+route('POST', '/api/feedback', async (req, res, params, user) => {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const message = String(payload.message || '').trim();
+  if (message.length < 3) return sendJSON(res, 400, { error: 'Tell us a bit more — a sentence is enough' });
+  if (message.length > 2000) return sendJSON(res, 400, { error: 'Keep it under 2000 characters' });
+
+  const feedback = store.createFeedback(user.id, message);
+  knock.notifyFeedback(user, message).catch(() => {}); // never let a notification failure block submission
+  sendJSON(res, 200, { feedback });
+});
+
 route('POST', '/api/analyze', async (req, res, params, user) => {
   const contentType = req.headers['content-type'] || '';
   const buffer = await readBody(req);
