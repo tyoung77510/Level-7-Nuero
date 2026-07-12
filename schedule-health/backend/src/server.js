@@ -236,6 +236,71 @@ route('GET', '/api/billing/verify', async (req, res, params, user) => {
   sendJSON(res, 200, { user: publicUser(updated) });
 });
 
+// One-time AI credit top-ups — separate from the subscription checkout above (mode: payment,
+// not subscription), stacks on top of whatever plan the user is already on.
+route('POST', '/api/billing/topup/checkout', async (req, res, params, user) => {
+  if (!billing.stripeConfigured()) return sendJSON(res, 503, { error: 'Billing is not configured yet' });
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+
+  const amountUsd = Number(payload.amountUsd);
+  if (!pricing.isValidTopupAmount(amountUsd)) {
+    return sendJSON(res, 400, { error: `Amount must be at least $${pricing.TOPUP_MIN_USD}, in $${pricing.TOPUP_INCREMENT_USD} increments` });
+  }
+
+  const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
+  try {
+    const session = await billing.createTopupCheckoutSession({
+      userId: user.id,
+      email: user.email,
+      customerId: user.stripe_customer_id,
+      amountUsd,
+      successUrl: `${origin}/?checkout=topup-success&session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${origin}/?checkout=topup-cancelled`
+    });
+    sendJSON(res, 200, { url: session.url });
+  } catch (e) {
+    sendJSON(res, 502, { error: 'Could not start checkout: ' + e.message });
+  }
+});
+
+route('GET', '/api/billing/topup/verify', async (req, res, params, user) => {
+  if (!billing.stripeConfigured()) return sendJSON(res, 503, { error: 'Billing is not configured yet' });
+  const parsed = url.parse(req.url, true);
+  const sessionId = parsed.query.session_id;
+  if (!sessionId) return sendJSON(res, 400, { error: 'Missing session_id' });
+
+  let session;
+  try {
+    session = await billing.retrieveCheckoutSession(sessionId);
+  } catch (e) {
+    return sendJSON(res, 502, { error: 'Could not verify checkout: ' + e.message });
+  }
+  if (session.client_reference_id !== String(user.id)) {
+    return sendJSON(res, 403, { error: 'This checkout session does not belong to you' });
+  }
+  if (session.payment_status !== 'paid') {
+    return sendJSON(res, 200, { creditBalance: user.credit_balance, pending: true });
+  }
+
+  let updated = user;
+  if (session.customer && !user.stripe_customer_id) updated = store.setStripeCustomerId(user.id, session.customer);
+
+  // Idempotent against a refreshed success page: only grant credits once per Stripe session.
+  // Credits are derived from Stripe's own amount_total, not anything the client sent at
+  // checkout-creation time, so a tampered client request can't buy more than it paid for.
+  const alreadyRedeemed = store.getCreditPurchaseBySessionId(sessionId);
+  if (!alreadyRedeemed) {
+    const amountUsd = session.amount_total / 100;
+    const credits = pricing.creditsForTopupAmount(amountUsd);
+    store.recordCreditPurchase(user.id, sessionId, amountUsd, credits);
+    updated = store.addCredits(user.id, credits);
+  }
+
+  sendJSON(res, 200, { user: publicUser(updated) });
+});
+
 // Stripe webhook — not authenticated via session cookie; verified via Stripe-Signature instead.
 // Requires STRIPE_WEBHOOK_SECRET (from Stripe Dashboard -> Developers -> Webhooks) and a publicly
 // reachable URL registered there, so it's inert (204, no-op) until both are set up post-deploy.

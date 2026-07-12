@@ -26,6 +26,13 @@ const FREE_SIGNUP_CREDITS = 20;
 // support multiple seats on one account, so those are "Contact us" placeholders in the UI with
 // no checkout wired up, rather than half-built billing for a feature that doesn't exist.
 const TIERS = {
+  starter: {
+    key: 'starter',
+    name: 'Starter',
+    priceLabel: '$20/month',
+    monthlyCredits: 150,
+    stripePriceEnvVar: 'STRIPE_PRICE_ID_STARTER'
+  },
   pro: {
     key: 'pro',
     name: 'Pro',
@@ -34,6 +41,13 @@ const TIERS = {
     stripePriceEnvVar: 'STRIPE_PRICE_ID_PRO'
   }
 };
+
+// One-time credit top-ups (no subscription required, stacks with any plan's monthly refill).
+// Priced higher per credit than what a subscription implies (Pro: $50/500cr = $0.10/credit) —
+// pay-as-you-go should cost more per unit than subscribing, or there'd be no reason to subscribe.
+const TOPUP_CREDIT_PRICE_USD = 0.20; // $10 -> 50 credits
+const TOPUP_MIN_USD = 10;
+const TOPUP_INCREMENT_USD = 10;
 
 function costUsd(inputTokens, outputTokens) {
   return (inputTokens / 1_000_000) * ANTHROPIC_INPUT_PER_1M + (outputTokens / 1_000_000) * ANTHROPIC_OUTPUT_PER_1M;
@@ -51,7 +65,19 @@ function tierForPriceId(priceId) {
   return null;
 }
 
+function creditsForTopupAmount(usd) {
+  return Math.round(usd / TOPUP_CREDIT_PRICE_USD);
+}
+
+// Cents-based comparison to avoid floating-point issues (e.g. 0.1 + 0.2 !== 0.3).
+function isValidTopupAmount(usd) {
+  if (!Number.isFinite(usd) || usd < TOPUP_MIN_USD) return false;
+  const cents = Math.round(usd * 100);
+  return cents % Math.round(TOPUP_INCREMENT_USD * 100) === 0;
+}
+
 module.exports = {
   TIERS, FREE_SIGNUP_CREDITS, MARGIN_MULTIPLIER, CREDIT_VALUE_USD,
-  costUsd, creditsForUsage, tierForPriceId
+  TOPUP_CREDIT_PRICE_USD, TOPUP_MIN_USD, TOPUP_INCREMENT_USD,
+  costUsd, creditsForUsage, tierForPriceId, creditsForTopupAmount, isValidTopupAmount
 };

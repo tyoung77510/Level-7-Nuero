@@ -81,12 +81,22 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS credit_purchases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    stripe_session_id TEXT NOT NULL UNIQUE,
+    amount_usd REAL NOT NULL,
+    credits_purchased INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_snapshots_project ON snapshots(project_id);
   CREATE INDEX IF NOT EXISTS idx_issues_snapshot ON issues(snapshot_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);
   CREATE INDEX IF NOT EXISTS idx_feedback_user ON feedback(user_id);
   CREATE INDEX IF NOT EXISTS idx_ai_usage_user ON ai_usage(user_id);
+  CREATE INDEX IF NOT EXISTS idx_credit_purchases_user ON credit_purchases(user_id);
 `);
 
 // Lightweight migration: CREATE TABLE IF NOT EXISTS doesn't add columns to a table that already
@@ -147,11 +157,30 @@ function deductCredits(userId, amount) {
   return getUserById(userId);
 }
 
+function addCredits(userId, amount) {
+  db.prepare('UPDATE users SET credit_balance = credit_balance + ? WHERE id = ?').run(amount, userId);
+  return getUserById(userId);
+}
+
 function logAiUsage(userId, snapshotId, inputTokens, outputTokens, costUsd, creditsCharged) {
   db.prepare(`
     INSERT INTO ai_usage (user_id, snapshot_id, input_tokens, output_tokens, cost_usd, credits_charged)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(userId, snapshotId, inputTokens, outputTokens, costUsd, creditsCharged);
+}
+
+function getCreditPurchaseBySessionId(sessionId) {
+  return db.prepare('SELECT * FROM credit_purchases WHERE stripe_session_id = ?').get(sessionId);
+}
+
+// stripe_session_id is UNIQUE, so calling this twice for the same checkout session throws —
+// callers should check getCreditPurchaseBySessionId first to make verification idempotent
+// against a user refreshing the post-checkout success page.
+function recordCreditPurchase(userId, sessionId, amountUsd, credits) {
+  db.prepare(`
+    INSERT INTO credit_purchases (user_id, stripe_session_id, amount_usd, credits_purchased)
+    VALUES (?, ?, ?, ?)
+  `).run(userId, sessionId, amountUsd, credits);
 }
 
 function createSession(token, userId, expiresAt) {
@@ -275,6 +304,7 @@ module.exports = {
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
   createUser, getUserByEmail, getUserById,
   getUserByStripeCustomerId, getUserByStripeSubscriptionId, setStripeCustomerId, setSubscriptionStatus,
-  setUserTier, deductCredits, logAiUsage,
+  setUserTier, deductCredits, addCredits, logAiUsage,
+  getCreditPurchaseBySessionId, recordCreditPurchase,
   createSession, getSession, deleteSession, deleteExpiredSessions
 };

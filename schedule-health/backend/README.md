@@ -57,11 +57,16 @@ scoring, issues, trends, portfolio, and reports regardless of plan. What's meter
 narrative generation** (see below), spent as credits:
 
 - **Free** — every signup gets 20 credits once, free, no card required.
+- **Starter — $20/month** — 150 credits/month, refilled each billing cycle.
 - **Pro — $50/month** — 500 credits/month, refilled each billing cycle.
 - **Teams / Enterprise** — shown in the Plan tab for lead-gen ("Contact us", mailing
   `admin@level7data.com`) but not wired up to real checkout — this app doesn't support multiple
   seats on one account yet, so building real billing for a feature that doesn't exist would just
-  be dead code. Add real multi-seat support first, then wire these up the same way Pro is wired.
+  be dead code. Add real multi-seat support first, then wire these up the same way Starter/Pro
+  are wired.
+- **One-time credit top-ups** — any account, on any plan, can also buy AI credits directly (no
+  subscription change) from the "Need more credits" card in the Plan tab: $10 minimum, in $10
+  increments, credits never expire and stack on top of whatever the plan already refills monthly.
 
 **How a credit is priced (`src/pricing.js`):** every AI call's real cost is computed from
 Anthropic's actual per-token price for the model in use (`claude-haiku-4-5`: $1/$5 per million
@@ -74,26 +79,39 @@ logged to the `ai_usage` table for margin auditing. To retune margin or credit p
 every tier at once, change the constants at the top of `src/pricing.js` — nothing else needs to
 change.
 
+**Top-up pricing is deliberately separate from subscription pricing.** Subscription tiers bundle
+credits into a flat monthly fee, so their effective per-credit rate is very cheap (Pro: $50/500cr
+= $0.10/credit) — but that rate only makes sense because the subscription is paying for the whole
+product, not literally selling credits at cost. A one-time top-up has no such bundling, so it's
+priced at its own flat retail rate instead (`TOPUP_CREDIT_PRICE_USD`, currently $0.20/credit — 2x
+the Pro-bundled rate), so buying credits piecemeal never becomes cheaper than just subscribing.
+
 **Note on the current numbers:** the Stripe price currently configured in this environment
 (`STRIPE_PRICE_ID_PRO`) is a pre-existing **$49/month** price from before tiers existed; the UI
 now displays "Pro — $50/month". Either update the price in the Stripe Dashboard to $50 and use
 its new price ID, or change the `$50/month` label in `public/index.html`'s Pro tier card (and
 `priceLabel` in `pricing.js`) to say $49 — whichever you'd rather do, they just need to match.
+`STRIPE_PRICE_ID_STARTER` needs to be created fresh in the Stripe Dashboard (a $20/month price) —
+there's no pre-existing one to reuse.
 
 ## Billing (Stripe subscription)
 
-Once `STRIPE_SECRET_KEY` and `STRIPE_PRICE_ID_PRO` are set, the Pro tier's "Subscribe" button in
-the Plan tab becomes live. Without them set, clicking it returns a clean "not configured yet"
-error; the rest of the app (including the free tier) is unaffected either way — billing is no
-longer a gate on using the product at all.
+Once `STRIPE_SECRET_KEY` and a tier's price ID (`STRIPE_PRICE_ID_STARTER` / `STRIPE_PRICE_ID_PRO`)
+are set, that tier's "Subscribe" button in the Plan tab becomes live — each tier is independently
+gated, so Pro can be live while Starter still shows a "not configured yet" error, or vice versa.
+The rest of the app (including the free tier) is unaffected either way — billing is no longer a
+gate on using the product at all. Credit top-ups (below) only need `STRIPE_SECRET_KEY`, since they
+don't use a pre-created Stripe Price.
 
 Implemented via plain calls to Stripe's REST API (`node:https`/`fetch`), no
 `stripe` npm SDK — consistent with the zero-dependency approach used for auth.
 
 | Method | Path | What it does |
 |---|---|---|
-| `POST` | `/api/billing/checkout` | `{tier: "pro"}` — creates a Stripe Checkout Session (`mode: subscription`) for the logged-in user and returns `{url}` to redirect the browser to Stripe's hosted checkout page |
+| `POST` | `/api/billing/checkout` | `{tier: "starter"\|"pro"}` — creates a Stripe Checkout Session (`mode: subscription`) for the logged-in user and returns `{url}` to redirect the browser to Stripe's hosted checkout page |
 | `GET` | `/api/billing/verify?session_id=...` | Called by the frontend after Stripe redirects back on success; retrieves the Checkout Session server-side (expanding both `subscription` and `line_items`), confirms it belongs to the current user, determines the purchased tier from the actual line item price ID (never trusting a client-supplied tier), and sets `plan_tier` + refills `credit_balance` to that tier's monthly allotment |
+| `POST` | `/api/billing/topup/checkout` | `{amountUsd}` (≥ $10, in $10 increments) — creates a one-time Stripe Checkout Session (`mode: payment`, ad-hoc `price_data` — no pre-created Price needed) for that dollar amount |
+| `GET` | `/api/billing/topup/verify?session_id=...` | Called after a top-up checkout redirect; confirms the session belongs to the current user and is paid, derives credits from Stripe's own `amount_total` (never the client's original request), and adds them to `credit_balance`. Idempotent — a `credit_purchases` row keyed on the Stripe session ID means refreshing the success page can't double-grant credits |
 | `POST` | `/api/billing/webhook` | Stripe webhook receiver for subscription lifecycle events (renewals, cancellations) and `invoice.payment_succeeded` (refills credits on each renewal). Verifies `Stripe-Signature` against `STRIPE_WEBHOOK_SECRET`. **Inert (204, no-op) until that secret is set** — see below |
 
 **Why verification happens on redirect, not just via webhook:** Stripe webhooks require a
@@ -172,7 +190,7 @@ curl -b cookies.txt -X POST http://localhost:3000/api/analyze \
 
 ## Database
 
-SQLite, stored at `data/schedule-health.db`. Seven tables:
+SQLite, stored at `data/schedule-health.db`. Eight tables:
 - `users` — one row per account (name, email, phone, hashed password + salt, Stripe customer/subscription IDs, subscription status, `plan_tier`, `credit_balance`)
 - `sessions` — one row per active login (token, user, expiry)
 - `projects` — one row per project name, scoped to the user who created it (`UNIQUE(user_id, name)` — two users can each have a project called "River Bridge")
@@ -180,6 +198,7 @@ SQLite, stored at `data/schedule-health.db`. Seven tables:
 - `issues` — one row per flagged issue, linked to the snapshot it came from, with a status field for tracking resolution
 - `feedback` — one row per feature suggestion/improvement submitted through the app, linked to the user who submitted it
 - `ai_usage` — one row per AI narrative generation, logging real token counts, actual Anthropic cost, and credits charged — the audit trail behind the credit math in Pricing and AI credits above
+- `credit_purchases` — one row per one-time credit top-up, keyed on the Stripe checkout session ID (`UNIQUE`) so a repeated verify call can't double-grant credits
 
 This is genuinely persistent (survives restarts, unlike the browser-storage version) but is still a single SQLite file on one machine — see `docs/infrastructure-roadmap.md` in the main repo for what's needed to make this properly multi-tenant at scale (real Postgres, hosted, role-based access).
 
@@ -201,7 +220,6 @@ manual migration step needed.
 - **Webhook-driven subscription updates** — written and ready, but inert until this is deployed with a public URL and registered in the Stripe Dashboard (see Billing section above). Until then, cancellations/renewals (and the credit refill on renewal) won't reflect here automatically — only the post-checkout verify call keeps things in sync.
 - **No in-app feedback review screen** — submissions land in the `feedback` table and (once configured) trigger a Knock notification, but there's no admin view in the app itself yet; reviewing them today means querying the database directly or reading the Knock notification.
 - **Teams/Enterprise tiers aren't real plans** — they're "Contact us" cards in the Plan tab with no checkout behind them, because this app has no multi-seat/org support to sell yet (see Pricing and AI credits above).
-- **No "buy more credits" purchase flow** — if a Pro user runs out of credits mid-cycle, the only options today are waiting for the next renewal or upgrading (there's no self-serve one-off credit top-up).
 
 ## Frontend
 
@@ -235,5 +253,7 @@ automatically.
 The feedback feature (`POST /api/feedback`) was verified locally end-to-end — the too-short-message validation and a successful submission — in both curl and a real browser. It's not credit-gated (only AI narrative generation spends credits).
 
 **AI narrative and credits.** Confirmed live end-to-end with a real `ANTHROPIC_API_KEY` (see above) — `POST /api/snapshots/:id/narrative` correctly 503s with no key set, 403s when the snapshot belongs to another user, 404s for a nonexistent snapshot, generates a real narrative and deducts the correct credits on success, returns the cached narrative (and no credit charge) on a second call, and 429s once the balance hits zero.
+
+**Starter tier and credit top-ups.** `POST /api/billing/topup/checkout` correctly rejects amounts under $10 and non-multiples of $10 (both via curl and the client-side check in the UI) before ever calling Stripe. The credit math (`pricing.creditsForTopupAmount`) was verified directly: $10 → 50 credits, $20 → 100, $50 → 250, matching the $0.20/credit retail rate exactly. Since Stripe itself is unreachable from this sandbox (same network block as the rest of billing), the `/api/billing/topup/verify` route's core logic — grant credits once per Stripe session, do nothing on a repeat call for the same session — was verified by driving `db.js` directly the way the route does: a simulated $20 top-up correctly took a user from 20 → 120 credits, and calling the same "verify" logic again for the identical session ID left the balance unchanged at 120. The `credit_purchases.stripe_session_id` `UNIQUE` constraint was also confirmed to reject a raw duplicate insert as a second line of defense. The 5-tier Plan view (Free/Starter/Pro/Teams/Enterprise) and the top-up card were both screenshotted and confirmed rendering correctly, including the "Starter" and "Pro" credit-pill labels.
 
 Not yet covered by an automated test suite — that's a reasonable next addition.

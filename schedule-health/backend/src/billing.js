@@ -60,6 +60,28 @@ function retrieveCheckoutSession(sessionId) {
   return stripeRequest('GET', `/checkout/sessions/${sessionId}?expand[]=subscription&expand[]=line_items`);
 }
 
+// One-time credit top-up. Uses an ad-hoc price_data line item (mode: payment) rather than a
+// pre-created Stripe Price, since the amount is user-chosen ($10 minimum, $10 increments) —
+// there's no fixed set of prices to create in the Dashboard ahead of time for that. The amount
+// charged is re-derived server-side from Stripe's own session.amount_total at verify time
+// (see /api/billing/topup/verify in server.js), never trusted from the client post-hoc.
+function createTopupCheckoutSession({ userId, email, customerId, amountUsd, successUrl, cancelUrl }) {
+  const params = {
+    mode: 'payment',
+    'line_items[0][price_data][currency]': 'usd',
+    'line_items[0][price_data][product_data][name]': 'Ordo7 AI credits top-up',
+    'line_items[0][price_data][unit_amount]': String(Math.round(amountUsd * 100)),
+    'line_items[0][quantity]': '1',
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    client_reference_id: String(userId)
+  };
+  if (customerId) params.customer = customerId;
+  else params.customer_email = email;
+
+  return stripeRequest('POST', '/checkout/sessions', params);
+}
+
 // Verifies Stripe's webhook signature (HMAC-SHA256 of "{timestamp}.{rawBody}").
 // Used by POST /api/billing/webhook once a webhook endpoint + signing secret are configured.
 function verifyWebhookSignature(rawBody, signatureHeader, secret) {
@@ -73,4 +95,4 @@ function verifyWebhookSignature(rawBody, signatureHeader, secret) {
   return crypto.timingSafeEqual(expectedBuf, actualBuf);
 }
 
-module.exports = { stripeConfigured, createCheckoutSession, retrieveCheckoutSession, verifyWebhookSignature };
+module.exports = { stripeConfigured, createCheckoutSession, retrieveCheckoutSession, createTopupCheckoutSession, verifyWebhookSignature };
