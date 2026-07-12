@@ -77,7 +77,7 @@ scoring, issues, trends, portfolio, and reports regardless of plan. What's meter
 narrative generation** (see below), spent as credits:
 
 - **Free** — every signup gets 20 credits once, free, no card required.
-- **Starter — $20/month** — 150 credits/month, refilled each billing cycle.
+- **Starter — $19.99/month** — 150 credits/month, refilled each billing cycle.
 - **Pro — $49/month** — 500 credits/month, refilled each billing cycle.
 - **Teams / Enterprise** — shown in the Plan tab for lead-gen ("Contact us", mailing
   `admin@level7data.com`) but not wired up to real checkout — this app doesn't support multiple
@@ -107,12 +107,12 @@ so it's priced at its own flat retail rate instead (`TOPUP_CREDIT_PRICE_USD`, cu
 $0.20/credit — 2x the Pro-bundled rate), so buying credits piecemeal never becomes cheaper than
 just subscribing.
 
-**Note:** the UI labels now match the actual configured Stripe prices exactly (Starter $20.00,
-Pro $49.00) — the earlier ".99" labels were reverted to prioritize shipping over a cosmetic price
-change, since Stripe prices are immutable and creating new ones was one more manual step standing
-between this app and its first real customer. Feel free to switch to $19.99/$49.99 later by
-creating new Stripe prices and updating `STRIPE_PRICE_ID_STARTER`/`STRIPE_PRICE_ID_PRO` — no code
-changes needed beyond the display labels in `pricing.js` and `public/index.html`.
+**Note:** the UI labels match the actual configured Stripe prices (Starter $19.99, Pro $49.00) —
+double-check both against the Stripe Dashboard if either is ever unclear, since the label in code
+is just a display string and isn't derived from Stripe automatically. If you change a tier's
+actual Stripe price (remember: prices are immutable, so this means creating a *new* price and
+updating `STRIPE_PRICE_ID_STARTER`/`STRIPE_PRICE_ID_PRO`), update the matching label in
+`pricing.js` and `public/index.html` in the same change so they can't drift apart again.
 
 ## Billing (Stripe subscription)
 
