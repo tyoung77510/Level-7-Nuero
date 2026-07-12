@@ -5,14 +5,17 @@
 <title>Ordo7 — Powered by Level 7</title>
 <style>
   :root {
-    --ink: #1c2b33; --paper: #f7f6f2; --line: #d8d5cc;
-    --muted: #6b6f73; --good: #2f8a55; --warn: #c17d1e; --bad: #b23a2e;
-    --card: #ffffff;
+    --ink: #e7ecf2; --paper: #0a0e14; --line: #232b36;
+    --muted: #8b96a5; --good: #34d399; --warn: #fbbf24; --bad: #f87171;
+    --card: #121821;
     --navy: #476ab0; --orange: #f37443; --sky: #2da2d8; --gold: #f5bc3d;
-    --accent: var(--navy);
+    --teal: #2dd6c4;
+    --accent: var(--teal);
   }
   * { box-sizing: border-box; }
   body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--paper); color: var(--ink); margin: 0; padding: 24px; }
+  input, select, textarea { background: var(--card); color: var(--ink); }
+  input::placeholder, textarea::placeholder { color: var(--muted); }
   .wrap { max-width: 760px; margin: 0 auto; }
   .brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
   .brand-mark { width: 16px; height: 16px; border-radius: 50%; background: conic-gradient(var(--sky), var(--navy), var(--orange), var(--gold), var(--sky)); flex-shrink: 0; display: inline-block; }
@@ -22,14 +25,14 @@
   .sub { color: var(--muted); font-size: 13px; margin: 2px 0 20px; }
   .nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 20px; }
   .nav button { padding: 10px 6px; font-size: 13px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--ink); }
-  .nav button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .nav button.active { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
   .view { display: none; }
   .view.active { display: block; }
   .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 40px 16px; text-align: center; background: var(--card); }
-  .drop input[type=file] { margin-top: 12px; }
+  .drop input[type=file] { margin-top: 12px; color: var(--ink); }
   .row { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
-  button.btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-size: 13px; }
-  button.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-size: 13px; color: var(--ink); }
+  button.btn.primary { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
   button.btn.cta { background: var(--orange); color: #fff; border-color: var(--orange); font-weight: 600; }
   button.btn.tiny { padding: 4px 10px; font-size: 11px; }
   button.btn:disabled { opacity: 0.6; cursor: default; }
@@ -46,14 +49,35 @@
   .issue-sub { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
   .issue-right { display: flex; align-items: center; gap: 8px; }
   .badge { font-size: 12px; padding: 3px 10px; border-radius: 6px; white-space: nowrap; }
-  .badge.crit { background: #fbe4e1; color: var(--bad); }
-  .badge.risk { background: #fbeed9; color: var(--warn); }
-  .badge.resolved-badge { background: #e3f0e8; color: var(--good); }
+  .badge.crit { background: rgba(248,113,113,0.14); color: var(--bad); }
+  .badge.risk { background: rgba(251,191,36,0.14); color: var(--warn); }
+  .badge.resolved-badge { background: rgba(52,211,153,0.14); color: var(--good); }
   select, input[type=text] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
   .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
   .metric { background: var(--paper); border-radius: 8px; padding: 10px; }
-  .metric .lab { font-size: 11px; color: var(--muted); }
-  .metric .val { font-size: 18px; font-weight: 600; margin-top: 2px; }
+  .metric .lab { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .metric .val { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .dash-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 12px; align-items: start; }
+  @media (max-width: 760px) { .dash-grid { grid-template-columns: 1fr; } }
+  .gauge-card { display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .gauge-delta { font-size: 12px; margin-top: 4px; }
+  .gauge-delta.up { color: var(--good); }
+  .gauge-delta.down { color: var(--bad); }
+  .gauge-delta.flat { color: var(--muted); }
+  .subscore-row { margin-bottom: 12px; }
+  .subscore-row:last-child { margin-bottom: 0; }
+  .subscore-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+  .subscore-label .name { color: var(--muted); }
+  .subscore-label .value { font-weight: 600; }
+  .subscore-track { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .subscore-fill { height: 100%; border-radius: 3px; }
+  .activity-feed { list-style: none; margin: 0; padding: 0; }
+  .activity-feed li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+  .activity-feed li:last-child { border-bottom: none; }
+  .activity-feed .dot-lead { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 8px; flex-shrink: 0; }
+  .activity-feed .msg { display: flex; align-items: center; color: var(--ink); }
+  .activity-feed .when { color: var(--muted); white-space: nowrap; }
+  .section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 12px; }
   .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 30px 0; }
   .error { color: var(--bad); font-size: 13px; text-align: center; padding: 20px 0; }
   svg.spark { width: 100%; height: 50px; }
@@ -90,14 +114,14 @@
   .credit-pill { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 2px 10px; font-weight: 600; margin-left: 4px; }
   .tier-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: stretch; }
   .tier-card { display: flex; flex-direction: column; position: relative; padding-top: 30px; }
-  .tier-card-popular { border-color: var(--navy); box-shadow: 0 4px 16px rgba(71,106,176,0.12); }
+  .tier-card-popular { border-color: var(--accent); box-shadow: 0 4px 16px rgba(45,214,196,0.14); }
   .tier-badge { position: absolute; top: 12px; left: 16px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 10px; }
-  .tier-badge-free { background: #eceae3; color: var(--muted); }
-  .tier-badge-popular { background: var(--navy); color: #fff; }
-  .tier-badge-soon { background: #eceae3; color: var(--muted); }
+  .tier-badge-free { background: var(--line); color: var(--muted); }
+  .tier-badge-popular { background: var(--accent); color: #06231f; }
+  .tier-badge-soon { background: var(--line); color: var(--muted); }
   .tier-name { margin: 0 0 2px; font-size: 16px; }
   .tier-tagline { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
-  .price-line { font-size: 28px; font-weight: 700; color: var(--navy); margin: 4px 0; }
+  .price-line { font-size: 28px; font-weight: 700; color: var(--accent); margin: 4px 0; }
   .price-line span { font-size: 13px; font-weight: 400; color: var(--muted); }
   .paywall-features { list-style: none; padding: 0; margin: 10px 0 14px; font-size: 12px; flex: 1; }
   .paywall-features li { padding: 4px 0 4px 20px; position: relative; }
@@ -151,24 +175,31 @@
   .chat-panel-inputrow input {
     flex: 1; border: 1px solid var(--line); border-radius: 20px;
     padding: 10px 16px; font-size: 13px; font: inherit;
-    outline: none;
+    outline: none; background: var(--paper); color: var(--ink);
   }
-  .chat-panel-inputrow input:focus { border-color: var(--navy); }
+  .chat-panel-inputrow input:focus { border-color: var(--accent); }
   .chat-panel-inputrow button {
     flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%;
-    border: none; background: var(--navy); color: #fff;
+    border: none; background: var(--accent); color: #06231f;
     display: flex; align-items: center; justify-content: center; cursor: pointer;
   }
   .chat-panel-inputrow button:disabled { opacity: 0.5; cursor: default; }
   .chat-msg { max-width: 88%; font-size: 13.5px; line-height: 1.6; white-space: pre-line; }
-  .chat-msg.user { align-self: flex-end; background: var(--navy); color: #fff; padding: 9px 14px; border-radius: 16px 16px 4px 16px; }
+  .chat-msg.user { align-self: flex-end; background: var(--accent); color: #06231f; padding: 9px 14px; border-radius: 16px 16px 4px 16px; }
   .chat-msg.assistant { align-self: flex-start; max-width: 100%; color: var(--ink); }
   @media (max-width: 640px) {
     #v-chat.active { top: 0; right: 0; bottom: 0; left: 0; width: auto; max-width: none; border-radius: 0; }
   }
   @media print {
     .nav, .no-print { display: none !important; }
-    body { padding: 0; }
+    /* Force light colors for printed output regardless of the on-screen dark theme — a printed
+       report with a black background would waste ink and look broken on paper. */
+    :root {
+      --ink: #1c2b33; --paper: #ffffff; --line: #d8d5cc;
+      --muted: #6b6f73; --good: #2f8a55; --warn: #c17d1e; --bad: #b23a2e;
+      --card: #ffffff; --accent: #476ab0;
+    }
+    body { padding: 0; background: #fff; }
   }
 </style>
 </head>
@@ -208,7 +239,7 @@
     <div class="user-bar no-print">
       <span><span id="userEmail"></span> <span id="creditPill" class="credit-pill"></span></span>
       <span>
-        <a id="feedbackLink" style="font-size:12px; color:var(--navy); cursor:pointer; margin-right:12px;">Suggest a feature</a>
+        <a id="feedbackLink" style="font-size:12px; color:var(--accent); cursor:pointer; margin-right:12px;">Suggest a feature</a>
         <button class="btn tiny" id="logoutBtn">Log out</button>
       </span>
     </div>
@@ -390,6 +421,7 @@ function setView(step){
   if (step === 'portfolio') renderPortfolio();
   if (step === 'pricing') renderPricing();
   if (step === 'chat') renderChat();
+  if (step === 'health' && currentSnapshot) renderHealth(currentSnapshot);
 }
 navButtons.forEach(b => b.addEventListener('click', () => setView(b.dataset.step)));
 
@@ -718,23 +750,106 @@ async function handleVerifyRedirect(loggedInUser){
   } catch (e) { showAuth(); }
 })();
 
+function scoreColor(score){
+  if (score >= 70) return 'var(--good)';
+  if (score >= 40) return 'var(--warn)';
+  return 'var(--bad)';
+}
+
+function gaugeSvg(score){
+  const r = 58, c = 2 * Math.PI * r;
+  const offset = c * (1 - Math.max(0, Math.min(100, score)) / 100);
+  return '<svg width="150" height="150" viewBox="0 0 150 150">' +
+    '<circle cx="75" cy="75" r="' + r + '" fill="none" stroke="var(--line)" stroke-width="11"/>' +
+    '<circle cx="75" cy="75" r="' + r + '" fill="none" stroke="' + scoreColor(score) + '" stroke-width="11" ' +
+      'stroke-linecap="round" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + offset.toFixed(1) + '" ' +
+      'transform="rotate(-90 75 75)"/>' +
+    '<text x="75" y="72" text-anchor="middle" font-size="34" font-weight="700" fill="var(--ink)">' + score + '</text>' +
+    '<text x="75" y="94" text-anchor="middle" font-size="11" fill="var(--muted)">out of 100</text>' +
+  '</svg>';
+}
+
+function subScoreRow(label, value){
+  const v = value == null ? null : Math.max(0, Math.min(100, value));
+  return '<div class="subscore-row">' +
+    '<div class="subscore-label"><span class="name">' + label + '</span><span class="value">' + (v == null ? '—' : v) + '</span></div>' +
+    '<div class="subscore-track"><div class="subscore-fill" style="width:' + (v ?? 0) + '%; background:' + (v == null ? 'var(--line)' : scoreColor(v)) + ';"></div></div>' +
+  '</div>';
+}
+
+function formatRelativeTime(isoString){
+  const then = new Date(isoString.includes('T') ? isoString : isoString + 'Z').getTime();
+  const diffMs = Date.now() - then;
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return hours + 'h ago';
+  const days = Math.round(hours / 24);
+  return days + 'd ago';
+}
+
+function activityDotColor(message){
+  if (message.startsWith('Resolved')) return 'var(--good)';
+  if (message.startsWith('New critical')) return 'var(--bad)';
+  if (message.startsWith('Acknowledged')) return 'var(--warn)';
+  return 'var(--accent)';
+}
+
 function renderHealth(snapshot){
   const el = document.getElementById('healthContent');
   el.innerHTML =
-    '<div class="score-line"><span class="score-num">' + snapshot.score + '</span>' +
-    '<span style="font-size:13px; color:var(--muted);">schedule health score, out of 100</span></div>' +
-    '<div class="bar">' +
-      '<div style="width:' + snapshot.healthy_pct + '%; background:var(--good);"></div>' +
-      '<div style="width:' + snapshot.risk_pct + '%; background:var(--warn);"></div>' +
-      '<div style="width:' + snapshot.crit_pct + '%; background:var(--bad);"></div>' +
+    '<div class="metric-grid">' +
+      '<div class="metric"><div class="lab">Critical</div><div class="val" style="color:var(--bad);">' + snapshot.crit_count + '</div></div>' +
+      '<div class="metric"><div class="lab">At risk</div><div class="val" style="color:var(--warn);">' + snapshot.risk_count + '</div></div>' +
+      '<div class="metric"><div class="lab">Activities</div><div class="val">' + snapshot.total_activities + '</div></div>' +
     '</div>' +
-    '<div class="legend">' +
-      '<span><span class="dot" style="background:var(--good);"></span>healthy ' + snapshot.healthy_pct + '%</span>' +
-      '<span><span class="dot" style="background:var(--warn);"></span>at risk ' + snapshot.risk_pct + '%</span>' +
-      '<span><span class="dot" style="background:var(--bad);"></span>critical ' + snapshot.crit_pct + '%</span>' +
-    '</div>' +
-    '<div class="card"><p style="margin:0 0 6px;">' + snapshot.crit_count + ' activities need attention now, ' + snapshot.risk_count + ' are worth watching.</p>' +
-    '<p style="margin:0; color:var(--muted); font-size:13px;">Based on ' + snapshot.total_activities + ' activities checked for missing logic, negative float, excessive float, long durations, and hard constraints. Saved to the server — ' + new Date(snapshot.created_at + 'Z').toLocaleString() + '.</p></div>';
+    '<div class="dash-grid">' +
+      '<div class="card gauge-card">' +
+        gaugeSvg(snapshot.score) +
+        '<div id="gaugeDelta" class="gauge-delta flat"></div>' +
+        '<div style="width:100%; margin-top:18px; text-align:left;">' +
+          subScoreRow('Logic quality', snapshot.logic_quality) +
+          subScoreRow('Float distribution', snapshot.float_distribution) +
+          subScoreRow('Constraint hygiene', snapshot.constraint_hygiene) +
+        '</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<p class="section-title">Live activity feed</p>' +
+        '<ul id="activityFeed" class="activity-feed"><li class="msg" style="color:var(--muted);">Loading…</li></ul>' +
+      '</div>' +
+    '</div>';
+  loadHealthExtras(snapshot);
+}
+
+async function loadHealthExtras(snapshot){
+  if (!currentProject) return;
+  try {
+    const history = await api('/api/projects/' + encodeURIComponent(currentProject) + '/history');
+    const deltaEl = document.getElementById('gaugeDelta');
+    if (deltaEl && history.length > 1) {
+      const prev = history[history.length - 2].score;
+      const diff = snapshot.score - prev;
+      deltaEl.className = 'gauge-delta ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat');
+      deltaEl.textContent = (diff > 0 ? '▲ up ' : diff < 0 ? '▼ down ' : '— unchanged ') + (diff !== 0 ? Math.abs(diff) + ' pts' : '') + ' since last analysis';
+    } else if (deltaEl) {
+      deltaEl.textContent = 'First analysis for this project';
+    }
+  } catch (e) { /* trend delta is a nice-to-have, fail silently */ }
+
+  try {
+    const events = await api('/api/projects/' + encodeURIComponent(currentProject) + '/activity');
+    const feedEl = document.getElementById('activityFeed');
+    if (!feedEl) return;
+    if (!events.length) { feedEl.innerHTML = '<li class="msg" style="color:var(--muted);">No activity yet.</li>'; return; }
+    feedEl.innerHTML = events.map(e =>
+      '<li><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
+      '<span class="when">' + formatRelativeTime(e.timestamp) + '</span></li>'
+    ).join('');
+  } catch (e) {
+    const feedEl = document.getElementById('activityFeed');
+    if (feedEl) feedEl.innerHTML = '<li class="msg error" style="color:var(--bad);">Could not load activity: ' + e.message + '</li>';
+  }
 }
 
 function renderIssues(issues){

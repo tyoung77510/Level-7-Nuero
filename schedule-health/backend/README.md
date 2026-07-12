@@ -294,6 +294,31 @@ manual migration step needed.
 
 The original `app/index.html` in the repo root is the earlier browser-storage-only version — kept for reference, but `backend/public/index.html` is the one to actually use and build on from here.
 
+### Theme
+
+Dark background with a teal (`--teal: #2dd6c4`) primary accent, replacing the earlier light/navy
+theme — every color in the stylesheet is a CSS custom property under `:root`, so retheming again
+means changing values in one place, not hunting for hardcoded hex codes across the file. The one
+deliberate exception is `@media print`: it overrides `:root` back to a light palette, since a
+printed "Export as PDF" report with a black background would waste ink and look broken on paper —
+verified by rendering the Report view under Playwright's print media emulation and confirming the
+output flips to light colors regardless of the on-screen theme.
+
+### Health dashboard
+
+The Health tab is a real dashboard, not just a score bar: three metric cards (critical/at-risk/
+total activities), a circular SVG gauge for the overall score (colored red/amber/teal by
+threshold, same thresholds the rest of the app already uses for issue badges), three sub-scores
+(logic quality, float distribution, constraint hygiene — computed in `analyze.js` by grouping the
+existing six DCMA-style checks into three pairs, not a new detection engine), a trend delta
+comparing the current score to the previous analysis, and a live activity feed. The feed is real
+data, not decorative — it's assembled server-side (`GET /api/projects/:name/activity`) from actual
+snapshot history and issue status-change timestamps, sorted by recency.
+
+Sub-scores and the activity feed's issue-resolution timestamps are new columns
+(`snapshots.logic_quality`/`float_distribution`/`constraint_hygiene`, `issues.updated_at`) —
+nullable, so old snapshots from before this existed just show `—` instead of a fabricated number.
+
 ## Tested
 
 Verified working end-to-end during development: XER upload → snapshot + issues saved correctly (matches the browser prototype's DCMA-style checks), CSV upload path, project history endpoint, portfolio rollup, and issue status updates. Auth was verified end-to-end too: signup (including the new name/phone-required validation), login (wrong-password and duplicate-email rejection), logout, and that a second user cannot see or modify a first user's projects or issues (`/api/projects`, `/api/portfolio`, and `PATCH /api/issues/:id` all reject or 403 cross-user access) — tested both via curl and by driving the actual signup/login/upload/logout flow in a real browser.
@@ -326,5 +351,7 @@ The feedback feature (`POST /api/feedback`) was verified locally end-to-end — 
 **Starter tier and credit top-ups.** `POST /api/billing/topup/checkout` correctly rejects amounts under $10 and non-multiples of $10 (both via curl and the client-side check in the UI) before ever calling Stripe. The credit math (`pricing.creditsForTopupAmount`) was verified directly: $10 → 50 credits, $20 → 100, $50 → 250, matching the $0.20/credit retail rate exactly. Since Stripe itself is unreachable from this sandbox (same network block as the rest of billing), the `/api/billing/topup/verify` route's core logic — grant credits once per Stripe session, do nothing on a repeat call for the same session — was verified by driving `db.js` directly the way the route does: a simulated $20 top-up correctly took a user from 20 → 120 credits, and calling the same "verify" logic again for the identical session ID left the balance unchanged at 120. The `credit_purchases.stripe_session_id` `UNIQUE` constraint was also confirmed to reject a raw duplicate insert as a second line of defense. The 5-tier Plan view (Free/Starter/Pro/Teams/Enterprise) and the top-up card were both screenshotted and confirmed rendering correctly, including the "Starter" and "Pro" credit-pill labels.
 
 **Email verification.** Both configuration states were tested end-to-end: with `KNOCK_VERIFICATION_WORKFLOW_KEY` unset, a fresh signup gets `emailVerified: true` immediately and full access, confirming local dev stays frictionless. With it set, a fresh signup gets `emailVerified: false`, and every core route correctly returns `403 {code: "EMAIL_NOT_VERIFIED"}` while `/api/auth/me` still works. The real token generated at signup was pulled from the database and POSTed to `/api/auth/verify`, which correctly flipped the account to verified and unblocked access — and a second attempt with the same (now-consumed) token correctly failed with "invalid or expired," confirming single-use enforcement. Both post-verification UX paths were screenshotted: clicking the link in the same browser session that signed up unlocks the app directly; clicking it from a fresh browser (simulating a different device) correctly shows a "verify your email" screen. The `?verify=TOKEN` link handling in the frontend routes each case correctly. The migration's `DEFAULT 1` behavior was independently re-confirmed for this feature specifically (a hand-built database simulating a real pre-existing account came back `email_verified: 1`, not `0`) — critical since this app has real users on a live deployment, and a `DEFAULT 0` here would have retroactively locked all of them out.
+
+**Dark theme and health dashboard.** Sub-score math was verified directly against a hand-built schedule with known issues in each category: 5 missing-logic issues across 5 activities correctly produced `logic_quality: 0`, 2 float issues (1 negative, 1 excessive) out of 5 produced `float_distribution: 60`, and 2 constraint-hygiene issues (1 hard constraint, 1 long duration) produced `constraint_hygiene: 60` — matching the `100 - (issueCount/total)*100` formula by hand. The activity feed endpoint was tested via curl before and after resolving an issue: the resolution event correctly appeared at the top of the feed (most recent), and the resolved issue correctly dropped out of the "new critical issue" list. The full dashboard — gauge, sub-score bars, metric cards, activity feed with relative timestamps — was screenshotted end-to-end in a real browser, including the trend-delta indicator correctly showing "unchanged since last analysis" when re-analyzing identical data. Every other view (Issues, Report, Trends, Portfolio, Plan, Ask Ordo, auth/verify screens) was re-screenshotted after the theme conversion to confirm no leftover light-theme colors; the one exception (`@media print`) was independently confirmed to force light colors regardless of the on-screen theme.
 
 Not yet covered by an automated test suite — that's a reasonable next addition.

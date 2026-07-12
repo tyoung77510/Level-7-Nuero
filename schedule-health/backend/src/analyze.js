@@ -45,6 +45,27 @@ function scoreFrom(total, nCrit, nRisk) {
   return { score, healthyPct, riskPct, critPct };
 }
 
+// Groups the six DCMA-style checks into three dashboard sub-scores. Each pairing groups checks
+// that measure the same underlying schedule-quality concern:
+// - logicQuality: missing logic + out-of-sequence work — is the network actually connected and
+//   sequenced correctly?
+// - floatDistribution: negative float + excessive float — is float spread sensibly, neither
+//   already-blown nor suspiciously generous (usually a sign of missing logic elsewhere)?
+// - constraintHygiene: hard constraints + long-duration activities — are activities built the
+//   way DCMA scheduling guidance recommends (soft constraints, activities under ~44 working days)?
+function subScoresFrom(issues, total) {
+  const countMatching = (needle) => issues.filter(i => i.sub.includes(needle)).length;
+  const logicIssues = countMatching('missing logic') + countMatching('out of sequence');
+  const floatIssues = countMatching('already behind') + countMatching('excessive float');
+  const constraintIssues = countMatching('hard constraint') + countMatching('long duration');
+  const pct = (n) => Math.max(0, Math.min(100, Math.round(100 - (n / Math.max(total, 1)) * 100)));
+  return {
+    logicQuality: pct(logicIssues),
+    floatDistribution: pct(floatIssues),
+    constraintHygiene: pct(constraintIssues)
+  };
+}
+
 function analyzeXER(tables) {
   const tasks = tables['TASK'] || [];
   const preds = tables['TASKPRED'] || [];
@@ -101,7 +122,8 @@ function analyzeXER(tables) {
   });
 
   const { score, healthyPct, riskPct, critPct } = scoreFrom(total, nCrit, nRisk);
-  return { score, healthyPct, riskPct, critPct, issues, totalActivities: total, critCount: nCrit, riskCount: nRisk };
+  const subScores = subScoresFrom(issues, total);
+  return { score, healthyPct, riskPct, critPct, issues, totalActivities: total, critCount: nCrit, riskCount: nRisk, ...subScores };
 }
 
 function analyzeCSVTasks(csvTasks) {
@@ -135,7 +157,8 @@ function analyzeCSVTasks(csvTasks) {
   });
 
   const { score, healthyPct, riskPct, critPct } = scoreFrom(total, nCrit, nRisk);
-  return { score, healthyPct, riskPct, critPct, issues, totalActivities: total, critCount: nCrit, riskCount: nRisk };
+  const subScores = subScoresFrom(issues, total);
+  return { score, healthyPct, riskPct, critPct, issues, totalActivities: total, critCount: nCrit, riskCount: nRisk, ...subScores };
 }
 
 function analyzeFile(filename, text) {

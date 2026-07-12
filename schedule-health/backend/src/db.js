@@ -61,7 +61,10 @@ db.exec(`
     crit_count INTEGER NOT NULL,
     risk_count INTEGER NOT NULL,
     source_filename TEXT,
-    narrative TEXT
+    narrative TEXT,
+    logic_quality INTEGER,
+    float_distribution INTEGER,
+    constraint_hygiene INTEGER
   );
 
   CREATE TABLE IF NOT EXISTS issues (
@@ -70,7 +73,8 @@ db.exec(`
     name TEXT NOT NULL,
     sub TEXT NOT NULL,
     severity TEXT NOT NULL CHECK (severity IN ('crit','risk')),
-    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','acknowledged','resolved'))
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','acknowledged','resolved')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
   CREATE TABLE IF NOT EXISTS feedback (
@@ -137,6 +141,12 @@ ensureColumn('users', 'credit_balance', 'INTEGER NOT NULL DEFAULT 0');
 // as verified, not retroactively locked out. New signups always pass an explicit value via
 // createUser() regardless of this table-level default.
 ensureColumn('users', 'email_verified', 'INTEGER NOT NULL DEFAULT 1');
+// Nullable — old snapshots/issues predate these and simply have no value for them; the frontend
+// treats null as "not available" rather than backfilling a fake computed score.
+ensureColumn('snapshots', 'logic_quality', 'INTEGER');
+ensureColumn('snapshots', 'float_distribution', 'INTEGER');
+ensureColumn('snapshots', 'constraint_hygiene', 'INTEGER');
+ensureColumn('issues', 'updated_at', "TEXT NOT NULL DEFAULT (datetime('now'))");
 
 function createUser(name, email, phone, passwordHash, passwordSalt, signupCredits, emailVerified) {
   db.prepare('INSERT INTO users (name, email, phone, password_hash, password_salt, credit_balance, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?)')
@@ -284,11 +294,13 @@ function saveSnapshot(userId, projectName, result, sourceFilename) {
   const project = getOrCreateProject(userId, projectName);
   db.prepare(`
     INSERT INTO snapshots
-      (project_id, score, healthy_pct, risk_pct, crit_pct, total_activities, crit_count, risk_count, source_filename)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (project_id, score, healthy_pct, risk_pct, crit_pct, total_activities, crit_count, risk_count,
+       source_filename, logic_quality, float_distribution, constraint_hygiene)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     project.id, result.score, result.healthyPct, result.riskPct, result.critPct,
-    result.totalActivities, result.critCount, result.riskCount, sourceFilename || null
+    result.totalActivities, result.critCount, result.riskCount, sourceFilename || null,
+    result.logicQuality ?? null, result.floatDistribution ?? null, result.constraintHygiene ?? null
   );
   const snapshot = db.prepare('SELECT * FROM snapshots WHERE project_id = ? ORDER BY id DESC LIMIT 1').get(project.id);
 
@@ -337,8 +349,43 @@ function setSnapshotNarrative(snapshotId, narrative) {
 }
 
 function updateIssueStatus(issueId, status) {
-  db.prepare('UPDATE issues SET status = ? WHERE id = ?').run(status, issueId);
+  db.prepare("UPDATE issues SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, issueId);
   return db.prepare('SELECT * FROM issues WHERE id = ?').get(issueId);
+}
+
+// Powers the dashboard's "Live activity feed" — a merged, timestamp-sorted view of recent
+// snapshots (schedule uploads) and issue status changes (acknowledged/resolved) for one project.
+// Newly-detected open issues from the latest snapshot are included too, timestamped at that
+// snapshot's created_at (issues don't carry their own distinct detection time — they're always
+// created in a batch alongside the snapshot that found them).
+function getActivityFeed(userId, projectName, limit) {
+  const project = db.prepare('SELECT * FROM projects WHERE user_id = ? AND name = ?').get(userId, projectName);
+  if (!project) return [];
+
+  const snapshots = db.prepare(`
+    SELECT id, created_at, total_activities, source_filename
+    FROM snapshots WHERE project_id = ? ORDER BY id DESC LIMIT ?
+  `).all(project.id, limit);
+
+  const resolvedIssues = db.prepare(`
+    SELECT i.id, i.name, i.status, i.updated_at
+    FROM issues i JOIN snapshots s ON s.id = i.snapshot_id
+    WHERE s.project_id = ? AND i.status != 'open'
+    ORDER BY i.updated_at DESC LIMIT ?
+  `).all(project.id, limit);
+
+  const latest = snapshots[0];
+  const newIssues = latest ? db.prepare(`
+    SELECT id, name, severity FROM issues WHERE snapshot_id = ? AND status = 'open' AND severity = 'crit' LIMIT ?
+  `).all(latest.id, limit) : [];
+
+  const events = [
+    ...snapshots.map(s => ({ type: 'snapshot', timestamp: s.created_at, totalActivities: s.total_activities, sourceFilename: s.source_filename })),
+    ...resolvedIssues.map(i => ({ type: 'issue_' + i.status, timestamp: i.updated_at, name: i.name })),
+    ...(latest ? newIssues.map(i => ({ type: 'new_issue', timestamp: latest.created_at, name: i.name })) : [])
+  ];
+  events.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  return events.slice(0, limit);
 }
 
 function createFeedback(userId, message) {
@@ -356,7 +403,7 @@ function getPortfolio(userId) {
 
 module.exports = {
   db, getOrCreateProject, listProjects, saveSnapshot,
-  getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio,
+  getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio, getActivityFeed,
   getIssueOwnerUserId, createFeedback,
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
   createUser, getUserByEmail, getUserById, setEmailVerified,

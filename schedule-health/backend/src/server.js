@@ -404,6 +404,26 @@ route('GET', '/api/projects/:name/latest', async (req, res, params, user) => {
   sendJSON(res, 200, { snapshot, issues });
 });
 
+function describeActivityEvent(event) {
+  switch (event.type) {
+    case 'snapshot':
+      return `Update ingested — ${event.totalActivities} activities parsed`;
+    case 'issue_resolved':
+      return `Resolved — ${event.name}`;
+    case 'issue_acknowledged':
+      return `Acknowledged — ${event.name}`;
+    case 'new_issue':
+      return `New critical issue — ${event.name}`;
+    default:
+      return event.name || 'Activity';
+  }
+}
+
+route('GET', '/api/projects/:name/activity', async (req, res, params, user) => {
+  const events = store.getActivityFeed(user.id, params.name, 8);
+  sendJSON(res, 200, events.map(e => ({ message: describeActivityEvent(e), timestamp: e.timestamp })));
+});
+
 route('PATCH', '/api/issues/:id', async (req, res, params, user) => {
   const body = await readBody(req);
   let payload;
