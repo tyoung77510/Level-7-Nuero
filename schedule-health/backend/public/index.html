@@ -112,6 +112,36 @@
   .user-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
   .user-bar span { font-size: 12px; color: var(--muted); }
   .credit-pill { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 2px 10px; font-weight: 600; margin-left: 4px; }
+  .share-wrap { position: relative; display: inline-block; }
+  .share-popover {
+    display: none;
+    position: absolute;
+    top: 26px;
+    right: 0;
+    z-index: 50;
+    width: 200px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  }
+  .share-popover.open { display: block; }
+  .share-popover button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: none;
+    background: none;
+    color: var(--ink);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .share-popover button:hover { background: var(--paper); }
   .tier-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: stretch; }
   .tier-card { display: flex; flex-direction: column; position: relative; padding-top: 30px; }
   .tier-card-popular { border-color: var(--accent); box-shadow: 0 4px 16px rgba(45,214,196,0.14); }
@@ -240,6 +270,23 @@
       <span><span id="userEmail"></span> <span id="creditPill" class="credit-pill"></span></span>
       <span>
         <a id="feedbackLink" style="font-size:12px; color:var(--accent); cursor:pointer; margin-right:12px;">Suggest a feature</a>
+        <span class="share-wrap">
+          <a id="shareLink" style="font-size:12px; color:var(--accent); cursor:pointer; margin-right:12px;">Share Ordo7</a>
+          <div class="share-popover" id="sharePopover">
+            <button data-share="x">Share on X</button>
+            <button data-share="linkedin">Share on LinkedIn</button>
+            <button data-share="facebook">Share on Facebook</button>
+            <button data-share="copy">Copy link</button>
+          </div>
+        </span>
+        <span class="share-wrap">
+          <a id="referralLink" style="font-size:12px; color:var(--accent); cursor:pointer; margin-right:12px;">Refer &amp; earn</a>
+          <div class="share-popover" id="referralPopover" style="width:240px;">
+            <div id="referralStats" style="font-size:12px; color:var(--muted); padding:4px 10px 8px;">Loading…</div>
+            <button data-referral="copy">Copy my referral link</button>
+            <button data-referral="x">Share on X</button>
+          </div>
+        </span>
         <button class="btn tiny" id="logoutBtn">Log out</button>
       </span>
     </div>
@@ -515,7 +562,9 @@ document.getElementById('authSubmit').addEventListener('click', async () => {
   const errEl = document.getElementById('authError');
   errEl.style.display = 'none';
   document.getElementById('authNotice').style.display = 'none';
-  const payload = authMode === 'signup' ? { name, email, phone, password } : { email, password };
+  const payload = authMode === 'signup'
+    ? { name, email, phone, password, ref: localStorage.getItem('ordo7_ref') || undefined }
+    : { email, password };
   try {
     const result = await api('/api/auth/' + authMode, {
       method: 'POST',
@@ -550,6 +599,81 @@ document.getElementById('resendVerification').addEventListener('click', async ()
   } finally {
     btn.disabled = false;
   }
+});
+
+// --- Share ---
+
+const shareCopy = "I use Ordo7 to catch schedule risks before they blow up my project. Bringing order to operational chaos, one schedule at a time.";
+const shareUrl = 'https://ordo7.pro';
+
+document.getElementById('shareLink').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('sharePopover').classList.toggle('open');
+});
+document.addEventListener('click', () => {
+  document.getElementById('sharePopover').classList.remove('open');
+});
+
+document.getElementById('sharePopover').addEventListener('click', async (e) => {
+  const kind = e.target.closest('button')?.dataset.share;
+  if (!kind) return;
+  e.stopPropagation();
+  const encodedText = encodeURIComponent(shareCopy);
+  const encodedUrl = encodeURIComponent(shareUrl);
+  if (kind === 'x') {
+    window.open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, '_blank', 'noopener,width=550,height=420');
+  } else if (kind === 'linkedin') {
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, '_blank', 'noopener,width=550,height=420');
+  } else if (kind === 'facebook') {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, '_blank', 'noopener,width=550,height=420');
+  } else if (kind === 'copy') {
+    await navigator.clipboard.writeText(shareUrl);
+    const btn = e.target.closest('button');
+    const original = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  }
+  document.getElementById('sharePopover').classList.remove('open');
+});
+
+// --- Refer & earn ---
+
+let referralStatsCache = null;
+
+document.getElementById('referralLink').addEventListener('click', async (e) => {
+  e.stopPropagation();
+  const popover = document.getElementById('referralPopover');
+  popover.classList.toggle('open');
+  if (popover.classList.contains('open') && !referralStatsCache) {
+    try {
+      referralStatsCache = await api('/api/referral');
+      document.getElementById('referralStats').textContent =
+        `${referralStatsCache.referredCount} referred · ${referralStatsCache.creditsEarned} credits earned`;
+    } catch (err) {
+      document.getElementById('referralStats').textContent = 'Could not load your referral stats';
+    }
+  }
+});
+document.addEventListener('click', () => {
+  document.getElementById('referralPopover').classList.remove('open');
+});
+
+document.getElementById('referralPopover').addEventListener('click', async (e) => {
+  const kind = e.target.closest('button')?.dataset.referral;
+  if (!kind || !referralStatsCache) return;
+  e.stopPropagation();
+  const referralUrl = `${shareUrl}/?ref=${encodeURIComponent(referralStatsCache.code)}`;
+  if (kind === 'copy') {
+    await navigator.clipboard.writeText(referralUrl);
+    const btn = e.target.closest('button');
+    const original = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  } else if (kind === 'x') {
+    const text = encodeURIComponent(`I use Ordo7 to catch schedule risks early. Sign up with my link and we both get ${referralStatsCache.bonusPerReferral} bonus AI credits:`);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(referralUrl)}`, '_blank', 'noopener,width=550,height=420');
+  }
+  document.getElementById('referralPopover').classList.remove('open');
 });
 
 // --- Feedback ---
@@ -735,6 +859,14 @@ async function handleVerifyRedirect(loggedInUser){
   }
   return true;
 }
+
+// Capture a referral code from the URL (e.g. ordo7.pro/?ref=ABC1234) on any page load and hold
+// onto it until signup, since a visitor may browse before creating an account. Never overwrites
+// an existing stored code — first-touch attribution, not last-touch.
+(function captureReferralCode(){
+  const ref = new URLSearchParams(window.location.search).get('ref');
+  if (ref && !localStorage.getItem('ordo7_ref')) localStorage.setItem('ordo7_ref', ref);
+})();
 
 (async function checkAuth(){
   try {

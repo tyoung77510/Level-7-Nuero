@@ -2,6 +2,7 @@
 const { DatabaseSync } = require('node:sqlite');
 const path = require('node:path');
 const fs = require('node:fs');
+const crypto = require('node:crypto');
 
 // DATA_DIR is configurable so a deployed instance can point it at a mounted persistent volume
 // (e.g. Railway/Render), instead of the app's own source directory, which is wiped on redeploy.
@@ -24,6 +25,8 @@ db.exec(`
     plan_tier TEXT NOT NULL DEFAULT 'free',
     credit_balance INTEGER NOT NULL DEFAULT 0,
     email_verified INTEGER NOT NULL DEFAULT 0,
+    referral_code TEXT UNIQUE,
+    referred_by INTEGER REFERENCES users(id),
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -160,11 +163,42 @@ ensureColumn(
   "TEXT NOT NULL DEFAULT ''",
   "UPDATE issues SET updated_at = datetime('now') WHERE updated_at = ''"
 );
+// No UNIQUE here (unlike the CREATE TABLE version above) — node:sqlite's ALTER TABLE ADD COLUMN
+// rejects UNIQUE/PRIMARY KEY constraints outright, same restriction class as the non-constant
+// default issue above. Uniqueness is instead enforced in generateReferralCode() at the
+// application level, which is safe since codes are only ever minted there, never user-supplied.
+ensureColumn('users', 'referral_code', 'TEXT');
+ensureColumn('users', 'referred_by', 'INTEGER REFERENCES users(id)');
 
-function createUser(name, email, phone, passwordHash, passwordSalt, signupCredits, emailVerified) {
-  db.prepare('INSERT INTO users (name, email, phone, password_hash, password_salt, credit_balance, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    .run(name, email, phone || null, passwordHash, passwordSalt, signupCredits || 0, emailVerified ? 1 : 0);
+// Backfill referral codes for any pre-existing users (fresh databases already get one via
+// createUser at signup; this only runs once, for accounts created before this feature existed).
+// Each row needs a distinct random code, so this can't be a single UPDATE like other migrations.
+for (const row of db.prepare('SELECT id FROM users WHERE referral_code IS NULL').all()) {
+  db.prepare('UPDATE users SET referral_code = ? WHERE id = ?').run(generateReferralCode(), row.id);
+}
+
+function generateReferralCode() {
+  let code;
+  do {
+    code = crypto.randomBytes(5).toString('base64url').slice(0, 7).toUpperCase();
+  } while (db.prepare('SELECT 1 FROM users WHERE referral_code = ?').get(code));
+  return code;
+}
+
+function createUser(name, email, phone, passwordHash, passwordSalt, signupCredits, emailVerified, referredBy) {
+  const referralCode = generateReferralCode();
+  db.prepare('INSERT INTO users (name, email, phone, password_hash, password_salt, credit_balance, email_verified, referral_code, referred_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(name, email, phone || null, passwordHash, passwordSalt, signupCredits || 0, emailVerified ? 1 : 0, referralCode, referredBy || null);
   return db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+}
+
+function getUserByReferralCode(code) {
+  return db.prepare('SELECT * FROM users WHERE referral_code = ?').get(code);
+}
+
+function getReferralStats(userId) {
+  const row = db.prepare('SELECT COUNT(*) AS count FROM users WHERE referred_by = ?').get(userId);
+  return { referredCount: row.count };
 }
 
 function setEmailVerified(userId) {
@@ -420,6 +454,7 @@ module.exports = {
   getIssueOwnerUserId, createFeedback,
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
   createUser, getUserByEmail, getUserById, setEmailVerified,
+  getUserByReferralCode, getReferralStats,
   getUserByStripeCustomerId, getUserByStripeSubscriptionId, setStripeCustomerId, setSubscriptionStatus,
   setUserTier, deductCredits, addCredits, logAiUsage,
   getCreditPurchaseBySessionId, recordCreditPurchase,

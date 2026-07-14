@@ -22,6 +22,11 @@ const CREDIT_VALUE_USD = 0.001;
 // AI narrative before paying for anything.
 const FREE_SIGNUP_CREDITS = 20;
 
+// Referral incentive: both the referrer and the new signup get this many bonus credits, awarded
+// once, the moment the referred signup completes (no purchase or verification required — keeps
+// the loop simple and immediate rather than waiting on a conversion event).
+const REFERRAL_BONUS_CREDITS = 25;
+
 // Self-serve tiers. Teams/Enterprise are intentionally not listed here — this app doesn't yet
 // support multiple seats on one account, so those are "Contact us" placeholders in the UI with
 // no checkout wired up, rather than half-built billing for a feature that doesn't exist.
@@ -77,7 +82,7 @@ function isValidTopupAmount(usd) {
 }
 
 module.exports = {
-  TIERS, FREE_SIGNUP_CREDITS, MARGIN_MULTIPLIER, CREDIT_VALUE_USD,
+  TIERS, FREE_SIGNUP_CREDITS, REFERRAL_BONUS_CREDITS, MARGIN_MULTIPLIER, CREDIT_VALUE_USD,
   TOPUP_CREDIT_PRICE_USD, TOPUP_MIN_USD, TOPUP_INCREMENT_USD,
   costUsd, creditsForUsage, tierForPriceId, creditsForTopupAmount, isValidTopupAmount
 };

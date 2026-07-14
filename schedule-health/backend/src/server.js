@@ -120,7 +120,8 @@ function publicUser(user) {
     subscriptionStatus: user.subscription_status,
     planTier: user.plan_tier,
     creditBalance: user.credit_balance,
-    emailVerified: !!user.email_verified
+    emailVerified: !!user.email_verified,
+    referralCode: user.referral_code
   };
 }
 
@@ -143,11 +144,21 @@ route('POST', '/api/auth/signup', async (req, res) => {
   if (password.length < 8) return sendJSON(res, 400, { error: 'Password must be at least 8 characters' });
   if (store.getUserByEmail(email)) return sendJSON(res, 409, { error: 'An account with that email already exists' });
 
+  // Referral is entirely optional and never blocks signup — an invalid/unknown code is just
+  // silently ignored rather than surfaced as an error (a stale or tampered code shouldn't stop
+  // someone from creating an account).
+  const referralCode = String(payload.ref || '').trim();
+  const referrer = referralCode ? store.getUserByReferralCode(referralCode) : null;
+
   // Verification is only required once a workflow is actually configured (see knock.js) — local
   // dev and any environment without that set up stays frictionless, same pattern as billing.
   const requireVerification = knock.verificationConfigured();
   const { salt, hash } = auth.hashPassword(password);
-  const user = store.createUser(name, email, phone, hash, salt, pricing.FREE_SIGNUP_CREDITS, !requireVerification);
+  let user = store.createUser(name, email, phone, hash, salt, pricing.FREE_SIGNUP_CREDITS, !requireVerification, referrer ? referrer.id : null);
+  if (referrer) {
+    user = store.addCredits(user.id, pricing.REFERRAL_BONUS_CREDITS);
+    store.addCredits(referrer.id, pricing.REFERRAL_BONUS_CREDITS);
+  }
   const { token } = auth.createSession(user.id);
   res.setHeader('Set-Cookie', auth.sessionCookie(token, req, auth.SESSION_TTL_MS / 1000));
   knock.identifyUser(user).catch(() => {}); // never let a marketing-sync failure block signup
@@ -156,6 +167,16 @@ route('POST', '/api/auth/signup', async (req, res) => {
     knock.sendVerificationEmail(user, verificationUrl(req, verifyToken)).catch(() => {});
   }
   sendJSON(res, 200, { user: publicUser(user) });
+});
+
+route('GET', '/api/referral', async (req, res, params, user) => {
+  const stats = store.getReferralStats(user.id);
+  sendJSON(res, 200, {
+    code: user.referral_code,
+    referredCount: stats.referredCount,
+    creditsEarned: stats.referredCount * pricing.REFERRAL_BONUS_CREDITS,
+    bonusPerReferral: pricing.REFERRAL_BONUS_CREDITS
+  });
 });
 
 route('POST', '/api/auth/verify', async (req, res) => {
