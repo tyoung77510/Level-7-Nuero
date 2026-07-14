@@ -589,7 +589,12 @@ route('POST', '/api/analyze', async (req, res, params, user) => {
 
 // Static file serving for the frontend (public/index.html etc.)
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+// Clean-URL aliases for static pages that external services (OAuth app registration forms, etc.)
+// expect at a plain path rather than a .html extension.
+const STATIC_ALIASES = { '/privacy': '/privacy.html', '/terms': '/terms.html' };
+
 function serveStatic(req, res, pathname) {
+  pathname = STATIC_ALIASES[pathname] || pathname;
   let filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname);
   if (!filePath.startsWith(PUBLIC_DIR)) { res.writeHead(403); return res.end('Forbidden'); }
   fs.readFile(filePath, (err, data) => {
