@@ -127,10 +127,11 @@ db.exec(`
 // Lightweight migration: CREATE TABLE IF NOT EXISTS doesn't add columns to a table that already
 // existed from an earlier version of this schema (e.g. a local dev database created before the
 // narrative/plan_tier/credit_balance columns existed). Add anything missing.
-function ensureColumn(table, column, definition) {
+function ensureColumn(table, column, definition, backfillSql) {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all();
   if (!cols.some(c => c.name === column)) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    if (backfillSql) db.exec(backfillSql);
   }
 }
 ensureColumn('snapshots', 'narrative', 'TEXT');
@@ -146,7 +147,19 @@ ensureColumn('users', 'email_verified', 'INTEGER NOT NULL DEFAULT 1');
 ensureColumn('snapshots', 'logic_quality', 'INTEGER');
 ensureColumn('snapshots', 'float_distribution', 'INTEGER');
 ensureColumn('snapshots', 'constraint_hygiene', 'INTEGER');
-ensureColumn('issues', 'updated_at', "TEXT NOT NULL DEFAULT (datetime('now'))");
+// node:sqlite's ALTER TABLE ADD COLUMN only accepts a literal constant default (not even
+// CURRENT_TIMESTAMP, let alone a function call like datetime('now')) — that restriction doesn't
+// apply to CREATE TABLE, which is why this worked in every fresh database but crashed the moment
+// it ran a real migration against an existing production database. Use a literal default to
+// satisfy NOT NULL, then backfill real timestamps via a plain UPDATE (unrestricted). New rows
+// always get an explicit updated_at at insert time (see insertIssue above), so they never rely on
+// this column's default at all.
+ensureColumn(
+  'issues',
+  'updated_at',
+  "TEXT NOT NULL DEFAULT ''",
+  "UPDATE issues SET updated_at = datetime('now') WHERE updated_at = ''"
+);
 
 function createUser(name, email, phone, passwordHash, passwordSalt, signupCredits, emailVerified) {
   db.prepare('INSERT INTO users (name, email, phone, password_hash, password_salt, credit_balance, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?)')
@@ -305,7 +318,7 @@ function saveSnapshot(userId, projectName, result, sourceFilename) {
   const snapshot = db.prepare('SELECT * FROM snapshots WHERE project_id = ? ORDER BY id DESC LIMIT 1').get(project.id);
 
   const insertIssue = db.prepare(`
-    INSERT INTO issues (snapshot_id, name, sub, severity) VALUES (?, ?, ?, ?)
+    INSERT INTO issues (snapshot_id, name, sub, severity, updated_at) VALUES (?, ?, ?, ?, datetime('now'))
   `);
   for (const issue of result.issues) {
     insertIssue.run(snapshot.id, issue.name, issue.sub, issue.sev);
