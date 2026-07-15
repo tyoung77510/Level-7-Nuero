@@ -17,6 +17,31 @@
   input, select, textarea { background: var(--card); color: var(--ink); }
   input::placeholder, textarea::placeholder { color: var(--muted); }
   .wrap { max-width: 760px; margin: 0 auto; }
+  /* The three-panel workspace shell only applies once logged in (body loses .auth-mode) — auth
+     screens keep the original narrow centered layout. */
+  body:not(.auth-mode) { padding: 0; }
+  body:not(.auth-mode) .wrap { max-width: none; margin: 0; }
+  .app-shell-root { display: flex; flex-direction: column; height: 100vh; }
+  .telemetry-shell { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+  #panel-left-sidebar { flex: 0 0 20%; min-width: 240px; max-width: 300px; border-right: 1px solid var(--line); overflow-y: auto; padding: 18px 14px; }
+  .sidebar-nav { display: flex; flex-direction: column; gap: 4px; }
+  .sidebar-nav button { text-align: left; padding: 10px 12px; font-size: 13px; border: 1px solid transparent; background: transparent; border-radius: 8px; cursor: pointer; color: var(--ink); }
+  .sidebar-nav button.active { background: var(--accent); color: #06231f; font-weight: 600; }
+  #panel-central-workspace { flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 20px 24px; }
+  #panel-right-command-bar { flex: 0 0 25%; min-width: 320px; max-width: 420px; border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
+  .breadcrumb { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .breadcrumb .crumb-link { color: var(--accent); cursor: pointer; }
+  .central-subnav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+  .central-subnav button { padding: 8px 12px; font-size: 12.5px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--ink); }
+  .central-subnav button.active { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
+  @media (max-width: 980px) {
+    .app-shell-root { height: auto; }
+    .telemetry-shell { flex-direction: column; height: auto; overflow: visible; }
+    #panel-left-sidebar { flex: none; width: 100%; max-width: none; min-width: 0; border-right: none; border-bottom: 1px solid var(--line); }
+    .sidebar-nav { flex-direction: row; overflow-x: auto; }
+    #panel-central-workspace { flex: none; width: 100%; padding: 16px; }
+    #panel-right-command-bar { flex: none; width: 100%; max-width: none; min-width: 0; border-left: none; border-top: 1px solid var(--line); height: 420px; }
+  }
   .brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
   .brand-mark { width: 16px; height: 16px; border-radius: 50%; background: conic-gradient(var(--sky), var(--navy), var(--orange), var(--gold), var(--sky)); flex-shrink: 0; display: inline-block; }
   .powered-by { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; white-space: nowrap; }
@@ -179,24 +204,11 @@
   @media (max-width: 480px) {
     .tier-grid { grid-template-columns: 1fr; }
   }
-  /* Ask Ordo — a docked chat panel on the right side of the viewport, styled after Claude's
-     own chat interface: plain-text assistant replies (no bubble), a pinned rounded input bar. */
-  #v-chat.active {
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    bottom: 20px;
-    width: 420px;
-    max-width: calc(100vw - 40px);
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(28,43,51,0.14), 0 2px 6px rgba(28,43,51,0.06);
-    overflow: hidden;
-    z-index: 40;
-  }
+  /* Ask Ordo — permanently docked in #panel-right-command-bar, visible alongside whatever the
+     central workspace is showing, styled after Claude's own chat interface: plain-text assistant
+     replies (no bubble), a pinned rounded input bar. No longer part of the .view toggle system —
+     it's always mounted, not switched to. */
+  #v-chat { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   .chat-panel-header {
     display: flex; align-items: center; gap: 8px;
     padding: 14px 18px;
@@ -231,11 +243,11 @@
   .chat-msg { max-width: 88%; font-size: 13.5px; line-height: 1.6; white-space: pre-line; }
   .chat-msg.user { align-self: flex-end; background: var(--accent); color: #06231f; padding: 9px 14px; border-radius: 16px 16px 4px 16px; }
   .chat-msg.assistant { align-self: flex-start; max-width: 100%; color: var(--ink); }
-  @media (max-width: 640px) {
-    #v-chat.active { top: 0; right: 0; bottom: 0; left: 0; width: auto; max-width: none; border-radius: 0; }
-  }
   @media print {
-    .nav, .no-print { display: none !important; }
+    .nav, .sidebar-nav, .central-subnav, .no-print, #panel-left-sidebar, #panel-right-command-bar, .breadcrumb { display: none !important; }
+    /* Un-collapse the fixed-height workspace shell back into normal flow so a multi-page report
+       isn't clipped to one viewport height. */
+    .app-shell-root, .telemetry-shell, #panel-central-workspace { height: auto !important; overflow: visible !important; display: block !important; }
     /* Force light colors for printed output regardless of the on-screen dark theme — a printed
        report with a black background would waste ink and look broken on paper. */
     :root {
@@ -315,7 +327,7 @@
     </div>
   </div>
 
-  <div id="appScreen" style="display:none;">
+  <div id="appScreen" class="app-shell-root" style="display:none;">
     <div class="user-bar no-print">
       <span><span id="userEmail"></span> <span id="creditPill" class="credit-pill"></span></span>
       <span>
@@ -341,18 +353,29 @@
       </span>
     </div>
 
-    <div class="nav no-print">
-      <button data-step="upload" class="active">Upload</button>
-      <button data-step="health">Health</button>
-      <button data-step="issues">Issues</button>
-      <button data-step="gantt">Gantt</button>
-      <button data-step="sandbox">Sandbox</button>
-      <button data-step="trends">Trends</button>
-      <button data-step="portfolio">Portfolio</button>
-      <button data-step="report">Report</button>
-      <button data-step="chat">Ask Ordo</button>
-      <button data-step="pricing">Plan</button>
-    </div>
+    <div class="telemetry-shell">
+      <nav id="panel-left-sidebar" class="no-print">
+        <div class="sidebar-nav">
+          <button data-step="health">Dashboard</button>
+          <button data-step="portfolio">Portfolio Overview</button>
+          <button data-step="projects">Active Projects</button>
+          <button data-step="issues">Issue Punch List</button>
+          <button data-step="portfolio">Multi-Project Leaderboard</button>
+          <button data-step="pricing">Billing / Plan</button>
+        </div>
+      </nav>
+
+      <main id="panel-central-workspace">
+        <div id="breadcrumb" class="breadcrumb no-print"><span class="crumb-link" onclick="setView('portfolio')">Portfolios</span></div>
+        <div class="central-subnav no-print">
+          <button data-step="upload">Upload</button>
+          <button data-step="health">Dashboard</button>
+          <button data-step="gantt">Gantt Timeline</button>
+          <button data-step="sandbox">Sandbox</button>
+          <button data-step="activity">Activity Feed</button>
+          <button data-step="trends">Trends</button>
+          <button data-step="report">Executive Reports</button>
+        </div>
 
     <div id="v-pricing" class="view">
       <div class="tier-grid">
@@ -447,8 +470,8 @@
       <div class="drop">
         <div style="font-size:28px;">&#8593;</div>
         <p style="font-weight:500; margin:10px 0 4px;">Drop your schedule file here</p>
-        <p style="font-size:13px; color:var(--muted); margin:0 0 10px;">Primavera .xer export, or a .csv with task_code, task_name, predecessors, total_float_days, duration_days columns</p>
-        <input type="file" id="fileInput" accept=".xer,.csv,.txt">
+        <p style="font-size:13px; color:var(--muted); margin:0 0 10px;">Supports Primavera P6 (.xer), CSV, or Microsoft Project XML exports</p>
+        <input type="file" id="fileInput" accept=".xer,.csv,.txt,.xml">
         <div class="row">
           <input type="text" id="projName" placeholder="Project name" value="Untitled project">
           <button class="btn primary" id="loadSample">Load sample data instead</button>
@@ -476,6 +499,15 @@
       <div id="portfolioContent"><p class="empty">No projects analyzed yet.</p></div>
     </div>
 
+    <div id="v-projects" class="view">
+      <div id="projectsContent"><p class="empty">No projects yet — upload a schedule to create one.</p></div>
+    </div>
+
+    <div id="v-activity" class="view">
+      <div id="activityFeedStandalone-empty" class="empty">Upload a file first to see activity.</div>
+      <ul id="activityFeedStandalone" class="activity-feed"></ul>
+    </div>
+
     <div id="v-gantt" class="view">
       <div id="ganttContent"><p class="empty">No schedule analyzed yet.</p></div>
     </div>
@@ -486,24 +518,6 @@
 
     <div id="v-report" class="view">
       <div id="reportContent"><p class="empty">No report yet — analyze a schedule first.</p></div>
-    </div>
-
-    <div id="v-chat" class="view">
-      <div class="chat-panel-header">
-        <span class="brand-mark"></span>
-        <span>Ask Ordo</span>
-      </div>
-      <div id="chatEmpty" class="empty" style="display:none; padding:24px 16px;">Analyze a schedule first, then come back here to ask questions about it.</div>
-      <div id="chatWrap" class="chat-panel-body" style="display:none;">
-        <div id="chatMessages" class="chat-panel-messages"></div>
-        <div class="chat-panel-inputrow no-print">
-          <input type="text" id="chatInput" placeholder="Ask about this schedule…">
-          <button id="chatSend" aria-label="Send">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-          </button>
-        </div>
-        <p id="chatError" class="error" style="display:none; padding:0 16px 10px; font-size:12px;"></p>
-      </div>
     </div>
 
     <div id="v-feedback" class="view">
@@ -518,26 +532,67 @@
         <p id="feedbackStatus" style="font-size:12px; color:var(--good); margin:8px 0 0; display:none;">Thanks — the team will take a look.</p>
       </div>
     </div>
+      </main>
+
+      <aside id="panel-right-command-bar" class="no-print">
+        <div id="v-chat">
+          <div class="chat-panel-header">
+            <span class="brand-mark"></span>
+            <span>Ask Ordo</span>
+          </div>
+          <div id="chatEmpty" class="empty" style="display:none; padding:24px 16px;">Analyze a schedule first, then come back here to ask questions about it.</div>
+          <div id="chatWrap" class="chat-panel-body" style="display:none;">
+            <div id="chatMessages" class="chat-panel-messages"></div>
+            <div class="chat-panel-inputrow no-print">
+              <input type="text" id="chatInput" placeholder="Ask about this schedule…">
+              <button id="chatSend" aria-label="Send">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+              </button>
+            </div>
+            <p id="chatError" class="error" style="display:none; padding:0 16px 10px; font-size:12px;"></p>
+          </div>
+        </div>
+      </aside>
+    </div>
   </div>
 </div>
 
 <script>
 const API = ''; // same-origin: server.js serves this file and the API together
 
-const navButtons = document.querySelectorAll('.nav button');
+const navButtons = document.querySelectorAll('.sidebar-nav button, .central-subnav button');
+// Views that live inside an active project's context — the central sub-tab row only makes sense
+// for these; sidebar-only destinations (issues/portfolio/pricing/feedback/projects) take the full
+// central panel instead. Ask Ordo isn't here — it's permanently docked in the right panel now,
+// not part of the .view toggle system at all.
+const PROJECT_SCOPED_STEPS = ['upload', 'health', 'gantt', 'sandbox', 'activity', 'trends', 'report'];
+
 function setView(step){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('v-' + step).classList.add('active');
   navButtons.forEach(b => b.classList.toggle('active', b.dataset.step === step));
+  const subnav = document.querySelector('.central-subnav');
+  if (subnav) subnav.style.display = PROJECT_SCOPED_STEPS.includes(step) ? '' : 'none';
+  document.getElementById('panel-central-workspace').scrollTop = 0;
   if (step === 'trends') renderTrends();
   if (step === 'portfolio') renderPortfolio();
   if (step === 'gantt') renderGantt();
   if (step === 'sandbox') renderSandbox();
+  if (step === 'projects') renderActiveProjects();
+  if (step === 'activity') renderActivityFeedTab();
   if (step === 'pricing') renderPricing();
-  if (step === 'chat') renderChat();
   if (step === 'health' && currentSnapshot) renderHealth(currentSnapshot);
 }
 navButtons.forEach(b => b.addEventListener('click', () => setView(b.dataset.step)));
+
+function updateBreadcrumb(){
+  const el = document.getElementById('breadcrumb');
+  if (!el) return;
+  let html = '<span class="crumb-link" onclick="setView(\'portfolio\')">Portfolios</span>';
+  if (currentProject) html += ' › <span class="crumb-link" onclick="setView(\'health\')">' + escapeHtml(currentProject) + '</span>';
+  if (currentSnapshot) html += ' › Snapshot #' + currentSnapshot.id;
+  el.innerHTML = html;
+}
 
 let currentProject = null;
 let currentSnapshot = null;
@@ -602,6 +657,9 @@ function showApp(user){
   document.getElementById('appScreen').style.display = '';
   document.getElementById('userEmail').textContent = user.email;
   updateCreditPill(user);
+  setView('upload');
+  updateBreadcrumb();
+  renderChat();
 }
 
 function tierLabel(tier){
@@ -1209,6 +1267,12 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// For safely embedding a string inside a single-quoted inline JS string literal in generated HTML
+// (e.g. onclick="fn('...')") — distinct from escapeHtml, which escapes for HTML text/attributes.
+function jsStringEscape(s){
+  return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 async function loadNarrative(snapshot){
   const box = document.getElementById('narrativeBox');
   if (!box) return;
@@ -1335,6 +1399,63 @@ async function renderTrends(){
 }
 
 const FREE_LEADERBOARD_CAP = 2;
+
+// Loads a previously-analyzed project's latest snapshot into the current workspace — the "Active
+// Projects" sidebar destination is the only way to get back into a project without re-uploading.
+async function openProject(name){
+  try {
+    const result = await api('/api/projects/' + encodeURIComponent(name) + '/latest');
+    currentProject = name;
+    currentSnapshot = result.snapshot;
+    currentIssues = result.issues;
+    currentActivities = result.activities || [];
+    currentHasDates = currentActivities.some(a => a.start);
+    sandboxState = {};
+    renderHealth(currentSnapshot);
+    renderIssues(currentIssues);
+    renderReport(currentProject, currentSnapshot);
+    updateBreadcrumb();
+    renderChat();
+    setView('health');
+  } catch (e) {
+    alert('Could not open project: ' + e.message);
+  }
+}
+
+async function renderActiveProjects(){
+  const el = document.getElementById('projectsContent');
+  let rows;
+  try { rows = await api('/api/projects'); } catch (e) { el.innerHTML = '<p class="error">Could not reach the server: ' + e.message + '</p>'; return; }
+  if (!rows.length){ el.innerHTML = '<p class="empty">No projects yet — upload a schedule to create one.</p>'; return; }
+  el.innerHTML = rows.map(p => {
+    // Nested-context escaping: jsStringEscape makes it safe as a JS string literal, then
+    // escapeHtml makes that result safe as an HTML attribute value (project names are
+    // user-controlled — e.g. a project literally named `"><script>` must not break out).
+    const onclickSafe = escapeHtml(jsStringEscape(p.name));
+    return '<div class="issue" style="cursor:pointer;" onclick="openProject(\'' + onclickSafe + '\')">' +
+      '<div style="font-size:13px; font-weight:500;">' + escapeHtml(p.name) + '</div>' +
+      '<div class="issue-right"><span style="font-size:12px; color:var(--accent);">Open →</span></div>' +
+    '</div>';
+  }).join('');
+}
+
+async function renderActivityFeedTab(){
+  const emptyEl = document.getElementById('activityFeedStandalone-empty');
+  const listEl = document.getElementById('activityFeedStandalone');
+  if (!currentProject) { emptyEl.style.display = ''; listEl.innerHTML = ''; return; }
+  emptyEl.style.display = 'none';
+  listEl.innerHTML = '<li class="msg" style="color:var(--muted);">Loading…</li>';
+  try {
+    const events = await api('/api/projects/' + encodeURIComponent(currentProject) + '/activity');
+    if (!events.length) { listEl.innerHTML = '<li class="msg" style="color:var(--muted);">No activity yet.</li>'; return; }
+    listEl.innerHTML = events.map(e =>
+      '<li><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
+      '<span class="when">' + formatRelativeTime(e.timestamp) + '</span></li>'
+    ).join('');
+  } catch (e) {
+    listEl.innerHTML = '<li class="msg error" style="color:var(--bad);">Could not load activity: ' + e.message + '</li>';
+  }
+}
 
 async function renderPortfolio(){
   const el = document.getElementById('portfolioContent');
@@ -1552,7 +1673,13 @@ function renderSandbox(){
     const eff = sandboxEffectiveValues(a);
     const label = escapeHtml(a.name) + (a.milestone ? ' (milestone)' : '');
     const dotColor = (eff.floatDays != null && eff.floatDays < 0) ? 'var(--bad)' : 'var(--accent)';
-    const jsCode = escapeHtml(a.code).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    // jsStringEscape first (JS-string-literal safety), then escapeHtml on the result (HTML-
+    // attribute safety) — the reverse order is exploitable: HTML entities decode back to literal
+    // characters before the browser compiles the event-handler attribute as JS, so a crafted
+    // task_code like x');alert(1);(' from an uploaded file could break out of the string and
+    // execute arbitrary JS when this input fires. escapeHtml(code).replace(...) does NOT protect
+    // against this since escapeHtml already consumed the quotes the JS-escape pass needed to see.
+    const jsCode = escapeHtml(jsStringEscape(a.code));
     return '<div class="sandbox-row">' +
       '<span class="dot" id="' + sandboxDomId(a.code) + '" style="background:' + dotColor + ';"></span>' +
       '<div class="sandbox-label" title="' + label + '">' + label + '</div>' +
@@ -1590,6 +1717,8 @@ async function submitAnalysis(projectName, filename, content){
     renderHealth(currentSnapshot);
     renderIssues(currentIssues);
     renderReport(currentProject, currentSnapshot);
+    updateBreadcrumb();
+    renderChat();
     setView('health');
   } catch (e) {
     document.getElementById('uploadStatus').textContent = 'Error: ' + e.message;
