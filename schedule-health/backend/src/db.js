@@ -99,7 +99,8 @@ db.exec(`
     logic_quality INTEGER,
     float_distribution INTEGER,
     constraint_hygiene INTEGER,
-    activities_json TEXT
+    activities_json TEXT,
+    milestone_health INTEGER
   );
 
   CREATE TABLE IF NOT EXISTS issues (
@@ -185,6 +186,9 @@ ensureColumn('snapshots', 'constraint_hygiene', 'INTEGER');
 // Per-activity data for the Gantt timeline (Pro/Teams feature) — old snapshots predate this and
 // simply have no bars to draw; the frontend treats a missing/empty value as "not available".
 ensureColumn('snapshots', 'activities_json', 'TEXT');
+// Nullable — a file with zero milestones has nothing to score (see milestoneHealthFrom in
+// analyze.js), same "old snapshots show — instead of a fabricated number" convention as above.
+ensureColumn('snapshots', 'milestone_health', 'INTEGER');
 // node:sqlite's ALTER TABLE ADD COLUMN only accepts a literal constant default (not even
 // CURRENT_TIMESTAMP, let alone a function call like datetime('now')) — that restriction doesn't
 // apply to CREATE TABLE, which is why this worked in every fresh database but crashed the moment
@@ -440,13 +444,13 @@ function saveSnapshot(userId, projectName, result, sourceFilename) {
   db.prepare(`
     INSERT INTO snapshots
       (project_id, score, healthy_pct, risk_pct, crit_pct, total_activities, crit_count, risk_count,
-       source_filename, logic_quality, float_distribution, constraint_hygiene, activities_json)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       source_filename, logic_quality, float_distribution, constraint_hygiene, activities_json, milestone_health)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     project.id, result.score, result.healthyPct, result.riskPct, result.critPct,
     result.totalActivities, result.critCount, result.riskCount, sourceFilename || null,
     result.logicQuality ?? null, result.floatDistribution ?? null, result.constraintHygiene ?? null,
-    JSON.stringify(result.activities || [])
+    JSON.stringify(result.activities || []), result.milestoneHealth ?? null
   );
   const snapshot = db.prepare('SELECT * FROM snapshots WHERE project_id = ? ORDER BY id DESC LIMIT 1').get(project.id);
 

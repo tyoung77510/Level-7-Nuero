@@ -370,6 +370,7 @@
         <div class="central-subnav no-print">
           <button data-step="upload">Upload</button>
           <button data-step="health">Dashboard</button>
+          <button data-step="milestones">Milestones</button>
           <button data-step="gantt">Gantt Timeline</button>
           <button data-step="sandbox">Sandbox</button>
           <button data-step="activity">Activity Feed</button>
@@ -508,6 +509,10 @@
       <ul id="activityFeedStandalone" class="activity-feed"></ul>
     </div>
 
+    <div id="v-milestones" class="view">
+      <div id="milestonesContent"><p class="empty">No schedule analyzed yet.</p></div>
+    </div>
+
     <div id="v-gantt" class="view">
       <div id="ganttContent"><p class="empty">No schedule analyzed yet.</p></div>
     </div>
@@ -565,7 +570,7 @@ const navButtons = document.querySelectorAll('.sidebar-nav button, .central-subn
 // for these; sidebar-only destinations (issues/portfolio/pricing/feedback/projects) take the full
 // central panel instead. Ask Ordo isn't here — it's permanently docked in the right panel now,
 // not part of the .view toggle system at all.
-const PROJECT_SCOPED_STEPS = ['upload', 'health', 'gantt', 'sandbox', 'activity', 'trends', 'report'];
+const PROJECT_SCOPED_STEPS = ['upload', 'health', 'milestones', 'gantt', 'sandbox', 'activity', 'trends', 'report'];
 
 function setView(step){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -576,6 +581,7 @@ function setView(step){
   document.getElementById('panel-central-workspace').scrollTop = 0;
   if (step === 'trends') renderTrends();
   if (step === 'portfolio') renderPortfolio();
+  if (step === 'milestones') renderMilestones();
   if (step === 'gantt') renderGantt();
   if (step === 'sandbox') renderSandbox();
   if (step === 'projects') renderActiveProjects();
@@ -1159,9 +1165,26 @@ function activityDotColor(message){
   return 'var(--accent)';
 }
 
+// Free/Starter accounts only — a Pro/Teams subscriber is already a customer, not a lead. Fires
+// on either a low overall score or a low milestone score (a project can look fine in aggregate
+// while its milestones are quietly slipping, which is exactly the kind of risk this should surface).
+function conversionBanner(snapshot){
+  const tier = ((currentUser && currentUser.effectiveTier) || 'free').toLowerCase();
+  if (tier !== 'free' && tier !== 'starter') return '';
+  const lowOverall = snapshot.score < 65;
+  const lowMilestone = snapshot.milestone_health != null && snapshot.milestone_health < 65;
+  if (!lowOverall && !lowMilestone) return '';
+  return '<div class="card" style="border-color:var(--warn); border-width:1.5px; margin-bottom:14px;">' +
+    '<p style="font-weight:600; margin:0 0 4px; color:var(--warn);">Schedule risk detected</p>' +
+    '<p style="font-size:13px; margin:0 0 12px;">This schedule presents critical execution and milestone risks. Book a 15-Minute Schedule Strategy Session.</p>' +
+    '<a class="btn primary" style="text-decoration:none; display:inline-block;" href="mailto:admin@level7data.com?subject=Schedule%20Strategy%20Session%20request">Book Strategy Session</a>' +
+  '</div>';
+}
+
 function renderHealth(snapshot){
   const el = document.getElementById('healthContent');
   el.innerHTML =
+    conversionBanner(snapshot) +
     '<div class="metric-grid">' +
       '<div class="metric"><div class="lab">Critical</div><div class="val" style="color:var(--bad);">' + snapshot.crit_count + '</div></div>' +
       '<div class="metric"><div class="lab">At risk</div><div class="val" style="color:var(--warn);">' + snapshot.risk_count + '</div></div>' +
@@ -1175,6 +1198,7 @@ function renderHealth(snapshot){
           subScoreRow('Logic quality', snapshot.logic_quality) +
           subScoreRow('Float distribution', snapshot.float_distribution) +
           subScoreRow('Constraint hygiene', snapshot.constraint_hygiene) +
+          subScoreRow('Milestone hygiene', snapshot.milestone_health) +
         '</div>' +
       '</div>' +
       '<div class="card">' +
@@ -1486,6 +1510,36 @@ async function renderPortfolio(){
   }
 
   el.innerHTML = html;
+}
+
+function renderMilestones(){
+  const el = document.getElementById('milestonesContent');
+  if (!currentActivities || !currentActivities.length){
+    el.innerHTML = '<p class="empty">No schedule analyzed yet.</p>';
+    return;
+  }
+  const milestones = currentActivities.filter(a => a.milestone);
+  if (!milestones.length){
+    el.innerHTML = '<p class="empty">No milestones found in this schedule.</p>';
+    return;
+  }
+  // hasPredecessor/hasSuccessor are undefined (not false) on activities from a snapshot analyzed
+  // before this check existed — that reads as "no known logic gap" rather than a false alarm,
+  // matching this app's usual "old data shows as not-applicable, not fabricated" convention.
+  el.innerHTML = milestones.map(m => {
+    const missingLogic = m.hasPredecessor === false || m.hasSuccessor === false;
+    const negativeFloat = m.totalFloatDays != null && m.totalFloatDays < 0;
+    let badges = '';
+    if (missingLogic) badges += '<span class="badge crit">Missing logic anchor</span>';
+    if (negativeFloat) badges += '<span class="badge crit">Negative float</span>';
+    if (!missingLogic && !negativeFloat) badges += '<span class="badge resolved-badge">On track</span>';
+    const when = m.end ? 'Due ' + m.end : (m.dayOffset != null ? 'Day ' + m.dayOffset : 'No date');
+    const floatText = m.totalFloatDays != null ? ' · ' + m.totalFloatDays + 'd float' : '';
+    return '<div class="issue">' +
+      '<div><p class="issue-name">' + escapeHtml(m.name) + '</p><p class="issue-sub">' + when + floatText + '</p></div>' +
+      '<div class="issue-right">' + badges + '</div>' +
+    '</div>';
+  }).join('');
 }
 
 function renderGantt(){

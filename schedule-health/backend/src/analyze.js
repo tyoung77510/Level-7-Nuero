@@ -52,6 +52,17 @@ function scoreFrom(total, nCrit, nRisk) {
   return { score, healthyPct, riskPct, critPct };
 }
 
+// Shared by subScoresFrom and milestoneHealthFrom — what fraction of a denominator is "clean".
+function pct(n, total) {
+  return Math.max(0, Math.min(100, Math.round(100 - (n / Math.max(total, 1)) * 100)));
+}
+
+// Nullable like the other three sub-scores — a file with zero milestones has nothing to score,
+// so the frontend shows "—" rather than a fabricated 100.
+function milestoneHealthFrom(milestoneIssueCount, totalMilestones) {
+  return totalMilestones > 0 ? pct(milestoneIssueCount, totalMilestones) : null;
+}
+
 // Groups the six DCMA-style checks into three dashboard sub-scores. Each pairing groups checks
 // that measure the same underlying schedule-quality concern:
 // - logicQuality: missing logic + out-of-sequence work — is the network actually connected and
@@ -65,11 +76,10 @@ function subScoresFrom(issues, total) {
   const logicIssues = countMatching('missing logic') + countMatching('out of sequence');
   const floatIssues = countMatching('already behind') + countMatching('excessive float');
   const constraintIssues = countMatching('hard constraint') + countMatching('long duration');
-  const pct = (n) => Math.max(0, Math.min(100, Math.round(100 - (n / Math.max(total, 1)) * 100)));
   return {
-    logicQuality: pct(logicIssues),
-    floatDistribution: pct(floatIssues),
-    constraintHygiene: pct(constraintIssues)
+    logicQuality: pct(logicIssues, total),
+    floatDistribution: pct(floatIssues, total),
+    constraintHygiene: pct(constraintIssues, total)
   };
 }
 
@@ -89,6 +99,7 @@ function analyzeXER(tables) {
   const issues = [];
   const activities = [];
   let nCrit = 0, nRisk = 0, total = 0;
+  let milestoneIssueCount = 0, totalMilestones = 0;
 
   tasks.forEach(t => {
     const activityName = t.task_name || t.task_code || 'unnamed activity';
@@ -98,10 +109,16 @@ function analyzeXER(tables) {
     const end = parseXerDate(t.act_end_date) || parseXerDate(t.target_end_date) || parseXerDate(t.early_end_date);
     const drtnHrs = parseFloat(t.remain_drtn_hr_cnt || t.target_drtn_hr_cnt);
     const durationDays = !isNaN(drtnHrs) ? Math.max(0, drtnHrs / 8) : (start && end ? Math.max(0, (end - start) / 86400000) : 1);
+    // A task counts as a milestone if scheduling metadata says so, OR its duration resolves to
+    // zero — either signal is sufficient (mirrors the same OR rule applied in analyzeMspXml).
+    const isMilestone = t.task_type === 'TT_Mile' || durationDays === 0;
+    const hasPredecessor = !!predCount[t.task_id];
+    const hasSuccessor = !!succCount[t.task_id];
     activities.push({
       code: t.task_code || t.task_id,
       name: activityName,
-      milestone: t.task_type === 'TT_Mile',
+      milestone: isMilestone,
+      hasPredecessor, hasSuccessor,
       start: start ? start.toISOString().slice(0, 10) : null,
       end: end ? end.toISOString().slice(0, 10) : (start ? new Date(start.getTime() + durationDays * 86400000).toISOString().slice(0, 10) : null),
       durationDays: Math.round(durationDays * 10) / 10,
@@ -109,7 +126,26 @@ function analyzeXER(tables) {
       critical: floatDays !== null && floatDays <= 0
     });
 
-    if (t.task_type === 'TT_Mile') return;
+    if (isMilestone) {
+      // Milestones get their own two checks instead of the general activity checks below (long
+      // duration/excessive float/hard constraint don't mean anything for a zero-duration point in
+      // time) — this is also the only place a milestone's negative float or logic gap is scored
+      // at all; previously milestones were skipped entirely, so this was a real blind spot.
+      totalMilestones++;
+      let flagged = false;
+      if (!hasPredecessor || !hasSuccessor) {
+        issues.push({ name: activityName + ' milestone has no predecessor or successor', sub: 'Milestone ' + (t.task_code || t.task_id) + ' · missing logic anchor', sev: 'crit' });
+        nCrit++;
+        flagged = true;
+      }
+      if (floatDays !== null && floatDays < 0) {
+        issues.push({ name: activityName + ' milestone has negative float', sub: 'Milestone ' + (t.task_code || t.task_id) + ' · already behind', sev: 'crit' });
+        nCrit++;
+        flagged = true;
+      }
+      if (flagged) milestoneIssueCount++;
+      return;
+    }
     total++;
     const name = t.task_name || t.task_code || 'unnamed activity';
     const code = t.task_code || t.task_id;
@@ -149,16 +185,30 @@ function analyzeXER(tables) {
 
   const { score, healthyPct, riskPct, critPct } = scoreFrom(total, nCrit, nRisk);
   const subScores = subScoresFrom(issues, total);
+  const milestoneHealth = milestoneHealthFrom(milestoneIssueCount, totalMilestones);
   const hasDates = activities.some(a => a.start);
-  return { score, healthyPct, riskPct, critPct, issues, activities, hasDates, totalActivities: total, critCount: nCrit, riskCount: nRisk, ...subScores };
+  return { score, healthyPct, riskPct, critPct, issues, activities, hasDates, totalActivities: total, critCount: nCrit, riskCount: nRisk, ...subScores, milestoneHealth };
 }
 
 function analyzeCSVTasks(csvTasks) {
   const issues = [];
   const activities = [];
-  let nCrit = 0, nRisk = 0;
-  const total = csvTasks.length;
+  let nCrit = 0, nRisk = 0, total = 0;
+  let milestoneIssueCount = 0, totalMilestones = 0;
   let cumulativeDays = 0;
+
+  // This format has no distinct successor column — a row only lists its own predecessors — so
+  // build the reverse map by splitting each predecessors cell (comma/semicolon-separated codes)
+  // and cross-referencing against other rows' task_code, the same way analyzeXER/analyzeMspXml
+  // derive succCount from the predecessor links they parse.
+  const predByCode = {};
+  csvTasks.forEach(t => {
+    predByCode[t.task_code || ''] = (t.predecessors || '').split(/[,;]/).map(s => s.trim()).filter(Boolean);
+  });
+  const succCount = {};
+  Object.values(predByCode).forEach(list => {
+    list.forEach(predCode => { succCount[predCode] = (succCount[predCode] || 0) + 1; });
+  });
 
   csvTasks.forEach(t => {
     const name = t.task_name || t.task_code || 'unnamed activity';
@@ -170,8 +220,15 @@ function analyzeCSVTasks(csvTasks) {
     // No dates in this format — lay activities out sequentially by file order instead of a
     // calendar. dayOffset is days-from-start-of-file, not a real date.
     const durationDays = !isNaN(dur) ? Math.max(0, dur) : 1;
+    // Same OR rule as the other two parsers: this format has no metadata flag, so zero duration
+    // is the only signal — but it's sufficient on its own.
+    const isMilestone = durationDays === 0;
+    const hasPredecessor = predByCode[code].length > 0;
+    const hasSuccessor = !!succCount[code];
+
     activities.push({
-      code, name, milestone: false,
+      code, name, milestone: isMilestone,
+      hasPredecessor, hasSuccessor,
       start: null, end: null,
       dayOffset: Math.round(cumulativeDays * 10) / 10,
       durationDays: Math.round(durationDays * 10) / 10,
@@ -179,6 +236,24 @@ function analyzeCSVTasks(csvTasks) {
       critical: !isNaN(tf) && tf <= 0
     });
     cumulativeDays += durationDays;
+
+    if (isMilestone) {
+      totalMilestones++;
+      let flagged = false;
+      if (!hasPredecessor || !hasSuccessor) {
+        issues.push({ name: name + ' milestone has no predecessor or successor', sub: 'Milestone ' + code + ' · missing logic anchor', sev: 'crit' });
+        nCrit++;
+        flagged = true;
+      }
+      if (!isNaN(tf) && tf < 0) {
+        issues.push({ name: name + ' milestone has negative float', sub: 'Milestone ' + code + ' · already behind', sev: 'crit' });
+        nCrit++;
+        flagged = true;
+      }
+      if (flagged) milestoneIssueCount++;
+      return;
+    }
+    total++;
 
     if (!isNaN(tf) && tf < 0) {
       issues.push({ name: name + ' has negative float', sub: 'Activity ' + code + ' \u00b7 already behind', sev: 'crit' });
@@ -200,7 +275,8 @@ function analyzeCSVTasks(csvTasks) {
 
   const { score, healthyPct, riskPct, critPct } = scoreFrom(total, nCrit, nRisk);
   const subScores = subScoresFrom(issues, total);
-  return { score, healthyPct, riskPct, critPct, issues, activities, hasDates: false, totalActivities: total, critCount: nCrit, riskCount: nRisk, ...subScores };
+  const milestoneHealth = milestoneHealthFrom(milestoneIssueCount, totalMilestones);
+  return { score, healthyPct, riskPct, critPct, issues, activities, hasDates: false, totalActivities: total, critCount: nCrit, riskCount: nRisk, ...subScores, milestoneHealth };
 }
 
 // Microsoft Project's XML interchange format (MSPDI) — what "Save As > XML" produces. This is a
@@ -261,20 +337,26 @@ function analyzeMspXml(tasks) {
   const issues = [];
   const activities = [];
   let nCrit = 0, nRisk = 0, total = 0;
+  let milestoneIssueCount = 0, totalMilestones = 0;
 
   tasks.forEach(t => {
     const durationDays = t.durationHours != null ? t.durationHours / 8 : null;
     const floatDays = t.totalSlackMinutes != null ? Math.round((t.totalSlackMinutes / 60 / 8) * 10) / 10 : null;
     const start = t.start ? t.start.slice(0, 10) : null;
     const end = t.finish ? t.finish.slice(0, 10) : null;
+    // Same OR rule as analyzeXER: metadata flag or zero duration is sufficient on its own.
+    const isMilestone = t.milestone || durationDays === 0;
+    const hasPredecessor = !!predCount[t.uid];
+    const hasSuccessor = !!succCount[t.uid];
 
     activities.push({
       code: t.uid,
       name: t.name,
-      milestone: t.milestone,
+      milestone: isMilestone,
+      hasPredecessor, hasSuccessor,
       start,
       end,
-      durationDays: durationDays != null ? Math.round(durationDays * 10) / 10 : (t.milestone ? 0 : 1),
+      durationDays: durationDays != null ? Math.round(durationDays * 10) / 10 : (isMilestone ? 0 : 1),
       totalFloatDays: floatDays,
       // MSPDI already tells us whether a task is on the critical path (it accounts for
       // calendars/constraints this app can't recompute) — prefer that over deriving it from
@@ -282,7 +364,22 @@ function analyzeMspXml(tasks) {
       critical: t.critical || (floatDays !== null && floatDays <= 0)
     });
 
-    if (t.milestone) return; // matches analyzeXER's treatment of milestones — not scored as activities
+    if (isMilestone) {
+      totalMilestones++;
+      let flagged = false;
+      if (!hasPredecessor || !hasSuccessor) {
+        issues.push({ name: t.name + ' milestone has no predecessor or successor', sub: 'Milestone ' + t.uid + ' · missing logic anchor', sev: 'crit' });
+        nCrit++;
+        flagged = true;
+      }
+      if (floatDays !== null && floatDays < 0) {
+        issues.push({ name: t.name + ' milestone has negative float', sub: 'Milestone ' + t.uid + ' · already behind', sev: 'crit' });
+        nCrit++;
+        flagged = true;
+      }
+      if (flagged) milestoneIssueCount++;
+      return;
+    }
     total++;
     const name = t.name;
     const code = t.uid;
@@ -307,8 +404,9 @@ function analyzeMspXml(tasks) {
 
   const { score, healthyPct, riskPct, critPct } = scoreFrom(total, nCrit, nRisk);
   const subScores = subScoresFrom(issues, total);
+  const milestoneHealth = milestoneHealthFrom(milestoneIssueCount, totalMilestones);
   const hasDates = activities.some(a => a.start);
-  return { score, healthyPct, riskPct, critPct, issues, activities, hasDates, totalActivities: total, critCount: nCrit, riskCount: nRisk, ...subScores };
+  return { score, healthyPct, riskPct, critPct, issues, activities, hasDates, totalActivities: total, critCount: nCrit, riskCount: nRisk, ...subScores, milestoneHealth };
 }
 
 function analyzeFile(filename, text) {
