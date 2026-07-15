@@ -357,18 +357,23 @@
             <li>Everything in Free, plus:</li>
             <li>500 AI summary credits/month</li>
             <li>Credits refill every billing cycle</li>
+            <li>Gantt timeline view</li>
+            <li>Sandbox "what-if" simulator</li>
+            <li>Unrestricted portfolio leaderboard</li>
           </ul>
           <button class="btn cta" data-tier="pro" style="width:100%;">Subscribe — Pro</button>
         </div>
         <div class="card tier-card">
           <span class="tier-badge tier-badge-soon">Coming soon</span>
           <h2 class="tier-name">Teams</h2>
-          <p class="tier-tagline">Pooled credits across your team</p>
-          <p class="price-line">Custom</p>
+          <p class="tier-tagline">Collaborate and present with confidence</p>
+          <p class="price-line">$149<span>/month</span></p>
           <ul class="paywall-features">
             <li>Everything in Pro, plus:</li>
             <li>Multiple seats, one account</li>
             <li>Pooled AI credits</li>
+            <li>Live review rooms</li>
+            <li>Unwatermarked report exports</li>
           </ul>
           <a class="btn" style="width:100%; text-align:center; display:block; text-decoration:none; box-sizing:border-box;" href="mailto:admin@level7data.com?subject=Ordo7%20Teams%20plan">Contact us</a>
         </div>
@@ -560,7 +565,25 @@ function tierLabel(tier){
 
 function updateCreditPill(user){
   const el = document.getElementById('creditPill');
-  el.textContent = tierLabel(user.planTier) + ' · ' + (user.creditBalance ?? 0) + ' credits';
+  // effectiveTier (not planTier) — a Team member should see "Teams" here, not their own
+  // underlying Free plan, since Teams is what's actually governing their credits/access.
+  el.textContent = tierLabel(user.effectiveTier) + ' · ' + (user.creditBalance ?? 0) + ' credits';
+}
+
+// Tier-gates for features that don't exist as their own routes/checks yet — each one will grow
+// its own UI (Gantt view, sandbox, etc.) as it's built; this is just the access-check they'll all
+// share, kept in one place so the tier list per feature isn't duplicated at every call site.
+const FEATURE_TIERS = {
+  sandboxSimulator: ['pro', 'teams'],
+  ganttTimeline: ['pro', 'teams'],
+  liveReviewRooms: ['teams'],
+  unwatermarkedReports: ['teams'],
+  unrestrictedLeaderboard: ['pro', 'teams']
+};
+
+function checkFeatureAccess(feature){
+  const tier = ((currentUser && currentUser.effectiveTier) || 'free').toLowerCase();
+  return (FEATURE_TIERS[feature] || []).includes(tier);
 }
 
 // Every account — including the free tier — gets straight into the app once verified. There's

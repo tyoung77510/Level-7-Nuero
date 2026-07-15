@@ -27,6 +27,12 @@ db.exec(`
     email_verified INTEGER NOT NULL DEFAULT 0,
     referral_code TEXT UNIQUE,
     referred_by INTEGER REFERENCES users(id),
+    -- NULL means this user is either solo or a Team owner (their own plan_tier/credit_balance
+    -- govern their access). Set means this user is a Team *member* riding on the owner's
+    -- subscription — see getEffectiveTierUser() in this file, which is the single place that
+    -- resolves "whose plan actually applies here" so that logic never has to be duplicated
+    -- at each call site.
+    team_owner_id INTEGER REFERENCES users(id),
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -194,6 +200,7 @@ ensureColumn(
 // application level, which is safe since codes are only ever minted there, never user-supplied.
 ensureColumn('users', 'referral_code', 'TEXT');
 ensureColumn('users', 'referred_by', 'INTEGER REFERENCES users(id)');
+ensureColumn('users', 'team_owner_id', 'INTEGER REFERENCES users(id)');
 
 // Backfill referral codes for any pre-existing users (fresh databases already get one via
 // createUser at signup; this only runs once, for accounts created before this feature existed).
@@ -300,6 +307,31 @@ function setSubscriptionStatus(userId, status, subscriptionId) {
 function setUserTier(userId, tier, monthlyCredits) {
   db.prepare('UPDATE users SET plan_tier = ?, credit_balance = ? WHERE id = ?').run(tier, monthlyCredits, userId);
   return getUserById(userId);
+}
+
+// --- Teams (multi-seat) ---
+//
+// A Team member's own plan_tier/credit_balance are irrelevant while team_owner_id is set — they
+// ride entirely on the owner's subscription. This is the one function that resolves "whose plan
+// actually governs this user's access" so every tier-gate check (feature access, credit
+// deduction, etc.) goes through the same logic rather than re-deriving it inline and risking a
+// member who's supposed to inherit Teams access instead getting checked against their own
+// (possibly Free) plan_tier.
+function getEffectiveTierUser(user) {
+  if (!user.team_owner_id) return user;
+  return getUserById(user.team_owner_id) || user; // owner deleted/missing — fall back to self rather than crash
+}
+
+function addTeamMember(ownerId, memberUserId) {
+  db.prepare('UPDATE users SET team_owner_id = ? WHERE id = ?').run(ownerId, memberUserId);
+}
+
+function removeTeamMember(memberUserId) {
+  db.prepare('UPDATE users SET team_owner_id = NULL WHERE id = ?').run(memberUserId);
+}
+
+function getTeamMembers(ownerId) {
+  return db.prepare('SELECT * FROM users WHERE team_owner_id = ?').all(ownerId);
 }
 
 function deductCredits(userId, amount) {
@@ -521,6 +553,7 @@ module.exports = {
   getUserByReferralCode, getReferralStats,
   getUserByStripeCustomerId, getUserByStripeSubscriptionId, setStripeCustomerId, setSubscriptionStatus,
   setUserTier, deductCredits, addCredits, logAiUsage,
+  getEffectiveTierUser, addTeamMember, removeTeamMember, getTeamMembers,
   getCreditPurchaseBySessionId, recordCreditPurchase,
   getChatMessages, addChatMessage,
   createSession, getSession, deleteSession, deleteExpiredSessions,

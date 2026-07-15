@@ -120,6 +120,11 @@ function matchRoute(method, pathname) {
 // --- Auth routes (no session required) ---
 
 function publicUser(user) {
+  // A Team member's own plan_tier/credit_balance are meaningless while riding on an owner's
+  // subscription — effectiveTier/creditBalance reflect what actually governs this user's access
+  // (see getEffectiveTierUser in db.js), while planTier stays their own real billing tier for
+  // account-settings-type display ("you're on Free, but part of Acme Corp's Teams account").
+  const billingUser = store.getEffectiveTierUser(user);
   return {
     id: user.id,
     name: user.name,
@@ -127,7 +132,9 @@ function publicUser(user) {
     phone: user.phone,
     subscriptionStatus: user.subscription_status,
     planTier: user.plan_tier,
-    creditBalance: user.credit_balance,
+    effectiveTier: billingUser.plan_tier,
+    isTeamMember: !!user.team_owner_id,
+    creditBalance: billingUser.credit_balance,
     emailVerified: !!user.email_verified,
     referralCode: user.referral_code
   };
@@ -581,13 +588,17 @@ route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => 
   if (ownerId !== user.id) return sendJSON(res, 403, { error: 'Not your project' });
 
   const snapshot = store.getSnapshotById(snapshotId);
-  if (snapshot.narrative) return sendJSON(res, 200, { narrative: snapshot.narrative, cached: true, creditBalance: user.credit_balance });
+  // Team members draw from (and are gated by) their Team owner's pooled balance, not their own —
+  // "Pooled AI credits" is a Teams feature, so credit checks/deductions always resolve through
+  // the same owner lookup as tier gating rather than a second, easy-to-forget code path.
+  const billingUser = store.getEffectiveTierUser(user);
+  if (snapshot.narrative) return sendJSON(res, 200, { narrative: snapshot.narrative, cached: true, creditBalance: billingUser.credit_balance });
 
   // 429, not 402 — this is a quota/rate concept ("out of credits this period"), distinct from
   // the account-level "no active subscription" case, which no longer blocks the app at all now
   // that every account has a free tier.
-  if (user.credit_balance <= 0) {
-    return sendJSON(res, 429, { error: 'Out of AI credits — upgrade to Pro or wait for your next credit refill', creditBalance: user.credit_balance });
+  if (billingUser.credit_balance <= 0) {
+    return sendJSON(res, 429, { error: 'Out of AI credits — upgrade to Pro or wait for your next credit refill', creditBalance: billingUser.credit_balance });
   }
 
   const issues = store.getIssuesForSnapshot(snapshotId);
@@ -598,9 +609,9 @@ route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => 
   const credits = pricing.creditsForUsage(result.inputTokens, result.outputTokens);
   store.setSnapshotNarrative(snapshotId, result.text);
   store.logAiUsage(user.id, snapshotId, result.inputTokens, result.outputTokens, cost, credits);
-  const updatedUser = store.deductCredits(user.id, credits);
+  const updatedBillingUser = store.deductCredits(billingUser.id, credits);
 
-  sendJSON(res, 200, { narrative: result.text, cached: false, creditsUsed: credits, creditBalance: updatedUser.credit_balance });
+  sendJSON(res, 200, { narrative: result.text, cached: false, creditsUsed: credits, creditBalance: updatedBillingUser.credit_balance });
 });
 
 // How many prior turns get resent as conversation context on each new chat message — caps
@@ -631,8 +642,9 @@ route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
   if (!message) return sendJSON(res, 400, { error: 'Message cannot be empty' });
   if (message.length > 2000) return sendJSON(res, 400, { error: 'Keep questions under 2000 characters' });
 
-  if (user.credit_balance <= 0) {
-    return sendJSON(res, 429, { error: 'Out of AI credits — upgrade to Pro or wait for your next credit refill', creditBalance: user.credit_balance });
+  const billingUser = store.getEffectiveTierUser(user);
+  if (billingUser.credit_balance <= 0) {
+    return sendJSON(res, 429, { error: 'Out of AI credits — upgrade to Pro or wait for your next credit refill', creditBalance: billingUser.credit_balance });
   }
 
   const snapshot = store.getSnapshotById(snapshotId);
@@ -647,9 +659,9 @@ route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
   store.addChatMessage(snapshotId, user.id, 'user', message);
   store.addChatMessage(snapshotId, user.id, 'assistant', result.text);
   store.logAiUsage(user.id, snapshotId, result.inputTokens, result.outputTokens, cost, credits);
-  const updatedUser = store.deductCredits(user.id, credits);
+  const updatedBillingUser = store.deductCredits(billingUser.id, credits);
 
-  sendJSON(res, 200, { reply: result.text, creditsUsed: credits, creditBalance: updatedUser.credit_balance });
+  sendJSON(res, 200, { reply: result.text, creditsUsed: credits, creditBalance: updatedBillingUser.credit_balance });
 });
 
 route('POST', '/api/feedback', async (req, res, params, user) => {
