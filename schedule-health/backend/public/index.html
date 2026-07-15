@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ordo7 — Powered by Level 7</title>
+<style>
+  :root {
+    --ink: #e7ecf2; --paper: #0a0e14; --line: #232b36;
+    --muted: #8b96a5; --good: #34d399; --warn: #fbbf24; --bad: #f87171;
+    --card: #121821;
+    --navy: #476ab0; --orange: #f37443; --sky: #2da2d8; --gold: #f5bc3d;
+    --teal: #2dd6c4;
+    --accent: var(--teal);
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--paper); color: var(--ink); margin: 0; padding: 24px; }
+  input, select, textarea { background: var(--card); color: var(--ink); }
+  input::placeholder, textarea::placeholder { color: var(--muted); }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  /* The three-panel workspace shell only applies once logged in (body loses .auth-mode) — auth
+     screens keep the original narrow centered layout. */
+  body:not(.auth-mode) { padding: 0; }
+  body:not(.auth-mode) .wrap { max-width: none; margin: 0; }
+  .app-shell-root { display: flex; flex-direction: column; height: 100vh; }
+  .telemetry-shell { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+  #panel-left-sidebar { flex: 0 0 20%; min-width: 240px; max-width: 300px; border-right: 1px solid var(--line); overflow-y: auto; padding: 18px 14px; }
+  .sidebar-nav { display: flex; flex-direction: column; gap: 4px; }
+  .sidebar-nav button { text-align: left; padding: 10px 12px; font-size: 13px; border: 1px solid transparent; background: transparent; border-radius: 8px; cursor: pointer; color: var(--ink); }
+  .sidebar-nav button.active { background: var(--accent); color: #06231f; font-weight: 600; }
+  #panel-central-workspace { flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 20px 24px; }
+  #panel-right-command-bar { flex: 0 0 25%; min-width: 320px; max-width: 420px; border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
+  .breadcrumb { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .breadcrumb .crumb-link { color: var(--accent); cursor: pointer; }
+  .central-subnav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+  .central-subnav button { padding: 8px 12px; font-size: 12.5px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--ink); }
+  .central-subnav button.active { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
+  @media (max-width: 980px) {
+    .app-shell-root { height: auto; }
+    .telemetry-shell { flex-direction: column; height: auto; overflow: visible; }
+    #panel-left-sidebar { flex: none; width: 100%; max-width: none; min-width: 0; border-right: none; border-bottom: 1px solid var(--line); }
+    .sidebar-nav { flex-direction: row; overflow-x: auto; }
+    #panel-central-workspace { flex: none; width: 100%; padding: 16px; }
+    #panel-right-command-bar { flex: none; width: 100%; max-width: none; min-width: 0; border-left: none; border-top: 1px solid var(--line); height: 420px; }
+  }
+  .brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+  .brand-mark { width: 16px; height: 16px; border-radius: 50%; background: conic-gradient(var(--sky), var(--navy), var(--orange), var(--gold), var(--sky)); flex-shrink: 0; display: inline-block; }
+  .powered-by { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; white-space: nowrap; }
+  h1.logo { font-size: 26px; font-weight: 800; margin: 0; letter-spacing: -0.01em; color: var(--ink); }
+  h1.logo .seven { color: var(--orange); }
+  .sub { color: var(--muted); font-size: 13px; margin: 2px 0 20px; }
+  .nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 20px; }
+  .nav button { padding: 10px 6px; font-size: 13px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--ink); }
+  .nav button.active { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 40px 16px; text-align: center; background: var(--card); }
+  .drop input[type=file] { margin-top: 12px; color: var(--ink); }
+  .row { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+  button.btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-size: 13px; color: var(--ink); }
+  button.btn.primary { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
+  button.btn.cta { background: var(--orange); color: #fff; border-color: var(--orange); font-weight: 600; }
+  button.btn.tiny { padding: 4px 10px; font-size: 11px; }
+  button.btn:disabled { opacity: 0.6; cursor: default; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+  .score-line { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .score-num { font-size: 28px; font-weight: 600; }
+  .bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; margin-bottom: 8px; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .issue { display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; background: var(--card); }
+  .gantt-scroll { max-height: 520px; overflow-y: auto; }
+  .gantt-row { display: flex; align-items: center; gap: 12px; padding: 5px 0; }
+  .gantt-label { width: 160px; flex: 0 0 auto; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gantt-track { flex: 1; position: relative; height: 16px; background: var(--line); border-radius: 4px; }
+  .gantt-bar { position: absolute; top: 0; height: 100%; border-radius: 4px; min-width: 4px; }
+  .sandbox-row { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); padding: 8px 0; }
+  .sandbox-row:last-child { border-bottom: none; }
+  .sandbox-row .dot { flex: 0 0 auto; }
+  .sandbox-label { flex: 1; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sandbox-field { display: flex; align-items: center; gap: 5px; flex: 0 0 auto; }
+  .sandbox-field label { font-size: 11px; color: var(--muted); }
+  .sandbox-field input { width: 58px; }
+  .issue.resolved { opacity: 0.5; }
+  .issue-name { font-size: 14px; font-weight: 500; margin: 0; }
+  .issue-sub { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
+  .issue-right { display: flex; align-items: center; gap: 8px; }
+  .badge { font-size: 12px; padding: 3px 10px; border-radius: 6px; white-space: nowrap; }
+  .badge.crit { background: rgba(248,113,113,0.14); color: var(--bad); }
+  .badge.risk { background: rgba(251,191,36,0.14); color: var(--warn); }
+  .badge.resolved-badge { background: rgba(52,211,153,0.14); color: var(--good); }
+  select, input[type=text], input[type=number] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .metric { background: var(--paper); border-radius: 8px; padding: 10px; }
+  .metric .lab { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .metric .val { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .dash-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 12px; align-items: start; }
+  @media (max-width: 760px) { .dash-grid { grid-template-columns: 1fr; } }
+  .gauge-card { display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .gauge-delta { font-size: 12px; margin-top: 4px; }
+  .gauge-delta.up { color: var(--good); }
+  .gauge-delta.down { color: var(--bad); }
+  .gauge-delta.flat { color: var(--muted); }
+  .subscore-row { margin-bottom: 12px; }
+  .subscore-row:last-child { margin-bottom: 0; }
+  .subscore-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+  .subscore-label .name { color: var(--muted); }
+  .subscore-label .value { font-weight: 600; }
+  .subscore-track { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .subscore-fill { height: 100%; border-radius: 3px; }
+  .activity-feed { list-style: none; margin: 0; padding: 0; }
+  .activity-feed li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+  .activity-feed li:last-child { border-bottom: none; }
+  .activity-feed .dot-lead { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 8px; flex-shrink: 0; }
+  .activity-feed .msg { display: flex; align-items: center; color: var(--ink); }
+  .activity-feed .when { color: var(--muted); white-space: nowrap; }
+  .section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 12px; }
+  .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 30px 0; }
+  .error { color: var(--bad); font-size: 13px; text-align: center; padding: 20px 0; }
+  svg.spark { width: 100%; height: 50px; }
+  .auth-box { max-width: 360px; margin: 40px auto 0; }
+  .auth-box .card { display: flex; flex-direction: column; gap: 10px; }
+  .auth-box input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; width: 100%; }
+  .auth-toggle { font-size: 12px; color: var(--muted); text-align: center; margin: 4px 0 0; }
+  .auth-toggle a { color: var(--accent); cursor: pointer; }
+
+  /* Hero-style landing layout for the logged-out screen */
+  body.auth-mode {
+    min-height: 100vh;
+    padding-top: 9vh;
+    background-image: radial-gradient(var(--line) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  body.auth-mode .wrap { max-width: 480px; }
+  body.auth-mode .brand { justify-content: center; gap: 8px; margin-bottom: 10px; }
+  body.auth-mode .brand h1.logo { font-size: 44px; }
+  body.auth-mode .powered-by { font-size: 12px; }
+  body.auth-mode .sub { text-align: center; font-size: 16px; max-width: 420px; margin: 0 auto 34px; }
+  body.auth-mode .auth-box { max-width: 420px; margin: 0 auto; }
+  body.auth-mode .auth-box .card {
+    border: none;
+    border-radius: 16px;
+    padding: 30px 28px;
+    box-shadow: 0 1px 2px rgba(28,43,51,0.04), 0 12px 32px rgba(28,43,51,0.08);
+    gap: 12px;
+  }
+  body.auth-mode .auth-box input { padding: 11px 12px; border-radius: 8px; font-size: 15px; }
+  body.auth-mode .auth-box button.btn.primary { padding: 11px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+  .user-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .user-bar span { font-size: 12px; color: var(--muted); }
+  .credit-pill { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 2px 10px; font-weight: 600; margin-left: 4px; }
+  .share-wrap { position: relative; display: inline-block; }
+  .share-popover {
+    display: none;
+    position: absolute;
+    top: 26px;
+    right: 0;
+    z-index: 50;
+    width: 200px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  }
+  .share-popover.open { display: block; }
+  .share-popover button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: none;
+    background: none;
+    color: var(--ink);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .share-popover button:hover { background: var(--paper); }
+  .share-icon { width: 16px; height: 16px; flex-shrink: 0; }
+  .oauth-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 10px 16px; border-radius: 8px; font-size: 13px; }
+  .tier-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: stretch; }
+  .tier-card { display: flex; flex-direction: column; position: relative; padding-top: 30px; }
+  .tier-card-popular { border-color: var(--accent); box-shadow: 0 4px 16px rgba(45,214,196,0.14); }
+  .tier-badge { position: absolute; top: 12px; left: 16px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 10px; }
+  .tier-badge-free { background: var(--line); color: var(--muted); }
+  .tier-badge-popular { background: var(--accent); color: #06231f; }
+  .tier-badge-soon { background: var(--line); color: var(--muted); }
+  .tier-name { margin: 0 0 2px; font-size: 16px; }
+  .tier-tagline { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+  .price-line { font-size: 28px; font-weight: 700; color: var(--accent); margin: 4px 0; }
+  .price-line span { font-size: 13px; font-weight: 400; color: var(--muted); }
+  .paywall-features { list-style: none; padding: 0; margin: 10px 0 14px; font-size: 12px; flex: 1; }
+  .paywall-features li { padding: 4px 0 4px 20px; position: relative; }
+  .paywall-features li::before { content: "\2713"; position: absolute; left: 0; color: var(--good); font-weight: 700; }
+  @media (max-width: 1100px) {
+    .tier-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 700px) {
+    .tier-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .tier-grid { grid-template-columns: 1fr; }
+  }
+  /* Ask Ordo — permanently docked in #panel-right-command-bar, visible alongside whatever the
+     central workspace is showing, styled after Claude's own chat interface: plain-text assistant
+     replies (no bubble), a pinned rounded input bar. No longer part of the .view toggle system —
+     it's always mounted, not switched to. */
+  #v-chat { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .chat-panel-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+    font-weight: 600; font-size: 14px;
+    flex-shrink: 0;
+  }
+  .chat-panel-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .chat-panel-messages {
+    flex: 1; min-height: 0; overflow-y: auto;
+    padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .chat-panel-inputrow {
+    display: flex; align-items: flex-end; gap: 8px;
+    padding: 12px;
+    border-top: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .chat-panel-inputrow input {
+    flex: 1; border: 1px solid var(--line); border-radius: 20px;
+    padding: 10px 16px; font-size: 13px; font: inherit;
+    outline: none; background: var(--paper); color: var(--ink);
+  }
+  .chat-panel-inputrow input:focus { border-color: var(--accent); }
+  .chat-panel-inputrow button {
+    flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%;
+    border: none; background: var(--accent); color: #06231f;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .chat-panel-inputrow button:disabled { opacity: 0.5; cursor: default; }
+  .chat-msg { max-width: 88%; font-size: 13.5px; line-height: 1.6; white-space: pre-line; }
+  .chat-msg.user { align-self: flex-end; background: var(--accent); color: #06231f; padding: 9px 14px; border-radius: 16px 16px 4px 16px; }
+  .chat-msg.assistant { align-self: flex-start; max-width: 100%; color: var(--ink); }
+  @media print {
+    .nav, .sidebar-nav, .central-subnav, .no-print, #panel-left-sidebar, #panel-right-command-bar, .breadcrumb { display: none !important; }
+    /* Un-collapse the fixed-height workspace shell back into normal flow so a multi-page report
+       isn't clipped to one viewport height. */
+    .app-shell-root, .telemetry-shell, #panel-central-workspace { height: auto !important; overflow: visible !important; display: block !important; }
+    /* Force light colors for printed output regardless of the on-screen dark theme — a printed
+       report with a black background would waste ink and look broken on paper. */
+    :root {
+      --ink: #1c2b33; --paper: #ffffff; --line: #d8d5cc;
+      --muted: #6b6f73; --good: #2f8a55; --warn: #c17d1e; --bad: #b23a2e;
+      --card: #ffffff; --accent: #476ab0;
+    }
+    body { padding: 0; background: #fff; }
+  }
+  /* Only ever rendered into the report for Free/Pro (Teams gets a clean export) — hidden on
+     screen entirely, since it's a print/PDF-only artifact, not a UI element. */
+  .print-watermark { display: none; }
+  @media print {
+    .print-watermark {
+      display: block;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-30deg);
+      font-size: 56px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: rgba(28,43,51,0.08);
+      z-index: 999;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+  }
+</style>
+</head>
+<body class="auth-mode">
+<div class="wrap">
+  <div class="brand">
+    <h1 class="logo">Ordo<span class="seven">7</span></h1>
+    <span class="powered-by"><span class="brand-mark"></span>Powered by Level 7</span>
+  </div>
+  <p class="sub">Upload a schedule export, see what's wrong, track it over time. Bringing order to operational chaos, one schedule at a time.</p>
+
+  <div id="authScreen" class="auth-box">
+    <div class="card">
+      <h2 id="authTitle" style="margin:0; font-size:16px;">Log in</h2>
+      <div id="oauthButtons" style="display:none; flex-direction:column; gap:8px;">
+        <button class="btn oauth-btn" data-oauth="google" style="display:none;"><svg class="share-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.66-.22-2.45H12v4.63h6.47c-.28 1.5-1.13 2.77-2.4 3.62v3h3.88c2.27-2.09 3.57-5.17 3.57-8.8z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.95-2.9l-3.88-3c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11C3.25 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75z"/></svg> Continue with Google</button>
+        <button class="btn oauth-btn" data-oauth="linkedin" style="display:none;"><svg class="share-icon" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.446-2.136 2.94v5.666h-3.554V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.119 20.452H3.555V9h3.564zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0z"/></svg> Continue with LinkedIn</button>
+        <button class="btn oauth-btn" data-oauth="facebook" style="display:none;"><svg class="share-icon" viewBox="0 0 24 24" fill="#1877F2"><path d="M22.675 0h-21.35C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24h11.495v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.114c.73 0 1.323-.593 1.323-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg> Continue with Facebook</button>
+        <button class="btn oauth-btn" data-oauth="x" style="display:none;"><svg class="share-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg> Continue with X</button>
+      </div>
+      <div id="oauthDivider" style="display:none; text-align:center; color:var(--muted); font-size:11px; margin:2px 0;">or</div>
+      <input type="text" id="authName" placeholder="Full name" autocomplete="name" style="display:none;">
+      <input type="email" id="authEmail" placeholder="Email" autocomplete="username">
+      <input type="tel" id="authPhone" placeholder="Phone" autocomplete="tel" style="display:none;">
+      <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">
+      <button class="btn primary" id="authSubmit">Log in</button>
+      <p id="authError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
+      <p id="authNotice" style="display:none; padding:6px 0 0; font-size:12px; color:var(--good); text-align:center;"></p>
+      <p class="auth-toggle"><span id="authToggleText">Don't have an account?</span> <a id="authToggleLink">Sign up</a></p>
+    </div>
+  </div>
+
+  <div id="completeOAuthScreen" class="auth-box" style="display:none;">
+    <div class="card">
+      <h2 style="margin:0 0 2px; font-size:16px;">Almost done</h2>
+      <p style="font-size:13px; color:var(--muted); margin:0;">X doesn't share an email address with apps — enter yours to finish setting up your account.</p>
+      <input type="email" id="completeOAuthEmail" placeholder="Email" autocomplete="email">
+      <button class="btn primary" id="completeOAuthSubmit">Finish signing up</button>
+      <p id="completeOAuthError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
+    </div>
+  </div>
+
+  <div id="verifyScreen" class="auth-box" style="display:none;">
+    <div class="card">
+      <h2 style="margin:0 0 2px; font-size:16px;">Verify your email</h2>
+      <p style="font-size:13px; color:var(--muted); margin:0;">We sent a link to <strong id="verifyEmailAddr"></strong> — click it to unlock your account.</p>
+      <button class="btn primary" id="resendVerification">Resend email</button>
+      <p id="verifyStatus" style="font-size:12px; color:var(--muted); text-align:center; margin:4px 0 0;"></p>
+      <p class="auth-toggle"><a id="verifyLogout" style="color:var(--muted); cursor:pointer;">Log out</a></p>
+    </div>
+  </div>
+
+  <div id="appScreen" class="app-shell-root" style="display:none;">
+    <div class="user-bar no-print">
+      <span><span id="userEmail"></span> <span id="creditPill" class="credit-pill"></span></span>
+      <span>
+        <a id="feedbackLink" style="font-size:12px; color:var(--accent); cursor:pointer; margin-right:12px;">Suggest a feature</a>
+        <span class="share-wrap">
+          <a id="shareLink" style="font-size:12px; color:var(--accent); cursor:pointer; margin-right:12px;">Share Ordo7</a>
+          <div class="share-popover" id="sharePopover">
+            <button data-share="x"><svg class="share-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg> Share on X</button>
+            <button data-share="linkedin"><svg class="share-icon" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.446-2.136 2.94v5.666h-3.554V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.119 20.452H3.555V9h3.564zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0z"/></svg> Share on LinkedIn</button>
+            <button data-share="facebook"><svg class="share-icon" viewBox="0 0 24 24" fill="#1877F2"><path d="M22.675 0h-21.35C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24h11.495v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.114c.73 0 1.323-.593 1.323-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg> Share on Facebook</button>
+            <button data-share="copy"><svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Copy link</button>
+          </div>
+        </span>
+        <span class="share-wrap">
+          <a id="referralLink" style="font-size:12px; color:var(--accent); cursor:pointer; margin-right:12px;">Refer &amp; earn</a>
+          <div class="share-popover" id="referralPopover" style="width:240px;">
+            <div id="referralStats" style="font-size:12px; color:var(--muted); padding:4px 10px 8px;">Loading…</div>
+            <button data-referral="copy"><svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Copy my referral link</button>
+            <button data-referral="x"><svg class="share-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg> Share on X</button>
+          </div>
+        </span>
+        <button class="btn tiny" id="logoutBtn">Log out</button>
+      </span>
+    </div>
+
+    <div class="telemetry-shell">
+      <nav id="panel-left-sidebar" class="no-print">
+        <div class="sidebar-nav">
+          <button data-step="health">Dashboard</button>
+          <button data-step="portfolio">Portfolio Overview</button>
+          <button data-step="projects">Active Projects</button>
+          <button data-step="issues">Issue Punch List</button>
+          <button data-step="portfolio">Multi-Project Leaderboard</button>
+          <button data-step="pricing">Billing / Plan</button>
+        </div>
+      </nav>
+
+      <main id="panel-central-workspace">
+        <div id="breadcrumb" class="breadcrumb no-print"><span class="crumb-link" onclick="setView('portfolio')">Portfolios</span></div>
+        <div class="central-subnav no-print">
+          <button data-step="upload">Upload</button>
+          <button data-step="health">Dashboard</button>
+          <button data-step="milestones">Milestones</button>
+          <button data-step="gantt">Gantt Timeline</button>
+          <button data-step="sandbox">Sandbox</button>
+          <button data-step="activity">Activity Feed</button>
+          <button data-step="trends">Trends</button>
+          <button data-step="report">Executive Reports</button>
+        </div>
+
+    <div id="v-pricing" class="view">
+      <div class="tier-grid">
+        <div class="card tier-card">
+          <span class="tier-badge tier-badge-free">Free</span>
+          <h2 class="tier-name">Free</h2>
+          <p class="tier-tagline">Get started with Ordo7</p>
+          <p class="price-line">$0<span>/month</span></p>
+          <ul class="paywall-features">
+            <li>Unlimited projects and uploads</li>
+            <li>Plain-language health scoring, no jargon</li>
+            <li>DCMA-style issue detection</li>
+            <li>Trend tracking and portfolio rollup</li>
+            <li>20 free AI summary credits on signup</li>
+          </ul>
+          <button class="btn" disabled style="width:100%;">Your plan by default</button>
+        </div>
+        <div class="card tier-card">
+          <h2 class="tier-name" style="margin-top:12px;">Starter</h2>
+          <p class="tier-tagline">More room without the commitment</p>
+          <p class="price-line">$19.99<span>/month</span></p>
+          <ul class="paywall-features">
+            <li>Everything in Free, plus:</li>
+            <li>150 AI summary credits/month</li>
+            <li>Credits refill every billing cycle</li>
+          </ul>
+          <button class="btn cta" data-tier="starter" style="width:100%;">Subscribe — Starter</button>
+        </div>
+        <div class="card tier-card tier-card-popular">
+          <span class="tier-badge tier-badge-popular">Popular</span>
+          <h2 class="tier-name">Pro</h2>
+          <p class="tier-tagline">For teams running this every week</p>
+          <p class="price-line">$49<span>/month</span></p>
+          <ul class="paywall-features">
+            <li>Everything in Free, plus:</li>
+            <li>500 AI summary credits/month</li>
+            <li>Credits refill every billing cycle</li>
+            <li>Gantt timeline view</li>
+            <li>Sandbox "what-if" simulator</li>
+            <li>Unrestricted portfolio leaderboard</li>
+          </ul>
+          <button class="btn cta" data-tier="pro" style="width:100%;">Subscribe — Pro</button>
+        </div>
+        <div class="card tier-card">
+          <h2 class="tier-name">Teams</h2>
+          <p class="tier-tagline">Present clean, credit-backed reporting to your clients</p>
+          <p class="price-line">$149<span>/month</span></p>
+          <ul class="paywall-features">
+            <li>Everything in Pro, plus:</li>
+            <li>2,500 pooled AI summary credits/month</li>
+            <li>Unwatermarked executive progress reports</li>
+            <li>1-click PDF presentation exports</li>
+          </ul>
+          <button class="btn cta" data-tier="teams" style="width:100%;">Subscribe — Teams</button>
+        </div>
+        <div class="card tier-card">
+          <span class="tier-badge tier-badge-soon">Custom</span>
+          <h2 class="tier-name">Enterprise</h2>
+          <p class="tier-tagline">Custom pricing for large organizations</p>
+          <p class="price-line">Custom</p>
+          <ul class="paywall-features">
+            <li>Everything in Teams, plus:</li>
+            <li>Dedicated support</li>
+            <li>Custom integrations</li>
+          </ul>
+          <a class="btn" style="width:100%; text-align:center; display:block; text-decoration:none; box-sizing:border-box;" href="mailto:admin@level7data.com?subject=Ordo7%20Enterprise%20plan">Contact us</a>
+        </div>
+      </div>
+      <p id="paywallError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
+      <p id="paywallNote" style="font-size:12px; color:var(--muted); text-align:center; margin:10px 0 0;"></p>
+
+      <div class="card" style="margin-top:16px;">
+        <h2 style="margin:0 0 4px; font-size:15px;">Need more credits without changing plans?</h2>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Buy AI credits any time, on top of whatever plan you're on — $10 minimum, in $10 increments. Credits don't expire and stack with your plan's monthly refill.</p>
+        <div class="row" style="justify-content:flex-start; flex-wrap:wrap; gap:8px; margin-top:0;">
+          <button class="btn topup-btn" data-amount="10">$10 (50 credits)</button>
+          <button class="btn topup-btn" data-amount="20">$20 (100 credits)</button>
+          <button class="btn topup-btn" data-amount="50">$50 (250 credits)</button>
+          <span style="display:inline-flex; align-items:center; gap:6px;">
+            <input type="number" id="topupCustom" min="10" step="10" placeholder="Custom $" style="width:90px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
+            <button class="btn topup-btn" id="topupCustomBtn">Buy</button>
+          </span>
+        </div>
+        <p id="topupError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
+        <p id="topupNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
+      </div>
+    </div>
+
+    <div id="v-upload" class="view active">
+      <div class="drop">
+        <div style="font-size:28px;">&#8593;</div>
+        <p style="font-weight:500; margin:10px 0 4px;">Drop your schedule file here</p>
+        <p style="font-size:13px; color:var(--muted); margin:0 0 10px;">Supports Primavera P6 (.xer), CSV, or Microsoft Project XML exports</p>
+        <input type="file" id="fileInput" accept=".xer,.csv,.txt,.xml">
+        <div class="row">
+          <input type="text" id="projName" placeholder="Project name" value="Untitled project">
+          <button class="btn primary" id="loadSample">Load sample data instead</button>
+        </div>
+        <p id="uploadStatus" style="font-size:12px; color:var(--muted); margin-top:10px;"></p>
+      </div>
+    </div>
+
+    <div id="v-health" class="view">
+      <div id="healthContent"><p class="empty">Upload a file first to see the health score.</p></div>
+    </div>
+
+    <div id="v-issues" class="view">
+      <div id="issuesContent"><p class="empty">No analysis yet.</p></div>
+    </div>
+
+    <div id="v-trends" class="view">
+      <div class="row no-print" style="justify-content:flex-start; margin-bottom:12px;">
+        <select id="trendProjectSelect"></select>
+      </div>
+      <div id="trendsContent"><p class="empty">Analyze at least one file to start tracking trends.</p></div>
+    </div>
+
+    <div id="v-portfolio" class="view">
+      <div id="portfolioContent"><p class="empty">No projects analyzed yet.</p></div>
+    </div>
+
+    <div id="v-projects" class="view">
+      <div id="projectsContent"><p class="empty">No projects yet — upload a schedule to create one.</p></div>
+    </div>
+
+    <div id="v-activity" class="view">
+      <div id="activityFeedStandalone-empty" class="empty">Upload a file first to see activity.</div>
+      <ul id="activityFeedStandalone" class="activity-feed"></ul>
+    </div>
+
+    <div id="v-milestones" class="view">
+      <div id="milestonesContent"><p class="empty">No schedule analyzed yet.</p></div>
+    </div>
+
+    <div id="v-gantt" class="view">
+      <div id="ganttContent"><p class="empty">No schedule analyzed yet.</p></div>
+    </div>
+
+    <div id="v-sandbox" class="view">
+      <div id="sandboxContent"><p class="empty">No schedule analyzed yet.</p></div>
+    </div>
+
+    <div id="v-report" class="view">
+      <div id="reportContent"><p class="empty">No report yet — analyze a schedule first.</p></div>
+    </div>
+
+    <div id="v-feedback" class="view">
+      <div class="card">
+        <p style="font-weight:500; margin:0 0 4px;">What would make Ordo7 better for you?</p>
+        <p style="font-size:13px; color:var(--muted); margin:0 0 12px;">Feature ideas, rough edges, anything — this goes straight to the team building it.</p>
+        <textarea id="feedbackMessage" rows="5" placeholder="e.g. It would help if..." style="width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font:inherit; font-size:13px; resize:vertical;"></textarea>
+        <div class="row" style="justify-content:flex-start; margin-top:10px;">
+          <button class="btn primary" id="feedbackSubmit">Send feedback</button>
+        </div>
+        <p id="feedbackError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
+        <p id="feedbackStatus" style="font-size:12px; color:var(--good); margin:8px 0 0; display:none;">Thanks — the team will take a look.</p>
+      </div>
+    </div>
+      </main>
+
+      <aside id="panel-right-command-bar" class="no-print">
+        <div id="v-chat">
+          <div class="chat-panel-header">
+            <span class="brand-mark"></span>
+            <span>Ask Ordo</span>
+          </div>
+          <div id="chatEmpty" class="empty" style="display:none; padding:24px 16px;">Analyze a schedule first, then come back here to ask questions about it.</div>
+          <div id="chatWrap" class="chat-panel-body" style="display:none;">
+            <div id="chatMessages" class="chat-panel-messages"></div>
+            <div class="chat-panel-inputrow no-print">
+              <input type="text" id="chatInput" placeholder="Ask about this schedule…">
+              <button id="chatSend" aria-label="Send">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+              </button>
+            </div>
+            <p id="chatError" class="error" style="display:none; padding:0 16px 10px; font-size:12px;"></p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = ''; // same-origin: server.js serves this file and the API together
+
+const navButtons = document.querySelectorAll('.sidebar-nav button, .central-subnav button');
+// Views that live inside an active project's context — the central sub-tab row only makes sense
+// for these; sidebar-only destinations (issues/portfolio/pricing/feedback/projects) take the full
+// central panel instead. Ask Ordo isn't here — it's permanently docked in the right panel now,
+// not part of the .view toggle system at all.
+const PROJECT_SCOPED_STEPS = ['upload', 'health', 'milestones', 'gantt', 'sandbox', 'activity', 'trends', 'report'];
+
+function setView(step){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('v-' + step).classList.add('active');
+  navButtons.forEach(b => b.classList.toggle('active', b.dataset.step === step));
+  const subnav = document.querySelector('.central-subnav');
+  if (subnav) subnav.style.display = PROJECT_SCOPED_STEPS.includes(step) ? '' : 'none';
+  document.getElementById('panel-central-workspace').scrollTop = 0;
+  if (step === 'trends') renderTrends();
+  if (step === 'portfolio') renderPortfolio();
+  if (step === 'milestones') renderMilestones();
+  if (step === 'gantt') renderGantt();
+  if (step === 'sandbox') renderSandbox();
+  if (step === 'projects') renderActiveProjects();
+  if (step === 'activity') renderActivityFeedTab();
+  if (step === 'pricing') renderPricing();
+  if (step === 'health' && currentSnapshot) renderHealth(currentSnapshot);
+}
+navButtons.forEach(b => b.addEventListener('click', () => setView(b.dataset.step)));
+
+function updateBreadcrumb(){
+  const el = document.getElementById('breadcrumb');
+  if (!el) return;
+  let html = '<span class="crumb-link" onclick="setView(\'portfolio\')">Portfolios</span>';
+  if (currentProject) html += ' › <span class="crumb-link" onclick="setView(\'health\')">' + escapeHtml(currentProject) + '</span>';
+  if (currentSnapshot) html += ' › Snapshot #' + currentSnapshot.id;
+  el.innerHTML = html;
+}
+
+let currentProject = null;
+let currentSnapshot = null;
+let currentActivities = null;
+let currentHasDates = false;
+let sandboxState = {}; // per-activity float/duration overrides for the What-If sandbox, keyed by activity code
+let currentIssues = [];
+let currentUser = null;
+let pendingOAuthToken = null;
+
+async function api(path, options){
+  const res = await fetch(API + path, options);
+  if (res.status === 401 && !path.startsWith('/api/auth/')) {
+    showAuth();
+    throw new Error('Please log in');
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || ('Request failed: ' + res.status));
+  }
+  return res.json();
+}
+
+// --- Auth ---
+
+let authMode = 'login';
+
+function showAuth(){
+  currentUser = null;
+  document.body.classList.add('auth-mode');
+  document.getElementById('authScreen').style.display = '';
+  document.getElementById('completeOAuthScreen').style.display = 'none';
+  document.getElementById('verifyScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'none';
+}
+
+function showCompleteOAuth(token){
+  pendingOAuthToken = token;
+  document.body.classList.add('auth-mode');
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('completeOAuthScreen').style.display = '';
+  document.getElementById('verifyScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'none';
+}
+
+function showVerify(user){
+  currentUser = user;
+  document.body.classList.add('auth-mode');
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('completeOAuthScreen').style.display = 'none';
+  document.getElementById('verifyScreen').style.display = '';
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('verifyEmailAddr').textContent = user.email;
+}
+
+function showApp(user){
+  currentUser = user;
+  document.body.classList.remove('auth-mode');
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('completeOAuthScreen').style.display = 'none';
+  document.getElementById('verifyScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = '';
+  document.getElementById('userEmail').textContent = user.email;
+  updateCreditPill(user);
+  setView('upload');
+  updateBreadcrumb();
+  renderChat();
+}
+
+function tierLabel(tier){
+  if (!tier || tier === 'free') return 'Free';
+  return tier.charAt(0).toUpperCase() + tier.slice(1);
+}
+
+function updateCreditPill(user){
+  const el = document.getElementById('creditPill');
+  // effectiveTier (not planTier) — a Team member should see "Teams" here, not their own
+  // underlying Free plan, since Teams is what's actually governing their credits/access.
+  el.textContent = tierLabel(user.effectiveTier) + ' · ' + (user.creditBalance ?? 0) + ' credits';
+}
+
+// Tier-gates for features that don't exist as their own routes/checks yet — each one will grow
+// its own UI (Gantt view, sandbox, etc.) as it's built; this is just the access-check they'll all
+// share, kept in one place so the tier list per feature isn't duplicated at every call site.
+const FEATURE_TIERS = {
+  sandboxSimulator: ['pro', 'teams'],
+  ganttTimeline: ['pro', 'teams'],
+  liveReviewRooms: ['teams'],
+  unwatermarkedReports: ['teams'],
+  unrestrictedLeaderboard: ['pro', 'teams']
+};
+
+function checkFeatureAccess(feature){
+  const tier = ((currentUser && currentUser.effectiveTier) || 'free').toLowerCase();
+  return (FEATURE_TIERS[feature] || []).includes(tier);
+}
+
+// Every account — including the free tier — gets straight into the app once verified. There's
+// no more forced subscribe-or-you're-locked-out screen; upgrading happens voluntarily from the
+// Plan tab. Verification (when configured, see knock.js) is the only remaining gate.
+function routeForUser(user){
+  if (!user.emailVerified) showVerify(user);
+  else showApp(user);
+}
+
+function setAuthMode(mode){
+  authMode = mode;
+  const isSignup = mode === 'signup';
+  document.getElementById('authTitle').textContent = isSignup ? 'Sign up' : 'Log in';
+  document.getElementById('authSubmit').textContent = isSignup ? 'Sign up' : 'Log in';
+  document.getElementById('authToggleText').textContent = isSignup ? 'Already have an account?' : "Don't have an account?";
+  document.getElementById('authToggleLink').textContent = isSignup ? 'Log in' : 'Sign up';
+  document.getElementById('authName').style.display = isSignup ? '' : 'none';
+  document.getElementById('authPhone').style.display = isSignup ? '' : 'none';
+  document.getElementById('authError').style.display = 'none';
+  document.getElementById('authNotice').style.display = 'none';
+}
+
+document.getElementById('authToggleLink').addEventListener('click', () => setAuthMode(authMode === 'login' ? 'signup' : 'login'));
+
+document.getElementById('authSubmit').addEventListener('click', async () => {
+  const name = document.getElementById('authName').value.trim();
+  const email = document.getElementById('authEmail').value.trim();
+  const phone = document.getElementById('authPhone').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authError');
+  errEl.style.display = 'none';
+  document.getElementById('authNotice').style.display = 'none';
+  const payload = authMode === 'signup'
+    ? { name, email, phone, password, ref: localStorage.getItem('ordo7_ref') || undefined }
+    : { email, password };
+  try {
+    const result = await api('/api/auth/' + authMode, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    routeForUser(result.user);
+    setView('upload');
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+});
+
+async function doLogout(){
+  try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+  showAuth();
+}
+document.getElementById('logoutBtn').addEventListener('click', doLogout);
+document.getElementById('verifyLogout').addEventListener('click', doLogout);
+
+document.getElementById('resendVerification').addEventListener('click', async () => {
+  const btn = document.getElementById('resendVerification');
+  const status = document.getElementById('verifyStatus');
+  btn.disabled = true;
+  status.textContent = 'Sending…';
+  try {
+    await api('/api/auth/resend-verification', { method: 'POST' });
+    status.textContent = 'Sent — check your inbox.';
+  } catch (e) {
+    status.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// --- Social sign-in ---
+
+(async function loadOAuthProviders(){
+  try {
+    const providers = await api('/api/auth/oauth-providers');
+    let anyEnabled = false;
+    document.querySelectorAll('.oauth-btn').forEach(btn => {
+      if (providers[btn.dataset.oauth]) {
+        btn.style.display = '';
+        anyEnabled = true;
+      }
+    });
+    if (anyEnabled) {
+      document.getElementById('oauthButtons').style.display = 'flex';
+      document.getElementById('oauthDivider').style.display = 'block';
+    }
+  } catch (e) {
+    // If this fails, the social buttons just stay hidden — email/password signup still works.
+  }
+})();
+
+document.querySelectorAll('.oauth-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    // A real top-level navigation, not a fetch — the browser needs to actually go to the
+    // provider's login page and come back.
+    window.location.href = '/api/auth/' + btn.dataset.oauth + '/start';
+  });
+});
+
+document.getElementById('completeOAuthSubmit').addEventListener('click', async () => {
+  const btn = document.getElementById('completeOAuthSubmit');
+  const errEl = document.getElementById('completeOAuthError');
+  const email = document.getElementById('completeOAuthEmail').value.trim();
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  try {
+    const result = await api('/api/auth/complete-oauth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: pendingOAuthToken, email })
+    });
+    routeForUser(result.user);
+    setView('upload');
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+async function handleOAuthRedirect(){
+  const params = new URLSearchParams(window.location.search);
+  const errorCode = params.get('oauthError');
+  const completeToken = params.get('completeOAuth');
+  if (!errorCode && !completeToken) return false;
+  history.replaceState({}, '', window.location.pathname);
+
+  if (completeToken) {
+    showCompleteOAuth(completeToken);
+    return true;
+  }
+
+  showAuth();
+  const errEl = document.getElementById('authError');
+  errEl.textContent = 'Sign-in did not complete — please try again.';
+  errEl.style.display = 'block';
+  return true;
+}
+
+// --- Share ---
+
+const shareCopy = "I use Ordo7 to catch schedule risks before they blow up my project. Bringing order to operational chaos, one schedule at a time.";
+const shareUrl = 'https://ordo7.pro';
+
+document.getElementById('shareLink').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('sharePopover').classList.toggle('open');
+});
+document.addEventListener('click', () => {
+  document.getElementById('sharePopover').classList.remove('open');
+});
+
+document.getElementById('sharePopover').addEventListener('click', async (e) => {
+  const kind = e.target.closest('button')?.dataset.share;
+  if (!kind) return;
+  e.stopPropagation();
+  const encodedText = encodeURIComponent(shareCopy);
+  const encodedUrl = encodeURIComponent(shareUrl);
+  if (kind === 'x') {
+    window.open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, '_blank', 'noopener,width=550,height=420');
+  } else if (kind === 'linkedin') {
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, '_blank', 'noopener,width=550,height=420');
+  } else if (kind === 'facebook') {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, '_blank', 'noopener,width=550,height=420');
+  } else if (kind === 'copy') {
+    await navigator.clipboard.writeText(shareUrl);
+    const btn = e.target.closest('button');
+    const original = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  }
+  document.getElementById('sharePopover').classList.remove('open');
+});
+
+// --- Refer & earn ---
+
+let referralStatsCache = null;
+
+document.getElementById('referralLink').addEventListener('click', async (e) => {
+  e.stopPropagation();
+  const popover = document.getElementById('referralPopover');
+  popover.classList.toggle('open');
+  if (popover.classList.contains('open') && !referralStatsCache) {
+    try {
+      referralStatsCache = await api('/api/referral');
+      document.getElementById('referralStats').textContent =
+        `${referralStatsCache.referredCount} referred · ${referralStatsCache.creditsEarned} credits earned`;
+    } catch (err) {
+      document.getElementById('referralStats').textContent = 'Could not load your referral stats';
+    }
+  }
+});
+document.addEventListener('click', () => {
+  document.getElementById('referralPopover').classList.remove('open');
+});
+
+document.getElementById('referralPopover').addEventListener('click', async (e) => {
+  const kind = e.target.closest('button')?.dataset.referral;
+  if (!kind || !referralStatsCache) return;
+  e.stopPropagation();
+  const referralUrl = `${shareUrl}/?ref=${encodeURIComponent(referralStatsCache.code)}`;
+  if (kind === 'copy') {
+    await navigator.clipboard.writeText(referralUrl);
+    const btn = e.target.closest('button');
+    const original = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  } else if (kind === 'x') {
+    const text = encodeURIComponent(`I use Ordo7 to catch schedule risks early. Sign up with my link and we both get ${referralStatsCache.bonusPerReferral} bonus AI credits:`);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(referralUrl)}`, '_blank', 'noopener,width=550,height=420');
+  }
+  document.getElementById('referralPopover').classList.remove('open');
+});
+
+// --- Feedback ---
+
+document.getElementById('feedbackLink').addEventListener('click', () => {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('v-feedback').classList.add('active');
+  navButtons.forEach(b => b.classList.remove('active'));
+});
+
+document.getElementById('feedbackSubmit').addEventListener('click', async () => {
+  const btn = document.getElementById('feedbackSubmit');
+  const errEl = document.getElementById('feedbackError');
+  const statusEl = document.getElementById('feedbackStatus');
+  const textarea = document.getElementById('feedbackMessage');
+  errEl.style.display = 'none';
+  statusEl.style.display = 'none';
+  const message = textarea.value.trim();
+  btn.disabled = true;
+  try {
+    await api('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+    textarea.value = '';
+    statusEl.style.display = 'block';
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// --- Billing / pricing ---
+
+function renderPricing(){
+  const errEl = document.getElementById('paywallError');
+  if (errEl) errEl.style.display = 'none';
+  document.querySelectorAll('#v-pricing [data-tier]').forEach(btn => {
+    if (currentUser && currentUser.planTier === btn.dataset.tier) {
+      btn.disabled = true;
+      btn.textContent = 'Current plan';
+    }
+  });
+}
+
+document.querySelectorAll('#v-pricing [data-tier]').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const tier = btn.dataset.tier;
+    const errEl = document.getElementById('paywallError');
+    errEl.style.display = 'none';
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = 'Redirecting to checkout…';
+    try {
+      const { url } = await api('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier })
+      });
+      window.location.href = url;
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
+});
+
+async function startTopup(amountUsd){
+  const errEl = document.getElementById('topupError');
+  errEl.style.display = 'none';
+  try {
+    const { url } = await api('/api/billing/topup/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amountUsd })
+    });
+    window.location.href = url;
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+document.querySelectorAll('.topup-btn[data-amount]').forEach(btn => {
+  btn.addEventListener('click', () => startTopup(Number(btn.dataset.amount)));
+});
+
+document.getElementById('topupCustomBtn').addEventListener('click', () => {
+  const val = Number(document.getElementById('topupCustom').value);
+  const errEl = document.getElementById('topupError');
+  if (!val || val < 10 || val % 10 !== 0) {
+    errEl.textContent = 'Enter an amount of at least $10, in $10 increments.';
+    errEl.style.display = 'block';
+    return;
+  }
+  startTopup(val);
+});
+
+async function handleCheckoutRedirect(){
+  const params = new URLSearchParams(window.location.search);
+  const checkout = params.get('checkout');
+  if (!checkout) return false;
+  history.replaceState({}, '', window.location.pathname);
+  setView('pricing');
+
+  if (checkout === 'cancelled') {
+    document.getElementById('paywallNote').textContent = 'Checkout cancelled — no charge was made.';
+    return true;
+  }
+  if (checkout === 'topup-cancelled') {
+    document.getElementById('topupNote').textContent = 'Purchase cancelled — no charge was made.';
+    return true;
+  }
+  if (checkout === 'success') {
+    const sessionId = params.get('session_id');
+    document.getElementById('paywallNote').textContent = 'Confirming your subscription…';
+    try {
+      const result = await api('/api/billing/verify?session_id=' + encodeURIComponent(sessionId));
+      if (result.user) {
+        currentUser = result.user;
+        updateCreditPill(result.user);
+        renderPricing();
+        document.getElementById('paywallNote').textContent = 'You\'re on the ' + tierLabel(result.user.planTier) + ' plan.';
+      }
+      else { document.getElementById('paywallNote').textContent = 'Payment is still processing — refresh in a moment.'; }
+    } catch (e) {
+      document.getElementById('paywallNote').textContent = 'Could not confirm subscription: ' + e.message;
+    }
+    return true;
+  }
+  if (checkout === 'topup-success') {
+    const sessionId = params.get('session_id');
+    document.getElementById('topupNote').textContent = 'Confirming your purchase…';
+    try {
+      const result = await api('/api/billing/topup/verify?session_id=' + encodeURIComponent(sessionId));
+      if (result.user) {
+        currentUser = result.user;
+        updateCreditPill(result.user);
+        document.getElementById('topupNote').textContent = 'Credits added — new balance: ' + result.user.creditBalance + '.';
+      }
+      else { document.getElementById('topupNote').textContent = 'Payment is still processing — refresh in a moment.'; }
+    } catch (e) {
+      document.getElementById('topupNote').textContent = 'Could not confirm purchase: ' + e.message;
+    }
+    return true;
+  }
+  return false;
+}
+
+async function handleVerifyRedirect(loggedInUser){
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('verify');
+  if (!token) return false;
+  history.replaceState({}, '', window.location.pathname);
+
+  try {
+    const result = await api('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    });
+    if (loggedInUser && result.user && result.user.id === loggedInUser.id) {
+      // Verifying from the same browser session that signed up — unlock the app directly.
+      showApp(result.user);
+    } else {
+      // A different device/browser (e.g. opened from a phone's mail app) — no session to resume,
+      // so send them to log in instead of silently signing anyone in via just the link.
+      showAuth();
+      const notice = document.getElementById('authNotice');
+      notice.textContent = 'Email verified — log in below.';
+      notice.style.display = 'block';
+    }
+  } catch (e) {
+    showAuth();
+    const errEl = document.getElementById('authError');
+    errEl.textContent = 'Could not verify: ' + e.message;
+    errEl.style.display = 'block';
+  }
+  return true;
+}
+
+// Capture a referral code from the URL (e.g. ordo7.pro/?ref=ABC1234) on any page load and hold
+// onto it until signup, since a visitor may browse before creating an account. Never overwrites
+// an existing stored code — first-touch attribution, not last-touch.
+(function captureReferralCode(){
+  const ref = new URLSearchParams(window.location.search).get('ref');
+  if (ref && !localStorage.getItem('ordo7_ref')) localStorage.setItem('ordo7_ref', ref);
+})();
+
+(async function checkAuth(){
+  try {
+    const { user } = await api('/api/auth/me');
+    if (!user) {
+      const handledOAuth = await handleOAuthRedirect();
+      if (handledOAuth) return;
+      const handled = await handleVerifyRedirect(null);
+      if (!handled) showAuth();
+      return;
+    }
+    routeForUser(user);
+    await handleCheckoutRedirect();
+    await handleVerifyRedirect(user);
+  } catch (e) { showAuth(); }
+})();
+
+function scoreColor(score){
+  if (score >= 70) return 'var(--good)';
+  if (score >= 40) return 'var(--warn)';
+  return 'var(--bad)';
+}
+
+function gaugeSvg(score){
+  const r = 58, c = 2 * Math.PI * r;
+  const offset = c * (1 - Math.max(0, Math.min(100, score)) / 100);
+  return '<svg width="150" height="150" viewBox="0 0 150 150">' +
+    '<circle cx="75" cy="75" r="' + r + '" fill="none" stroke="var(--line)" stroke-width="11"/>' +
+    '<circle cx="75" cy="75" r="' + r + '" fill="none" stroke="' + scoreColor(score) + '" stroke-width="11" ' +
+      'stroke-linecap="round" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + offset.toFixed(1) + '" ' +
+      'transform="rotate(-90 75 75)"/>' +
+    '<text x="75" y="72" text-anchor="middle" font-size="34" font-weight="700" fill="var(--ink)">' + score + '</text>' +
+    '<text x="75" y="94" text-anchor="middle" font-size="11" fill="var(--muted)">out of 100</text>' +
+  '</svg>';
+}
+
+function subScoreRow(label, value){
+  const v = value == null ? null : Math.max(0, Math.min(100, value));
+  return '<div class="subscore-row">' +
+    '<div class="subscore-label"><span class="name">' + label + '</span><span class="value">' + (v == null ? '—' : v) + '</span></div>' +
+    '<div class="subscore-track"><div class="subscore-fill" style="width:' + (v ?? 0) + '%; background:' + (v == null ? 'var(--line)' : scoreColor(v)) + ';"></div></div>' +
+  '</div>';
+}
+
+function formatRelativeTime(isoString){
+  const then = new Date(isoString.includes('T') ? isoString : isoString + 'Z').getTime();
+  const diffMs = Date.now() - then;
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return hours + 'h ago';
+  const days = Math.round(hours / 24);
+  return days + 'd ago';
+}
+
+function activityDotColor(message){
+  if (message.startsWith('Resolved')) return 'var(--good)';
+  if (message.startsWith('New critical')) return 'var(--bad)';
+  if (message.startsWith('Acknowledged')) return 'var(--warn)';
+  return 'var(--accent)';
+}
+
+// Free/Starter accounts only — a Pro/Teams subscriber is already a customer, not a lead. Fires
+// on either a low overall score or a low milestone score (a project can look fine in aggregate
+// while its milestones are quietly slipping, which is exactly the kind of risk this should surface).
+function conversionBanner(snapshot){
+  const tier = ((currentUser && currentUser.effectiveTier) || 'free').toLowerCase();
+  if (tier !== 'free' && tier !== 'starter') return '';
+  const lowOverall = snapshot.score < 65;
+  const lowMilestone = snapshot.milestone_health != null && snapshot.milestone_health < 65;
+  if (!lowOverall && !lowMilestone) return '';
+  return '<div class="card" style="border-color:var(--warn); border-width:1.5px; margin-bottom:14px;">' +
+    '<p style="font-weight:600; margin:0 0 4px; color:var(--warn);">Schedule risk detected</p>' +
+    '<p style="font-size:13px; margin:0 0 12px;">This schedule presents critical execution and milestone risks. Book a 15-Minute Schedule Strategy Session.</p>' +
+    '<a class="btn primary" style="text-decoration:none; display:inline-block;" href="mailto:admin@level7data.com?subject=Schedule%20Strategy%20Session%20request">Book Strategy Session</a>' +
+  '</div>';
+}
+
+function renderHealth(snapshot){
+  const el = document.getElementById('healthContent');
+  el.innerHTML =
+    conversionBanner(snapshot) +
+    '<div class="metric-grid">' +
+      '<div class="metric"><div class="lab">Critical</div><div class="val" style="color:var(--bad);">' + snapshot.crit_count + '</div></div>' +
+      '<div class="metric"><div class="lab">At risk</div><div class="val" style="color:var(--warn);">' + snapshot.risk_count + '</div></div>' +
+      '<div class="metric"><div class="lab">Activities</div><div class="val">' + snapshot.total_activities + '</div></div>' +
+    '</div>' +
+    '<div class="dash-grid">' +
+      '<div class="card gauge-card">' +
+        gaugeSvg(snapshot.score) +
+        '<div id="gaugeDelta" class="gauge-delta flat"></div>' +
+        '<div style="width:100%; margin-top:18px; text-align:left;">' +
+          subScoreRow('Logic quality', snapshot.logic_quality) +
+          subScoreRow('Float distribution', snapshot.float_distribution) +
+          subScoreRow('Constraint hygiene', snapshot.constraint_hygiene) +
+          subScoreRow('Milestone hygiene', snapshot.milestone_health) +
+        '</div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<p class="section-title">Live activity feed</p>' +
+        '<ul id="activityFeed" class="activity-feed"><li class="msg" style="color:var(--muted);">Loading…</li></ul>' +
+      '</div>' +
+    '</div>';
+  loadHealthExtras(snapshot);
+}
+
+async function loadHealthExtras(snapshot){
+  if (!currentProject) return;
+  try {
+    const history = await api('/api/projects/' + encodeURIComponent(currentProject) + '/history');
+    const deltaEl = document.getElementById('gaugeDelta');
+    if (deltaEl && history.length > 1) {
+      const prev = history[history.length - 2].score;
+      const diff = snapshot.score - prev;
+      deltaEl.className = 'gauge-delta ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat');
+      deltaEl.textContent = (diff > 0 ? '▲ up ' : diff < 0 ? '▼ down ' : '— unchanged ') + (diff !== 0 ? Math.abs(diff) + ' pts' : '') + ' since last analysis';
+    } else if (deltaEl) {
+      deltaEl.textContent = 'First analysis for this project';
+    }
+  } catch (e) { /* trend delta is a nice-to-have, fail silently */ }
+
+  try {
+    const events = await api('/api/projects/' + encodeURIComponent(currentProject) + '/activity');
+    const feedEl = document.getElementById('activityFeed');
+    if (!feedEl) return;
+    if (!events.length) { feedEl.innerHTML = '<li class="msg" style="color:var(--muted);">No activity yet.</li>'; return; }
+    feedEl.innerHTML = events.map(e =>
+      '<li><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
+      '<span class="when">' + formatRelativeTime(e.timestamp) + '</span></li>'
+    ).join('');
+  } catch (e) {
+    const feedEl = document.getElementById('activityFeed');
+    if (feedEl) feedEl.innerHTML = '<li class="msg error" style="color:var(--bad);">Could not load activity: ' + e.message + '</li>';
+  }
+}
+
+function renderIssues(issues){
+  const el = document.getElementById('issuesContent');
+  if (!issues.length){ el.innerHTML = '<p class="empty">No issues found.</p>'; return; }
+  el.innerHTML = issues.map(i => {
+    const resolved = i.status === 'resolved';
+    return '<div class="issue' + (resolved ? ' resolved' : '') + '"><div><p class="issue-name">' + i.name + '</p><p class="issue-sub">' + i.sub + '</p></div>' +
+    '<div class="issue-right">' +
+      (resolved
+        ? '<span class="badge resolved-badge">resolved</span>'
+        : '<span class="badge ' + (i.severity === 'crit' ? 'crit">critical' : 'risk">at risk') + '</span>' +
+          '<button class="btn tiny no-print" onclick="resolveIssue(' + i.id + ')">Mark resolved</button>') +
+    '</div></div>';
+  }).join('');
+}
+
+async function resolveIssue(issueId){
+  try {
+    await api('/api/issues/' + issueId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'resolved' })
+    });
+    currentIssues = currentIssues.map(i => i.id === issueId ? { ...i, status: 'resolved' } : i);
+    renderIssues(currentIssues);
+  } catch (e) {
+    alert('Could not update issue: ' + e.message);
+  }
+}
+
+function renderReport(projectName, snapshot){
+  const el = document.getElementById('reportContent');
+  // Free/Pro exports carry a diagonal watermark (print-only, see .print-watermark) — Teams is the
+  // one tier that removes it, matching the "Unwatermarked report exports" bullet on that card.
+  const watermark = checkFeatureAccess('unwatermarkedReports') ? '' : '<div class="print-watermark">ORDO7 · UPGRADE TO TEAMS TO REMOVE</div>';
+  el.innerHTML = watermark + '<div class="card">' +
+    '<p style="font-weight:600; margin:0 0 2px;">' + projectName + ' — schedule status</p>' +
+    '<p style="font-size:12px; color:var(--muted); margin:0 0 14px;">Generated ' + new Date().toLocaleDateString() + ' · Ordo7, powered by Level 7</p>' +
+    '<div class="metric-grid">' +
+      '<div class="metric"><div class="lab">Health score</div><div class="val">' + snapshot.score + '</div></div>' +
+      '<div class="metric"><div class="lab">Critical issues</div><div class="val">' + snapshot.crit_count + '</div></div>' +
+      '<div class="metric"><div class="lab">At-risk issues</div><div class="val">' + snapshot.risk_count + '</div></div>' +
+    '</div>' +
+    '<div id="narrativeBox" style="margin:16px 0;"></div>' +
+    '<button class="btn primary no-print" onclick="window.print()">Export as PDF</button>' +
+    '</div>';
+  loadNarrative(snapshot);
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// For safely embedding a string inside a single-quoted inline JS string literal in generated HTML
+// (e.g. onclick="fn('...')") — distinct from escapeHtml, which escapes for HTML text/attributes.
+function jsStringEscape(s){
+  return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+async function loadNarrative(snapshot){
+  const box = document.getElementById('narrativeBox');
+  if (!box) return;
+  if (snapshot.narrative) {
+    box.innerHTML = '<p style="font-size:13px; line-height:1.6; white-space:pre-line;">' + escapeHtml(snapshot.narrative) + '</p>';
+    return;
+  }
+  box.innerHTML = '<button class="btn no-print" id="genNarrativeBtn">Generate AI summary</button>' +
+    '<p id="narrativeStatus" style="font-size:12px; color:var(--muted); margin-top:6px;"></p>';
+  const btn = document.getElementById('genNarrativeBtn');
+  const status = document.getElementById('narrativeStatus');
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    status.textContent = 'Generating…';
+    try {
+      const result = await api('/api/snapshots/' + snapshot.id + '/narrative', { method: 'POST' });
+      snapshot.narrative = result.narrative;
+      if (currentSnapshot && currentSnapshot.id === snapshot.id) currentSnapshot.narrative = result.narrative;
+      if (result.creditBalance != null && currentUser) { currentUser.creditBalance = result.creditBalance; updateCreditPill(currentUser); }
+      box.innerHTML = '<p style="font-size:13px; line-height:1.6; white-space:pre-line;">' + escapeHtml(result.narrative) + '</p>';
+    } catch (e) {
+      status.textContent = 'Could not generate summary: ' + e.message;
+      btn.disabled = false;
+    }
+  });
+}
+
+function appendChatBubble(role, text){
+  const box = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function renderChat(){
+  const empty = document.getElementById('chatEmpty');
+  const wrap = document.getElementById('chatWrap');
+  if (!currentSnapshot) {
+    empty.style.display = '';
+    wrap.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  wrap.style.display = '';
+
+  const box = document.getElementById('chatMessages');
+  box.innerHTML = '';
+  try {
+    const result = await api('/api/snapshots/' + currentSnapshot.id + '/chat');
+    if (!result.messages.length) {
+      box.innerHTML = '<p class="empty" style="padding:10px 0;">Ask anything about this schedule — what\'s driving the score, what to fix first, whatever you need.</p>';
+    } else {
+      result.messages.forEach(m => appendChatBubble(m.role, m.content));
+    }
+  } catch (e) {
+    box.innerHTML = '<p class="error">Could not load chat history: ' + e.message + '</p>';
+  }
+}
+
+async function sendChatMessage(){
+  const input = document.getElementById('chatInput');
+  const errEl = document.getElementById('chatError');
+  const btn = document.getElementById('chatSend');
+  const message = input.value.trim();
+  if (!message || !currentSnapshot) return;
+  errEl.style.display = 'none';
+  input.value = '';
+  btn.disabled = true;
+  input.disabled = true;
+
+  const box = document.getElementById('chatMessages');
+  const emptyHint = box.querySelector('.empty');
+  if (emptyHint) emptyHint.remove();
+  appendChatBubble('user', message);
+
+  try {
+    const result = await api('/api/snapshots/' + currentSnapshot.id + '/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    });
+    appendChatBubble('assistant', result.reply);
+    if (result.creditBalance != null && currentUser) { currentUser.creditBalance = result.creditBalance; updateCreditPill(currentUser); }
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    input.disabled = false;
+    input.focus();
+  }
+}
+
+document.getElementById('chatSend').addEventListener('click', sendChatMessage);
+document.getElementById('chatInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendChatMessage();
+});
+
+async function renderTrends(){
+  const content = document.getElementById('trendsContent');
+  const sel = document.getElementById('trendProjectSelect');
+  let projects;
+  try { projects = await api('/api/projects'); } catch (e) { content.innerHTML = '<p class="error">Could not reach the server: ' + e.message + '</p>'; return; }
+  if (!projects.length){ content.innerHTML = '<p class="empty">Analyze at least one file to start tracking trends.</p>'; sel.innerHTML=''; return; }
+  sel.innerHTML = projects.map(p => '<option value="' + p.name + '">' + p.name + '</option>').join('');
+  const chosen = sel.value || projects[0].name;
+  let history;
+  try { history = await api('/api/projects/' + encodeURIComponent(chosen) + '/history'); } catch (e) { content.innerHTML = '<p class="error">' + e.message + '</p>'; return; }
+  if (!history.length){ content.innerHTML = '<p class="empty">No history yet for this project.</p>'; return; }
+  const w = 200, hpad = 8, n = history.length;
+  const pts = history.map((h,i) => {
+    const x = n === 1 ? w/2 : (i/(n-1)) * (w - 2*hpad) + hpad;
+    const y = 50 - (h.score/100)*40 - 5;
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  const latest = history[history.length-1];
+  content.innerHTML = '<div class="card"><div style="display:flex; justify-content:space-between; margin-bottom:6px;">' +
+    '<span style="font-size:12px; color:var(--muted);">Health score over time</span><span style="font-weight:600;">' + latest.score + '</span></div>' +
+    '<svg class="spark" viewBox="0 0 200 50"><polyline points="' + pts + '" fill="none" stroke="var(--accent)" stroke-width="2"/></svg></div>' +
+    '<p style="font-size:13px; color:var(--muted);">' + n + ' snapshot' + (n===1?'':'s') + ' recorded for ' + chosen + ', stored on the server.</p>';
+  sel.onchange = renderTrends;
+}
+
+const FREE_LEADERBOARD_CAP = 2;
+
+// Loads a previously-analyzed project's latest snapshot into the current workspace — the "Active
+// Projects" sidebar destination is the only way to get back into a project without re-uploading.
+async function openProject(name){
+  try {
+    const result = await api('/api/projects/' + encodeURIComponent(name) + '/latest');
+    currentProject = name;
+    currentSnapshot = result.snapshot;
+    currentIssues = result.issues;
+    currentActivities = result.activities || [];
+    currentHasDates = currentActivities.some(a => a.start);
+    sandboxState = {};
+    renderHealth(currentSnapshot);
+    renderIssues(currentIssues);
+    renderReport(currentProject, currentSnapshot);
+    updateBreadcrumb();
+    renderChat();
+    setView('health');
+  } catch (e) {
+    alert('Could not open project: ' + e.message);
+  }
+}
+
+async function renderActiveProjects(){
+  const el = document.getElementById('projectsContent');
+  let rows;
+  try { rows = await api('/api/projects'); } catch (e) { el.innerHTML = '<p class="error">Could not reach the server: ' + e.message + '</p>'; return; }
+  if (!rows.length){ el.innerHTML = '<p class="empty">No projects yet — upload a schedule to create one.</p>'; return; }
+  el.innerHTML = rows.map(p => {
+    // Nested-context escaping: jsStringEscape makes it safe as a JS string literal, then
+    // escapeHtml makes that result safe as an HTML attribute value (project names are
+    // user-controlled — e.g. a project literally named `"><script>` must not break out).
+    const onclickSafe = escapeHtml(jsStringEscape(p.name));
+    return '<div class="issue" style="cursor:pointer;" onclick="openProject(\'' + onclickSafe + '\')">' +
+      '<div style="font-size:13px; font-weight:500;">' + escapeHtml(p.name) + '</div>' +
+      '<div class="issue-right"><span style="font-size:12px; color:var(--accent);">Open →</span></div>' +
+    '</div>';
+  }).join('');
+}
+
+async function renderActivityFeedTab(){
+  const emptyEl = document.getElementById('activityFeedStandalone-empty');
+  const listEl = document.getElementById('activityFeedStandalone');
+  if (!currentProject) { emptyEl.style.display = ''; listEl.innerHTML = ''; return; }
+  emptyEl.style.display = 'none';
+  listEl.innerHTML = '<li class="msg" style="color:var(--muted);">Loading…</li>';
+  try {
+    const events = await api('/api/projects/' + encodeURIComponent(currentProject) + '/activity');
+    if (!events.length) { listEl.innerHTML = '<li class="msg" style="color:var(--muted);">No activity yet.</li>'; return; }
+    listEl.innerHTML = events.map(e =>
+      '<li><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
+      '<span class="when">' + formatRelativeTime(e.timestamp) + '</span></li>'
+    ).join('');
+  } catch (e) {
+    listEl.innerHTML = '<li class="msg error" style="color:var(--bad);">Could not load activity: ' + e.message + '</li>';
+  }
+}
+
+async function renderPortfolio(){
+  const el = document.getElementById('portfolioContent');
+  let rows;
+  try { rows = await api('/api/portfolio'); } catch (e) { el.innerHTML = '<p class="error">Could not reach the server: ' + e.message + '</p>'; return; }
+  if (!rows.length){ el.innerHTML = '<p class="empty">No projects analyzed yet.</p>'; return; }
+
+  const ranked = rows.slice().sort((a, b) => b.score - a.score);
+  const unrestricted = checkFeatureAccess('unrestrictedLeaderboard');
+  const hiddenCount = unrestricted ? 0 : Math.max(0, ranked.length - FREE_LEADERBOARD_CAP);
+  const visible = unrestricted ? ranked : ranked.slice(0, FREE_LEADERBOARD_CAP);
+
+  let html = visible.map((r, i) =>
+    '<div class="issue"><div style="width:22px; font-size:12px; color:var(--muted); font-weight:600;">#' + (i + 1) + '</div>' +
+    '<div style="width:140px; font-size:13px; font-weight:500;">' + escapeHtml(r.name) + '</div>' +
+    '<div style="flex:1; display:flex; height:10px; border-radius:5px; overflow:hidden; margin:0 12px;">' +
+    '<div style="width:' + r.healthyPct + '%; background:var(--good);"></div>' +
+    '<div style="width:' + r.riskPct + '%; background:var(--warn);"></div>' +
+    '<div style="width:' + r.critPct + '%; background:var(--bad);"></div></div>' +
+    '<div style="font-weight:600; font-size:13px;">' + r.score + '</div></div>'
+  ).join('');
+
+  if (hiddenCount > 0) {
+    html += '<div class="card" style="text-align:center; margin-top:8px;">' +
+      '<p style="font-size:13px; margin:0 0 10px;">' + hiddenCount + ' more project' + (hiddenCount === 1 ? '' : 's') + ' ranked in your portfolio — Free plan shows the top ' + FREE_LEADERBOARD_CAP + '.</p>' +
+      '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to see full leaderboard</button>' +
+      '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+function renderMilestones(){
+  const el = document.getElementById('milestonesContent');
+  if (!currentActivities || !currentActivities.length){
+    el.innerHTML = '<p class="empty">No schedule analyzed yet.</p>';
+    return;
+  }
+  const milestones = currentActivities.filter(a => a.milestone);
+  if (!milestones.length){
+    el.innerHTML = '<p class="empty">No milestones found in this schedule.</p>';
+    return;
+  }
+  // hasPredecessor/hasSuccessor are undefined (not false) on activities from a snapshot analyzed
+  // before this check existed — that reads as "no known logic gap" rather than a false alarm,
+  // matching this app's usual "old data shows as not-applicable, not fabricated" convention.
+  el.innerHTML = milestones.map(m => {
+    const missingLogic = m.hasPredecessor === false || m.hasSuccessor === false;
+    const negativeFloat = m.totalFloatDays != null && m.totalFloatDays < 0;
+    let badges = '';
+    if (missingLogic) badges += '<span class="badge crit">Missing logic anchor</span>';
+    if (negativeFloat) badges += '<span class="badge crit">Negative float</span>';
+    if (!missingLogic && !negativeFloat) badges += '<span class="badge resolved-badge">On track</span>';
+    const when = m.end ? 'Due ' + m.end : (m.dayOffset != null ? 'Day ' + m.dayOffset : 'No date');
+    const floatText = m.totalFloatDays != null ? ' · ' + m.totalFloatDays + 'd float' : '';
+    return '<div class="issue">' +
+      '<div><p class="issue-name">' + escapeHtml(m.name) + '</p><p class="issue-sub">' + when + floatText + '</p></div>' +
+      '<div class="issue-right">' + badges + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderGantt(){
+  const el = document.getElementById('ganttContent');
+  if (!currentActivities || !currentActivities.length){
+    el.innerHTML = '<p class="empty">No schedule analyzed yet.</p>';
+    return;
+  }
+  if (!checkFeatureAccess('ganttTimeline')){
+    el.innerHTML = '<div class="card" style="text-align:center;">' +
+      '<p style="font-size:13px; margin:0 0 10px;">The Gantt timeline is a Pro feature — see the critical path at a glance instead of scanning the issues list.</p>' +
+      '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to unlock the Gantt timeline</button>' +
+      '</div>';
+    return;
+  }
+
+  // Every activity gets a numeric day offset, whether it came from real calendar dates (XER)
+  // or just file order (CSV, which has no dates at all) — this lets the rest of the function
+  // treat both sources the same way. An XER activity with no known start date at all (common
+  // for not-yet-started work with no target/early date in the export) has no offset — it's
+  // listed separately below rather than silently plotted at day 0, which would misrepresent it.
+  let refTime = null;
+  if (currentHasDates) {
+    const dated = currentActivities.filter(a => a.start).map(a => new Date(a.start).getTime());
+    refTime = dated.length ? Math.min(...dated) : null;
+  }
+  const resolved = currentActivities.map(a => {
+    let offset = null;
+    if (currentHasDates) { if (a.start && refTime != null) offset = (new Date(a.start).getTime() - refTime) / 86400000; }
+    else if (a.dayOffset != null) offset = a.dayOffset;
+    return { ...a, offset };
+  });
+  const scheduled = resolved.filter(a => a.offset != null).sort((a, b) => a.offset - b.offset);
+  const unscheduled = resolved.filter(a => a.offset == null);
+
+  const maxEnd = Math.max(1, ...scheduled.map(a => a.offset + a.durationDays));
+
+  const activityLabel = (a) => escapeHtml(a.name) + (a.milestone ? ' (milestone)' : '');
+
+  const rows = scheduled.map(a => {
+    const leftPct = Math.max(0, (a.offset / maxEnd) * 100);
+    const widthPct = Math.max((a.durationDays / maxEnd) * 100, 1);
+    const barColor = a.critical ? 'var(--bad)' : 'var(--accent)';
+    const label = activityLabel(a);
+    const tip = label + ' · ' + a.durationDays + ' day' + (a.durationDays === 1 ? '' : 's') +
+      (a.totalFloatDays != null ? ' · ' + a.totalFloatDays + ' float' : '');
+    return '<div class="gantt-row">' +
+      '<div class="gantt-label" title="' + label + '">' + label + '</div>' +
+      '<div class="gantt-track"><div class="gantt-bar" style="left:' + leftPct + '%; width:' + widthPct + '%; background:' + barColor + ';" title="' + tip + '"></div></div>' +
+    '</div>';
+  }).join('') || '<p class="empty">No activities with a known date to plot.</p>';
+
+  let unscheduledHtml = '';
+  if (unscheduled.length) {
+    unscheduledHtml = '<p class="section-title" style="margin:16px 0 8px;">Not yet scheduled — no start date in file</p>' +
+      unscheduled.map(a => {
+        const label = activityLabel(a);
+        const color = a.critical ? 'var(--bad)' : 'var(--muted)';
+        return '<div class="gantt-row"><div class="gantt-label" title="' + label + '">' + label + '</div>' +
+          '<div style="font-size:12px; color:' + color + ';">' + a.durationDays + ' day' + (a.durationDays === 1 ? '' : 's') +
+          (a.totalFloatDays != null ? ' · ' + a.totalFloatDays + ' float' : '') + '</div></div>';
+      }).join('');
+  }
+
+  const rangeLabel = (currentHasDates && refTime != null)
+    ? 'Timeline: ' + new Date(refTime).toLocaleDateString() + ' → ' + new Date(refTime + maxEnd * 86400000).toLocaleDateString()
+    : 'Relative sequence — this file has no calendar dates (Day 0 → Day ' + Math.round(maxEnd) + ')';
+
+  el.innerHTML =
+    '<div class="row no-print" style="justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px;">' +
+      '<span style="font-size:12px; color:var(--muted);">' + rangeLabel + '</span>' +
+      '<span class="legend" style="margin:0;">' +
+        '<span><span class="dot" style="background:var(--bad);"></span>Critical path / negative float</span>' +
+        '<span><span class="dot" style="background:var(--accent);"></span>Normal float</span>' +
+      '</span>' +
+    '</div>' +
+    '<div class="gantt-scroll">' + rows + '</div>' + unscheduledHtml;
+}
+
+// --- What-If sandbox: tweak an activity's float/duration and see the health score
+// recalculate instantly, entirely client-side — nothing here ever touches the saved snapshot.
+
+// Mirrors scoreFrom() in src/analyze.js — duplicated here since the frontend has no build step
+// to share code with the backend. Keep these two in sync if the scoring formula changes.
+function sandboxScoreFrom(total, nCrit, nRisk) {
+  const score = Math.max(0, Math.round(100 - ((nCrit * 4 + nRisk * 1.5) / Math.max(total, 1)) * 20));
+  const critPct = Math.round((nCrit / Math.max(total, 1)) * 100);
+  const riskPct = Math.max(0, Math.round((nRisk / Math.max(total, 1)) * 100));
+  return { score, critPct, riskPct };
+}
+
+// Mirrors the float/duration-based checks in src/analyze.js (negative float, excessive float,
+// long duration). Missing-logic/out-of-sequence/hard-constraint issues aren't recomputed here —
+// the sandbox only lets you edit float and duration, so those stay part of the fixed baseline.
+function sandboxContribution(floatDays, durationDays) {
+  let crit = 0, risk = 0;
+  if (floatDays != null && floatDays < 0) crit++;
+  if (floatDays != null && floatDays > 44) risk++;
+  if (durationDays != null && durationDays > 44) risk++;
+  return { crit, risk };
+}
+
+function sandboxDomId(code) {
+  return 'sandbox-dot-' + String(code).replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+function sandboxEffectiveValues(a) {
+  const override = sandboxState[a.code] || {};
+  return {
+    floatDays: override.totalFloatDays != null ? override.totalFloatDays : a.totalFloatDays,
+    durationDays: override.durationDays != null ? override.durationDays : a.durationDays
+  };
+}
+
+// Applies the *change* in each activity's contribution (original values vs. sandbox overrides)
+// as a delta on top of the real saved snapshot's counts — so with zero edits this reproduces the
+// real score exactly, and only diverges in response to what the user actually changed.
+function recalcSandboxScore(){
+  const base = currentSnapshot;
+  let critDelta = 0, riskDelta = 0;
+  currentActivities.forEach(a => {
+    const orig = sandboxContribution(a.totalFloatDays, a.durationDays);
+    const eff = sandboxEffectiveValues(a);
+    const cur = sandboxContribution(eff.floatDays, eff.durationDays);
+    critDelta += cur.crit - orig.crit;
+    riskDelta += cur.risk - orig.risk;
+  });
+  const critCount = Math.max(0, base.crit_count + critDelta);
+  const riskCount = Math.max(0, base.risk_count + riskDelta);
+  return { ...sandboxScoreFrom(base.total_activities, critCount, riskCount), critCount, riskCount };
+}
+
+function renderSandboxSummary(){
+  const box = document.getElementById('sandboxSummary');
+  if (!box) return;
+  const sim = recalcSandboxScore();
+  const delta = sim.score - currentSnapshot.score;
+  const deltaClass = delta > 0 ? 'up' : (delta < 0 ? 'down' : 'flat');
+  const deltaText = delta > 0 ? ('+' + delta + ' vs saved score of ' + currentSnapshot.score)
+    : (delta < 0 ? (delta + ' vs saved score of ' + currentSnapshot.score) : 'Same as saved score');
+  box.innerHTML =
+    '<div class="metric-grid">' +
+      '<div class="metric"><div class="lab">Simulated score</div><div class="val">' + sim.score + '</div></div>' +
+      '<div class="metric"><div class="lab">Critical issues</div><div class="val">' + sim.critCount + '</div></div>' +
+      '<div class="metric"><div class="lab">At-risk issues</div><div class="val">' + sim.riskCount + '</div></div>' +
+    '</div>' +
+    '<p class="gauge-delta ' + deltaClass + '" style="margin:8px 0 0;">' + deltaText + '</p>';
+}
+
+function updateSandboxValue(code, field, rawValue){
+  const value = rawValue === '' ? null : parseFloat(rawValue);
+  sandboxState[code] = sandboxState[code] || {};
+  sandboxState[code][field] = (value == null || isNaN(value)) ? null : value;
+
+  const activity = currentActivities.find(a => a.code === code);
+  const dot = document.getElementById(sandboxDomId(code));
+  if (activity && dot) {
+    const eff = sandboxEffectiveValues(activity);
+    dot.style.background = (eff.floatDays != null && eff.floatDays < 0) ? 'var(--bad)' : 'var(--accent)';
+  }
+
+  renderSandboxSummary();
+}
+
+function resetSandbox(){
+  sandboxState = {};
+  renderSandbox();
+}
+
+function renderSandbox(){
+  const el = document.getElementById('sandboxContent');
+  if (!currentActivities || !currentActivities.length){
+    el.innerHTML = '<p class="empty">No schedule analyzed yet.</p>';
+    return;
+  }
+  if (!checkFeatureAccess('sandboxSimulator')){
+    el.innerHTML = '<div class="card" style="text-align:center;">' +
+      '<p style="font-size:13px; margin:0 0 10px;">The What-If sandbox is a Pro feature — tweak float and duration on any activity and watch the health score recalculate instantly, without touching your saved analysis.</p>' +
+      '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to unlock the sandbox</button>' +
+      '</div>';
+    return;
+  }
+
+  const rows = currentActivities.map(a => {
+    const eff = sandboxEffectiveValues(a);
+    const label = escapeHtml(a.name) + (a.milestone ? ' (milestone)' : '');
+    const dotColor = (eff.floatDays != null && eff.floatDays < 0) ? 'var(--bad)' : 'var(--accent)';
+    // jsStringEscape first (JS-string-literal safety), then escapeHtml on the result (HTML-
+    // attribute safety) — the reverse order is exploitable: HTML entities decode back to literal
+    // characters before the browser compiles the event-handler attribute as JS, so a crafted
+    // task_code like x');alert(1);(' from an uploaded file could break out of the string and
+    // execute arbitrary JS when this input fires. escapeHtml(code).replace(...) does NOT protect
+    // against this since escapeHtml already consumed the quotes the JS-escape pass needed to see.
+    const jsCode = escapeHtml(jsStringEscape(a.code));
+    return '<div class="sandbox-row">' +
+      '<span class="dot" id="' + sandboxDomId(a.code) + '" style="background:' + dotColor + ';"></span>' +
+      '<div class="sandbox-label" title="' + label + '">' + label + '</div>' +
+      '<div class="sandbox-field"><label>Float (days)</label><input type="number" step="any" value="' + (eff.floatDays != null ? eff.floatDays : '') + '" oninput="updateSandboxValue(\'' + jsCode + '\', \'totalFloatDays\', this.value)"></div>' +
+      '<div class="sandbox-field"><label>Duration (days)</label><input type="number" step="any" min="0" value="' + (eff.durationDays != null ? eff.durationDays : '') + '" oninput="updateSandboxValue(\'' + jsCode + '\', \'durationDays\', this.value)"></div>' +
+    '</div>';
+  }).join('');
+
+  el.innerHTML =
+    '<div class="card" id="sandboxSummary" style="margin-bottom:14px;"></div>' +
+    '<div class="row no-print" style="justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px;">' +
+      '<p style="font-size:12px; color:var(--muted); margin:0;">Tweak float or duration on any activity below — the score above updates instantly. Nothing here is saved.</p>' +
+      '<button class="btn" onclick="resetSandbox()">Reset to saved</button>' +
+    '</div>' +
+    '<div class="gantt-scroll">' + rows + '</div>';
+
+  renderSandboxSummary();
+}
+
+async function submitAnalysis(projectName, filename, content){
+  document.getElementById('uploadStatus').textContent = 'Analyzing…';
+  try {
+    const result = await api('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project: projectName, filename, content })
+    });
+    currentProject = result.project.name;
+    currentSnapshot = result.snapshot;
+    currentIssues = result.issues;
+    currentActivities = result.activities || [];
+    currentHasDates = !!result.hasDates;
+    sandboxState = {};
+    document.getElementById('uploadStatus').textContent = 'Analyzed ' + result.snapshot.total_activities + ' activities — saved to server.';
+    renderHealth(currentSnapshot);
+    renderIssues(currentIssues);
+    renderReport(currentProject, currentSnapshot);
+    updateBreadcrumb();
+    renderChat();
+    setView('health');
+  } catch (e) {
+    document.getElementById('uploadStatus').textContent = 'Error: ' + e.message;
+  }
+}
+
+document.getElementById('loadSample').addEventListener('click', () => {
+  const sampleXER =
+"%T\tTASK\n%F\ttask_id\ttask_code\ttask_name\ttotal_float_hr_cnt\tremain_drtn_hr_cnt\ttarget_drtn_hr_cnt\tstatus_code\ttask_type\tcstr_type\tact_start_date\tact_end_date\n" +
+"%R\t1\tA1010\tMobilize site\t40\t80\t80\tTK_Complete\tTT_Task\t\t2026-01-05\t2026-01-08\n" +
+"%R\t2\tA1040\tFoundation pour\t0\t120\t120\tTK_Active\tTT_Task\t\t2026-01-09\t\n" +
+"%R\t3\tA1120\tSteel delivery\t-8\t40\t40\tTK_Active\tTT_Task\t\t2026-01-15\t2026-01-16\n" +
+"%R\t4\tA1210\tRoofing\t400\t200\t200\tTK_NotStart\tTT_Task\t\t\t\n" +
+"%R\t5\tA1300\tMEP rough-in\t16\t500\t500\tTK_NotStart\tTT_Task\tCS_MSO\t\t\n" +
+"%R\t6\tA1400\tFinal inspection\t0\t16\t16\tTK_NotStart\tTT_Mile\t\t\t\n" +
+"%T\tTASKPRED\n%F\ttask_pred_id\ttask_id\tpred_task_id\tpred_type\tlag_hr_cnt\n" +
+"%R\t1\t2\t1\tPR_FS\t0\n" +
+"%R\t2\t3\t2\tPR_FS\t0\n";
+  const projectName = document.getElementById('projName').value || 'Sample construction project';
+  submitAnalysis(projectName, 'sample.xer', sampleXER);
+});
+
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    const projectName = document.getElementById('projName').value || file.name;
+    submitAnalysis(projectName, file.name, evt.target.result);
+  };
+  reader.readAsText(file);
+});
+</script>
+</body>
+</html>
