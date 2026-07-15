@@ -100,7 +100,8 @@ db.exec(`
     float_distribution INTEGER,
     constraint_hygiene INTEGER,
     activities_json TEXT,
-    milestone_health INTEGER
+    milestone_health INTEGER,
+    share_token TEXT
   );
 
   CREATE TABLE IF NOT EXISTS issues (
@@ -189,6 +190,9 @@ ensureColumn('snapshots', 'activities_json', 'TEXT');
 // Nullable — a file with zero milestones has nothing to score (see milestoneHealthFrom in
 // analyze.js), same "old snapshots show — instead of a fabricated number" convention as above.
 ensureColumn('snapshots', 'milestone_health', 'INTEGER');
+// Null until a user actually clicks "share" on that snapshot — generated lazily, not at analysis
+// time, so a snapshot nobody ever chose to share has no live public URL sitting around.
+ensureColumn('snapshots', 'share_token', 'TEXT');
 // node:sqlite's ALTER TABLE ADD COLUMN only accepts a literal constant default (not even
 // CURRENT_TIMESTAMP, let alone a function call like datetime('now')) — that restriction doesn't
 // apply to CREATE TABLE, which is why this worked in every fresh database but crashed the moment
@@ -498,6 +502,31 @@ function setSnapshotNarrative(snapshotId, narrative) {
   return getSnapshotById(snapshotId);
 }
 
+// Generated on first share, not at analysis time — a snapshot nobody ever shared has no live
+// public URL. Same random-token-with-collision-check pattern as generateReferralCode() above.
+function getOrCreateShareToken(snapshotId) {
+  const existing = getSnapshotById(snapshotId);
+  if (!existing) return null;
+  if (existing.share_token) return existing.share_token;
+  let token;
+  do {
+    token = crypto.randomBytes(24).toString('hex');
+  } while (db.prepare('SELECT 1 FROM snapshots WHERE share_token = ?').get(token));
+  db.prepare('UPDATE snapshots SET share_token = ? WHERE id = ?').run(token, snapshotId);
+  return token;
+}
+
+// Public (unauthenticated) lookup — joins the project name since the public view has no session
+// to resolve it through, unlike every other snapshot query in this file.
+function getPublicSnapshotByShareToken(token) {
+  return db.prepare(`
+    SELECT s.*, p.name AS project_name
+    FROM snapshots s
+    JOIN projects p ON p.id = s.project_id
+    WHERE s.share_token = ?
+  `).get(token);
+}
+
 function updateIssueStatus(issueId, status) {
   db.prepare("UPDATE issues SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, issueId);
   return db.prepare('SELECT * FROM issues WHERE id = ?').get(issueId);
@@ -556,6 +585,7 @@ module.exports = {
   getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio, getActivityFeed,
   getIssueOwnerUserId, createFeedback,
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
+  getOrCreateShareToken, getPublicSnapshotByShareToken,
   createUser, getUserByEmail, getUserById, setEmailVerified,
   getUserByOAuthAccount, linkOAuthAccount, createOAuthUser,
   createPendingOAuthSignup, consumePendingOAuthSignup,

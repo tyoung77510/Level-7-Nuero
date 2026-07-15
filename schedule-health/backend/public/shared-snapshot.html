@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shared schedule health report — Ordo7</title>
+<style>
+  :root {
+    --ink: #e7ecf2; --paper: #0a0e14; --line: #232b36; --muted: #8b96a5;
+    --card: #121821; --teal: #2dd6c4; --accent: var(--teal);
+    --good: #34d399; --warn: #fbbf24; --bad: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--paper); color: var(--ink); margin: 0; padding: 32px 20px 80px; line-height: 1.6; }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  a { color: var(--accent); }
+  .back { display: inline-block; margin-bottom: 24px; font-size: 13px; color: var(--muted); text-decoration: none; }
+  .brand { font-weight: 800; font-size: 22px; margin: 0 0 4px; }
+  .brand span { color: #f37443; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .metric { background: var(--paper); border-radius: 8px; padding: 12px; text-align: center; }
+  .metric .lab { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .metric .val { font-size: 24px; font-weight: 700; margin-top: 4px; }
+  .score-line { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 6px; margin-left: 6px; }
+  .badge.crit { background: rgba(248,113,113,0.14); color: var(--bad); }
+  .issue-row { border-bottom: 1px solid var(--line); padding: 10px 0; font-size: 13.5px; }
+  .issue-row:last-child { border-bottom: none; }
+  .issue-sub { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
+  .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 30px 0; }
+  .cta { margin-top: 28px; text-align: center; font-size: 13px; color: var(--muted); }
+  .cta a { font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">&larr; ordo7.pro</a>
+  <p class="brand">Ordo<span>7</span></p>
+  <div id="content"><p class="empty">Loading…</p></div>
+  <p class="cta">This is a read-only shared summary — no login required. <a href="/">Analyze your own schedule with Ordo7 →</a></p>
+</div>
+<script>
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+(async function(){
+  const el = document.getElementById('content');
+  const token = location.pathname.split('/shared/')[1];
+  if (!token) { el.innerHTML = '<p class="empty">No share link token found in this URL.</p>'; return; }
+  let data;
+  try {
+    const res = await fetch('/api/public/snapshot/' + encodeURIComponent(token));
+    if (!res.ok) { el.innerHTML = '<p class="empty">This shared link is invalid or has expired.</p>'; return; }
+    data = await res.json();
+  } catch (e) {
+    el.innerHTML = '<p class="error">Could not load this report: ' + escapeHtml(e.message) + '</p>';
+    return;
+  }
+
+  const issuesHtml = data.criticalIssues.length
+    ? data.criticalIssues.map(i =>
+        '<div class="issue-row"><div>' + escapeHtml(i.name) + '<span class="badge crit">Critical</span></div>' +
+        '<p class="issue-sub">' + escapeHtml(i.sub) + '</p></div>'
+      ).join('')
+    : '<p class="empty">No critical issues at this snapshot.</p>';
+
+  el.innerHTML =
+    '<div class="card">' +
+      '<p class="score-line">' + escapeHtml(data.projectName) + ' — schedule health</p>' +
+      '<p style="font-size:12px; color:var(--muted); margin:0 0 14px;">Snapshot generated ' + new Date(data.generatedAt.includes('T') ? data.generatedAt : data.generatedAt + 'Z').toLocaleDateString() + ' · Ordo7, powered by Level 7</p>' +
+      '<div class="metric-grid">' +
+        '<div class="metric"><div class="lab">Health score</div><div class="val">' + data.score + '</div></div>' +
+        '<div class="metric"><div class="lab">Critical issues</div><div class="val" style="color:var(--bad);">' + data.critCount + '</div></div>' +
+        '<div class="metric"><div class="lab">At-risk issues</div><div class="val" style="color:var(--warn);">' + data.riskCount + '</div></div>' +
+      '</div>' +
+      (data.milestoneHealth != null ? '<p style="font-size:12.5px; color:var(--muted); margin:0 0 4px;">Milestone hygiene: <strong style="color:var(--ink);">' + data.milestoneHealth + '</strong></p>' : '') +
+    '</div>' +
+    '<div class="card">' +
+      '<p style="font-weight:600; margin:0 0 10px; font-size:14px;">Critical issues</p>' +
+      issuesHtml +
+    '</div>';
+})();
+</script>
+</body>
+</html>

@@ -547,6 +547,40 @@ route('GET', '/api/projects/:name/latest', async (req, res, params, user) => {
   sendJSON(res, 200, { snapshot, issues, activities });
 });
 
+// Generates (or reuses) a public share link for one snapshot — a real, unauthenticated read-only
+// view, not just a URL copied to the clipboard with nothing behind it. Scoped to that one
+// snapshot's summary only, not the full interactive app.
+route('POST', '/api/snapshots/:id/share', async (req, res, params, user) => {
+  const snapshotId = Number(params.id);
+  const ownerId = store.getSnapshotOwnerUserId(snapshotId);
+  if (ownerId === null) return sendJSON(res, 404, { error: 'No such snapshot' });
+  if (ownerId !== user.id) return sendJSON(res, 403, { error: 'Not your project' });
+  const token = store.getOrCreateShareToken(snapshotId);
+  const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
+  sendJSON(res, 200, { url: `${origin}/shared/${token}` });
+});
+
+// Public counterpart of the above — no session required, no PATCH/mutation surface, just a
+// read-only summary of one snapshot for whoever the link was shared with.
+route('GET', '/api/public/snapshot/:token', async (req, res, params) => {
+  const row = store.getPublicSnapshotByShareToken(params.token);
+  if (!row) return sendJSON(res, 404, { error: 'This shared link is invalid or has expired' });
+  const criticalIssues = store.getIssuesForSnapshot(row.id).filter(i => i.severity === 'crit').slice(0, 10);
+  sendJSON(res, 200, {
+    projectName: row.project_name,
+    generatedAt: row.created_at,
+    score: row.score,
+    healthyPct: row.healthy_pct,
+    riskPct: row.risk_pct,
+    critPct: row.crit_pct,
+    totalActivities: row.total_activities,
+    critCount: row.crit_count,
+    riskCount: row.risk_count,
+    milestoneHealth: row.milestone_health,
+    criticalIssues: criticalIssues.map(i => ({ name: i.name, sub: i.sub }))
+  });
+});
+
 function describeActivityEvent(event) {
   switch (event.type) {
     case 'snapshot':
@@ -750,7 +784,7 @@ const server = http.createServer(async (req, res) => {
     const match = matchRoute(req.method, pathname);
     if (!match) return sendJSON(res, 404, { error: 'No such route' });
 
-    const isPublicRoute = pathname.startsWith('/api/auth/') || pathname === '/api/billing/webhook';
+    const isPublicRoute = pathname.startsWith('/api/auth/') || pathname === '/api/billing/webhook' || pathname.startsWith('/api/public/');
     const cookies = auth.parseCookies(req);
     const user = auth.getUserForToken(cookies.session);
     if (!isPublicRoute && !user) return sendJSON(res, 401, { error: 'Not authenticated' });
@@ -775,6 +809,11 @@ const server = http.createServer(async (req, res) => {
     }
     return;
   }
+
+  // /shared/<token> is a single client-side page — the token is read from location.pathname in
+  // the browser and resolved via GET /api/public/snapshot/:token, so any path under /shared/
+  // serves the same static file regardless of the token segment.
+  if (pathname.startsWith('/shared/')) return serveStatic(req, res, '/shared-snapshot.html');
 
   serveStatic(req, res, pathname);
 });
