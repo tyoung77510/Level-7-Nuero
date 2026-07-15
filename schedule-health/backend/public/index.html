@@ -49,6 +49,13 @@
   .gantt-label { width: 160px; flex: 0 0 auto; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .gantt-track { flex: 1; position: relative; height: 16px; background: var(--line); border-radius: 4px; }
   .gantt-bar { position: absolute; top: 0; height: 100%; border-radius: 4px; min-width: 4px; }
+  .sandbox-row { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); padding: 8px 0; }
+  .sandbox-row:last-child { border-bottom: none; }
+  .sandbox-row .dot { flex: 0 0 auto; }
+  .sandbox-label { flex: 1; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sandbox-field { display: flex; align-items: center; gap: 5px; flex: 0 0 auto; }
+  .sandbox-field label { font-size: 11px; color: var(--muted); }
+  .sandbox-field input { width: 58px; }
   .issue.resolved { opacity: 0.5; }
   .issue-name { font-size: 14px; font-weight: 500; margin: 0; }
   .issue-sub { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
@@ -57,7 +64,7 @@
   .badge.crit { background: rgba(248,113,113,0.14); color: var(--bad); }
   .badge.risk { background: rgba(251,191,36,0.14); color: var(--warn); }
   .badge.resolved-badge { background: rgba(52,211,153,0.14); color: var(--good); }
-  select, input[type=text] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+  select, input[type=text], input[type=number] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
   .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
   .metric { background: var(--paper); border-radius: 8px; padding: 10px; }
   .metric .lab { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
@@ -339,6 +346,7 @@
       <button data-step="health">Health</button>
       <button data-step="issues">Issues</button>
       <button data-step="gantt">Gantt</button>
+      <button data-step="sandbox">Sandbox</button>
       <button data-step="trends">Trends</button>
       <button data-step="portfolio">Portfolio</button>
       <button data-step="report">Report</button>
@@ -472,6 +480,10 @@
       <div id="ganttContent"><p class="empty">No schedule analyzed yet.</p></div>
     </div>
 
+    <div id="v-sandbox" class="view">
+      <div id="sandboxContent"><p class="empty">No schedule analyzed yet.</p></div>
+    </div>
+
     <div id="v-report" class="view">
       <div id="reportContent"><p class="empty">No report yet — analyze a schedule first.</p></div>
     </div>
@@ -520,6 +532,7 @@ function setView(step){
   if (step === 'trends') renderTrends();
   if (step === 'portfolio') renderPortfolio();
   if (step === 'gantt') renderGantt();
+  if (step === 'sandbox') renderSandbox();
   if (step === 'pricing') renderPricing();
   if (step === 'chat') renderChat();
   if (step === 'health' && currentSnapshot) renderHealth(currentSnapshot);
@@ -530,6 +543,7 @@ let currentProject = null;
 let currentSnapshot = null;
 let currentActivities = null;
 let currentHasDates = false;
+let sandboxState = {}; // per-activity float/duration overrides for the What-If sandbox, keyed by activity code
 let currentIssues = [];
 let currentUser = null;
 let pendingOAuthToken = null;
@@ -1430,6 +1444,134 @@ function renderGantt(){
     '<div class="gantt-scroll">' + rows + '</div>' + unscheduledHtml;
 }
 
+// --- What-If sandbox: tweak an activity's float/duration and see the health score
+// recalculate instantly, entirely client-side — nothing here ever touches the saved snapshot.
+
+// Mirrors scoreFrom() in src/analyze.js — duplicated here since the frontend has no build step
+// to share code with the backend. Keep these two in sync if the scoring formula changes.
+function sandboxScoreFrom(total, nCrit, nRisk) {
+  const score = Math.max(0, Math.round(100 - ((nCrit * 4 + nRisk * 1.5) / Math.max(total, 1)) * 20));
+  const critPct = Math.round((nCrit / Math.max(total, 1)) * 100);
+  const riskPct = Math.max(0, Math.round((nRisk / Math.max(total, 1)) * 100));
+  return { score, critPct, riskPct };
+}
+
+// Mirrors the float/duration-based checks in src/analyze.js (negative float, excessive float,
+// long duration). Missing-logic/out-of-sequence/hard-constraint issues aren't recomputed here —
+// the sandbox only lets you edit float and duration, so those stay part of the fixed baseline.
+function sandboxContribution(floatDays, durationDays) {
+  let crit = 0, risk = 0;
+  if (floatDays != null && floatDays < 0) crit++;
+  if (floatDays != null && floatDays > 44) risk++;
+  if (durationDays != null && durationDays > 44) risk++;
+  return { crit, risk };
+}
+
+function sandboxDomId(code) {
+  return 'sandbox-dot-' + String(code).replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+function sandboxEffectiveValues(a) {
+  const override = sandboxState[a.code] || {};
+  return {
+    floatDays: override.totalFloatDays != null ? override.totalFloatDays : a.totalFloatDays,
+    durationDays: override.durationDays != null ? override.durationDays : a.durationDays
+  };
+}
+
+// Applies the *change* in each activity's contribution (original values vs. sandbox overrides)
+// as a delta on top of the real saved snapshot's counts — so with zero edits this reproduces the
+// real score exactly, and only diverges in response to what the user actually changed.
+function recalcSandboxScore(){
+  const base = currentSnapshot;
+  let critDelta = 0, riskDelta = 0;
+  currentActivities.forEach(a => {
+    const orig = sandboxContribution(a.totalFloatDays, a.durationDays);
+    const eff = sandboxEffectiveValues(a);
+    const cur = sandboxContribution(eff.floatDays, eff.durationDays);
+    critDelta += cur.crit - orig.crit;
+    riskDelta += cur.risk - orig.risk;
+  });
+  const critCount = Math.max(0, base.crit_count + critDelta);
+  const riskCount = Math.max(0, base.risk_count + riskDelta);
+  return { ...sandboxScoreFrom(base.total_activities, critCount, riskCount), critCount, riskCount };
+}
+
+function renderSandboxSummary(){
+  const box = document.getElementById('sandboxSummary');
+  if (!box) return;
+  const sim = recalcSandboxScore();
+  const delta = sim.score - currentSnapshot.score;
+  const deltaClass = delta > 0 ? 'up' : (delta < 0 ? 'down' : 'flat');
+  const deltaText = delta > 0 ? ('+' + delta + ' vs saved score of ' + currentSnapshot.score)
+    : (delta < 0 ? (delta + ' vs saved score of ' + currentSnapshot.score) : 'Same as saved score');
+  box.innerHTML =
+    '<div class="metric-grid">' +
+      '<div class="metric"><div class="lab">Simulated score</div><div class="val">' + sim.score + '</div></div>' +
+      '<div class="metric"><div class="lab">Critical issues</div><div class="val">' + sim.critCount + '</div></div>' +
+      '<div class="metric"><div class="lab">At-risk issues</div><div class="val">' + sim.riskCount + '</div></div>' +
+    '</div>' +
+    '<p class="gauge-delta ' + deltaClass + '" style="margin:8px 0 0;">' + deltaText + '</p>';
+}
+
+function updateSandboxValue(code, field, rawValue){
+  const value = rawValue === '' ? null : parseFloat(rawValue);
+  sandboxState[code] = sandboxState[code] || {};
+  sandboxState[code][field] = (value == null || isNaN(value)) ? null : value;
+
+  const activity = currentActivities.find(a => a.code === code);
+  const dot = document.getElementById(sandboxDomId(code));
+  if (activity && dot) {
+    const eff = sandboxEffectiveValues(activity);
+    dot.style.background = (eff.floatDays != null && eff.floatDays < 0) ? 'var(--bad)' : 'var(--accent)';
+  }
+
+  renderSandboxSummary();
+}
+
+function resetSandbox(){
+  sandboxState = {};
+  renderSandbox();
+}
+
+function renderSandbox(){
+  const el = document.getElementById('sandboxContent');
+  if (!currentActivities || !currentActivities.length){
+    el.innerHTML = '<p class="empty">No schedule analyzed yet.</p>';
+    return;
+  }
+  if (!checkFeatureAccess('sandboxSimulator')){
+    el.innerHTML = '<div class="card" style="text-align:center;">' +
+      '<p style="font-size:13px; margin:0 0 10px;">The What-If sandbox is a Pro feature — tweak float and duration on any activity and watch the health score recalculate instantly, without touching your saved analysis.</p>' +
+      '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to unlock the sandbox</button>' +
+      '</div>';
+    return;
+  }
+
+  const rows = currentActivities.map(a => {
+    const eff = sandboxEffectiveValues(a);
+    const label = escapeHtml(a.name) + (a.milestone ? ' (milestone)' : '');
+    const dotColor = (eff.floatDays != null && eff.floatDays < 0) ? 'var(--bad)' : 'var(--accent)';
+    const jsCode = escapeHtml(a.code).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return '<div class="sandbox-row">' +
+      '<span class="dot" id="' + sandboxDomId(a.code) + '" style="background:' + dotColor + ';"></span>' +
+      '<div class="sandbox-label" title="' + label + '">' + label + '</div>' +
+      '<div class="sandbox-field"><label>Float (days)</label><input type="number" step="any" value="' + (eff.floatDays != null ? eff.floatDays : '') + '" oninput="updateSandboxValue(\'' + jsCode + '\', \'totalFloatDays\', this.value)"></div>' +
+      '<div class="sandbox-field"><label>Duration (days)</label><input type="number" step="any" min="0" value="' + (eff.durationDays != null ? eff.durationDays : '') + '" oninput="updateSandboxValue(\'' + jsCode + '\', \'durationDays\', this.value)"></div>' +
+    '</div>';
+  }).join('');
+
+  el.innerHTML =
+    '<div class="card" id="sandboxSummary" style="margin-bottom:14px;"></div>' +
+    '<div class="row no-print" style="justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px;">' +
+      '<p style="font-size:12px; color:var(--muted); margin:0;">Tweak float or duration on any activity below — the score above updates instantly. Nothing here is saved.</p>' +
+      '<button class="btn" onclick="resetSandbox()">Reset to saved</button>' +
+    '</div>' +
+    '<div class="gantt-scroll">' + rows + '</div>';
+
+  renderSandboxSummary();
+}
+
 async function submitAnalysis(projectName, filename, content){
   document.getElementById('uploadStatus').textContent = 'Analyzing…';
   try {
@@ -1443,6 +1585,7 @@ async function submitAnalysis(projectName, filename, content){
     currentIssues = result.issues;
     currentActivities = result.activities || [];
     currentHasDates = !!result.hasDates;
+    sandboxState = {};
     document.getElementById('uploadStatus').textContent = 'Analyzed ' + result.snapshot.total_activities + ' activities — saved to server.';
     renderHealth(currentSnapshot);
     renderIssues(currentIssues);

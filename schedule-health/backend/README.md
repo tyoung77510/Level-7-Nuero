@@ -346,6 +346,23 @@ Sub-scores and the activity feed's issue-resolution timestamps are new columns
 (`snapshots.logic_quality`/`float_distribution`/`constraint_hygiene`, `issues.updated_at`) —
 nullable, so old snapshots from before this existed just show `—` instead of a fabricated number.
 
+### Gantt timeline and What-If sandbox (Pro/Teams)
+
+Both build on the `activities` array now returned alongside every analysis (see API reference) —
+per-activity name, dates, duration, float, and a critical-path flag. The Gantt tab renders it as a
+responsive horizontal bar-chart timeline (no charting library), red for critical-path/negative-
+float rows; XER files with real dates get a calendar-accurate timeline, CSV (no date fields) falls
+back to a sequential relative one, and activities with no resolvable date are listed separately
+rather than plotted at a misleading "day 0".
+
+The Sandbox tab is a pure client-side what-if tool: edit an activity's float or duration and the
+health score recalculates instantly by mirroring the float/duration-based checks from
+`analyze.js`'s scoring formula (`sandboxScoreFrom`/`sandboxContribution` in `index.html`, kept in
+sync with the backend by hand — there's no shared module between frontend and backend here).
+Logic/sequencing/constraint issues aren't recomputed since the sandbox has no lever for them; they
+stay part of the fixed baseline. Nothing in the sandbox is ever sent to the server or persisted —
+"Reset to saved" just clears the in-memory overrides.
+
 ## Tested
 
 Verified working end-to-end during development: XER upload → snapshot + issues saved correctly (matches the browser prototype's DCMA-style checks), CSV upload path, project history endpoint, portfolio rollup, and issue status updates. Auth was verified end-to-end too: signup (including the new name/phone-required validation), login (wrong-password and duplicate-email rejection), logout, and that a second user cannot see or modify a first user's projects or issues (`/api/projects`, `/api/portfolio`, and `PATCH /api/issues/:id` all reject or 403 cross-user access) — tested both via curl and by driving the actual signup/login/upload/logout flow in a real browser.
