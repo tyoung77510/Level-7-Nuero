@@ -1339,14 +1339,27 @@ function renderIssues(issues){
   if (!issues.length){ el.innerHTML = '<p class="empty">No issues found.</p>'; return; }
   el.innerHTML = issues.map(i => {
     const resolved = i.status === 'resolved';
-    return '<div class="issue' + (resolved ? ' resolved' : '') + '"><div><p class="issue-name">' + i.name + '</p><p class="issue-sub">' + i.sub + '</p></div>' +
+    const name = escapeHtml(i.name);
+    const sub = escapeHtml(i.sub);
+    const shareBtn = (!resolved && i.severity === 'crit')
+      ? '<button class="btn tiny no-print" onclick="shareCatch(\'' + escapeHtml(jsStringEscape(i.name)) + '\', \'' + escapeHtml(jsStringEscape(i.sub)) + '\')">🏆 Share This Catch</button>'
+      : '';
+    return '<div class="issue' + (resolved ? ' resolved' : '') + '"><div><p class="issue-name">' + name + '</p><p class="issue-sub">' + sub + '</p></div>' +
     '<div class="issue-right">' +
       (resolved
         ? '<span class="badge resolved-badge">resolved</span>'
         : '<span class="badge ' + (i.severity === 'crit' ? 'crit">critical' : 'risk">at risk') + '</span>' +
+          shareBtn +
           '<button class="btn tiny no-print" onclick="resolveIssue(' + i.id + ')">Mark resolved</button>') +
     '</div></div>';
   }).join('');
+}
+
+function shareCatch(name, sub){
+  const text = 'Ordo7 just scanned our project schedule and isolated a critical logic breach dragging our target milestone completion dates down. Solved the bottleneck in 3 seconds before our executive review.\n\n' +
+    '"' + name + '" — ' + sub + '\n\n' +
+    'Audit your schedule health at https://ordo7.pro';
+  navigator.clipboard.writeText(text).then(() => showToast('Professional catch copied to clipboard! Ready for LinkedIn/Slack.'));
 }
 
 async function resolveIssue(issueId){
@@ -1668,9 +1681,12 @@ function renderMilestones(){
     if (!missingLogic && !negativeFloat) badges += '<span class="badge resolved-badge">On track</span>';
     const when = m.end ? 'Due ' + m.end : (m.dayOffset != null ? 'Day ' + m.dayOffset : 'No date');
     const floatText = m.totalFloatDays != null ? ' · ' + m.totalFloatDays + 'd float' : '';
+    const shareBtn = (missingLogic || negativeFloat)
+      ? '<button class="btn tiny no-print" onclick="shareCatch(\'' + escapeHtml(jsStringEscape(m.name + ' milestone')) + '\', \'' + escapeHtml(jsStringEscape((when + floatText).replace(/^\s*·\s*/, ''))) + '\')">🏆 Share This Catch</button>'
+      : '';
     return '<div class="issue">' +
       '<div><p class="issue-name">' + escapeHtml(m.name) + '</p><p class="issue-sub">' + when + floatText + '</p></div>' +
-      '<div class="issue-right">' + badges + '</div>' +
+      '<div class="issue-right">' + badges + shareBtn + '</div>' +
     '</div>';
   }).join('');
 }
@@ -1809,10 +1825,11 @@ function renderSandboxSummary(){
   const box = document.getElementById('sandboxSummary');
   if (!box) return;
   const sim = recalcSandboxScore();
-  const delta = sim.score - currentSnapshot.score;
+  const baseline = currentSnapshot.score;
+  const delta = sim.score - baseline;
   const deltaClass = delta > 0 ? 'up' : (delta < 0 ? 'down' : 'flat');
-  const deltaText = delta > 0 ? ('+' + delta + ' vs saved score of ' + currentSnapshot.score)
-    : (delta < 0 ? (delta + ' vs saved score of ' + currentSnapshot.score) : 'Same as saved score');
+  const deltaText = delta > 0 ? ('+' + delta + ' vs saved score of ' + baseline)
+    : (delta < 0 ? (delta + ' vs saved score of ' + baseline) : 'Same as saved score');
   box.innerHTML =
     '<div class="metric-grid">' +
       '<div class="metric"><div class="lab">Simulated score</div><div class="val">' + sim.score + '</div></div>' +
@@ -1820,6 +1837,7 @@ function renderSandboxSummary(){
       '<div class="metric"><div class="lab">At-risk issues</div><div class="val">' + sim.riskCount + '</div></div>' +
     '</div>' +
     '<p class="gauge-delta ' + deltaClass + '" style="margin:8px 0 0;">' + deltaText + '</p>';
+  renderSandboxCelebration(baseline, sim);
 }
 
 function updateSandboxValue(code, field, rawValue){
@@ -1881,9 +1899,32 @@ function renderSandbox(){
       '<p style="font-size:12px; color:var(--muted); margin:0;">Tweak float or duration on any activity below — the score above updates instantly. Nothing here is saved.</p>' +
       '<button class="btn" onclick="resetSandbox()">Reset to saved</button>' +
     '</div>' +
-    '<div class="gantt-scroll">' + rows + '</div>';
+    '<div class="gantt-scroll">' + rows + '</div>' +
+    '<div id="sandboxCelebration"></div>';
 
   renderSandboxSummary();
+}
+
+// Fires when a sandbox recovery scenario crosses +15 points into the green zone (80-100) — checked
+// on every recalculation, not just once, so it disappears again if the user edits their way back out.
+function renderSandboxCelebration(baseline, sim){
+  const box = document.getElementById('sandboxCelebration');
+  if (!box) return;
+  const qualifies = (sim.score - baseline) > 15 && sim.score >= 80 && sim.score <= 100;
+  box.innerHTML = qualifies
+    ? '<div class="card no-print" style="margin-top:14px; text-align:center; border-color:var(--good);">' +
+        '<p style="font-weight:600; margin:0 0 10px; color:var(--good);">🚀 Recovery scenario found — DCMA compliant range</p>' +
+        '<button class="btn primary" onclick="shareBeforeAfter(' + baseline + ', ' + sim.score + ')">🚀 Share Before &amp; After</button>' +
+      '</div>'
+    : '';
+}
+
+function shareBeforeAfter(originalScore, newScore){
+  const text = 'Project Schedule Health Optimization Complete via Ordo7:\n' +
+    '• Initial Baseline Health: ' + originalScore + ' (Logic Risks Flagged)\n' +
+    '• Current Optimized Health: ' + newScore + ' (DCMA Compliant)\n\n' +
+    'Tested our re-sequencing scenarios inside the sandbox before committing. Streamline your project controls at https://ordo7.pro';
+  navigator.clipboard.writeText(text).then(() => showToast('Optimization summary copied to clipboard! Ready for LinkedIn/Slack.'));
 }
 
 async function submitAnalysis(projectName, filename, content){
