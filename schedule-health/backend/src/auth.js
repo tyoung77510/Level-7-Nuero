@@ -86,8 +86,29 @@ function clearCookie(req) {
   return cookie;
 }
 
+// Short-lived cookie holding the OAuth CSRF state (and, for providers requiring PKCE, the code
+// verifier) across the redirect round-trip to the provider and back. SameSite=Lax rather than
+// Strict because it must still be sent on the top-level GET the provider redirects back with —
+// Strict would drop it on that cross-site navigation and break every provider's callback.
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes — long enough for a human to complete login
+
+function oauthStateCookie(payload, req) {
+  const value = encodeURIComponent(JSON.stringify(payload));
+  let cookie = `oauth_state=${value}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${OAUTH_STATE_TTL_MS / 1000}`;
+  if (isSecureRequest(req)) cookie += '; Secure';
+  return cookie;
+}
+
+function clearOAuthStateCookie(req) {
+  let cookie = 'oauth_state=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0';
+  if (isSecureRequest(req)) cookie += '; Secure';
+  return cookie;
+}
+
 module.exports = {
   hashPassword, verifyPassword, createSession, getUserForToken,
   createVerificationToken, verifyEmailToken,
-  parseCookies, sessionCookie, clearCookie, EMAIL_RE, SESSION_TTL_MS, VERIFICATION_TTL_MS
+  parseCookies, sessionCookie, clearCookie,
+  oauthStateCookie, clearOAuthStateCookie,
+  EMAIL_RE, SESSION_TTL_MS, VERIFICATION_TTL_MS
 };

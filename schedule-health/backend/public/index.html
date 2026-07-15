@@ -143,6 +143,7 @@
   }
   .share-popover button:hover { background: var(--paper); }
   .share-icon { width: 16px; height: 16px; flex-shrink: 0; }
+  .oauth-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 10px 16px; border-radius: 8px; font-size: 13px; }
   .tier-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: stretch; }
   .tier-card { display: flex; flex-direction: column; position: relative; padding-top: 30px; }
   .tier-card-popular { border-color: var(--accent); box-shadow: 0 4px 16px rgba(45,214,196,0.14); }
@@ -245,6 +246,13 @@
   <div id="authScreen" class="auth-box">
     <div class="card">
       <h2 id="authTitle" style="margin:0; font-size:16px;">Log in</h2>
+      <div id="oauthButtons" style="display:none; flex-direction:column; gap:8px;">
+        <button class="btn oauth-btn" data-oauth="google" style="display:none;"><svg class="share-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.66-.22-2.45H12v4.63h6.47c-.28 1.5-1.13 2.77-2.4 3.62v3h3.88c2.27-2.09 3.57-5.17 3.57-8.8z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.95-2.9l-3.88-3c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11C3.25 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75z"/></svg> Continue with Google</button>
+        <button class="btn oauth-btn" data-oauth="linkedin" style="display:none;"><svg class="share-icon" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.446-2.136 2.94v5.666h-3.554V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.119 20.452H3.555V9h3.564zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0z"/></svg> Continue with LinkedIn</button>
+        <button class="btn oauth-btn" data-oauth="facebook" style="display:none;"><svg class="share-icon" viewBox="0 0 24 24" fill="#1877F2"><path d="M22.675 0h-21.35C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24h11.495v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.114c.73 0 1.323-.593 1.323-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg> Continue with Facebook</button>
+        <button class="btn oauth-btn" data-oauth="x" style="display:none;"><svg class="share-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg> Continue with X</button>
+      </div>
+      <div id="oauthDivider" style="display:none; text-align:center; color:var(--muted); font-size:11px; margin:2px 0;">or</div>
       <input type="text" id="authName" placeholder="Full name" autocomplete="name" style="display:none;">
       <input type="email" id="authEmail" placeholder="Email" autocomplete="username">
       <input type="tel" id="authPhone" placeholder="Phone" autocomplete="tel" style="display:none;">
@@ -253,6 +261,16 @@
       <p id="authError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
       <p id="authNotice" style="display:none; padding:6px 0 0; font-size:12px; color:var(--good); text-align:center;"></p>
       <p class="auth-toggle"><span id="authToggleText">Don't have an account?</span> <a id="authToggleLink">Sign up</a></p>
+    </div>
+  </div>
+
+  <div id="completeOAuthScreen" class="auth-box" style="display:none;">
+    <div class="card">
+      <h2 style="margin:0 0 2px; font-size:16px;">Almost done</h2>
+      <p style="font-size:13px; color:var(--muted); margin:0;">X doesn't share an email address with apps — enter yours to finish setting up your account.</p>
+      <input type="email" id="completeOAuthEmail" placeholder="Email" autocomplete="email">
+      <button class="btn primary" id="completeOAuthSubmit">Finish signing up</button>
+      <p id="completeOAuthError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
     </div>
   </div>
 
@@ -477,6 +495,7 @@ let currentProject = null;
 let currentSnapshot = null;
 let currentIssues = [];
 let currentUser = null;
+let pendingOAuthToken = null;
 
 async function api(path, options){
   const res = await fetch(API + path, options);
@@ -499,6 +518,16 @@ function showAuth(){
   currentUser = null;
   document.body.classList.add('auth-mode');
   document.getElementById('authScreen').style.display = '';
+  document.getElementById('completeOAuthScreen').style.display = 'none';
+  document.getElementById('verifyScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'none';
+}
+
+function showCompleteOAuth(token){
+  pendingOAuthToken = token;
+  document.body.classList.add('auth-mode');
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('completeOAuthScreen').style.display = '';
   document.getElementById('verifyScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'none';
 }
@@ -507,6 +536,7 @@ function showVerify(user){
   currentUser = user;
   document.body.classList.add('auth-mode');
   document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('completeOAuthScreen').style.display = 'none';
   document.getElementById('verifyScreen').style.display = '';
   document.getElementById('appScreen').style.display = 'none';
   document.getElementById('verifyEmailAddr').textContent = user.email;
@@ -516,6 +546,7 @@ function showApp(user){
   currentUser = user;
   document.body.classList.remove('auth-mode');
   document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('completeOAuthScreen').style.display = 'none';
   document.getElementById('verifyScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = '';
   document.getElementById('userEmail').textContent = user.email;
@@ -601,6 +632,76 @@ document.getElementById('resendVerification').addEventListener('click', async ()
     btn.disabled = false;
   }
 });
+
+// --- Social sign-in ---
+
+(async function loadOAuthProviders(){
+  try {
+    const providers = await api('/api/auth/oauth-providers');
+    let anyEnabled = false;
+    document.querySelectorAll('.oauth-btn').forEach(btn => {
+      if (providers[btn.dataset.oauth]) {
+        btn.style.display = '';
+        anyEnabled = true;
+      }
+    });
+    if (anyEnabled) {
+      document.getElementById('oauthButtons').style.display = 'flex';
+      document.getElementById('oauthDivider').style.display = 'block';
+    }
+  } catch (e) {
+    // If this fails, the social buttons just stay hidden — email/password signup still works.
+  }
+})();
+
+document.querySelectorAll('.oauth-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    // A real top-level navigation, not a fetch — the browser needs to actually go to the
+    // provider's login page and come back.
+    window.location.href = '/api/auth/' + btn.dataset.oauth + '/start';
+  });
+});
+
+document.getElementById('completeOAuthSubmit').addEventListener('click', async () => {
+  const btn = document.getElementById('completeOAuthSubmit');
+  const errEl = document.getElementById('completeOAuthError');
+  const email = document.getElementById('completeOAuthEmail').value.trim();
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  try {
+    const result = await api('/api/auth/complete-oauth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: pendingOAuthToken, email })
+    });
+    routeForUser(result.user);
+    setView('upload');
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+async function handleOAuthRedirect(){
+  const params = new URLSearchParams(window.location.search);
+  const errorCode = params.get('oauthError');
+  const completeToken = params.get('completeOAuth');
+  if (!errorCode && !completeToken) return false;
+  history.replaceState({}, '', window.location.pathname);
+
+  if (completeToken) {
+    showCompleteOAuth(completeToken);
+    return true;
+  }
+
+  showAuth();
+  const errEl = document.getElementById('authError');
+  errEl.textContent = 'Sign-in did not complete — please try again.';
+  errEl.style.display = 'block';
+  return true;
+}
 
 // --- Share ---
 
@@ -873,6 +974,8 @@ async function handleVerifyRedirect(loggedInUser){
   try {
     const { user } = await api('/api/auth/me');
     if (!user) {
+      const handledOAuth = await handleOAuthRedirect();
+      if (handledOAuth) return;
       const handled = await handleVerifyRedirect(null);
       if (!handled) showAuth();
       return;

@@ -64,6 +64,33 @@ Every project belongs to the user who created it. All `/api/*` routes except
 | `POST` | `/api/auth/verify` | `{token}` — consumes a verification token (single-use) and marks the account verified. Works without an active session, since the link may be opened on a different device than the one that signed up |
 | `POST` | `/api/auth/resend-verification` | Requires an active session; re-sends the verification email for the logged-in (but not yet verified) account. 503 if verification isn't configured |
 
+### Social sign-in (OAuth)
+
+"Continue with Google / LinkedIn / Facebook / X" — hand-rolled OAuth 2.0 authorization-code flow
+(`src/oauth.js`), no auth library dependency. Each provider only appears on the login screen once
+its credentials are set; with none configured, the app behaves exactly as before (email/password
+only) — same graceful-degradation pattern as the rest of this app's integrations.
+
+**Env vars** (see `.env.example`): `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`,
+`LINKEDIN_CLIENT_ID`/`LINKEDIN_CLIENT_SECRET`, `FACEBOOK_CLIENT_ID`/`FACEBOOK_CLIENT_SECRET`,
+`X_CLIENT_ID`/`X_CLIENT_SECRET`. Each provider's redirect URI must be registered on that
+provider's app-settings page as `https://yourdomain/api/auth/{provider}/callback`.
+
+**Routes:**
+
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/api/auth/oauth-providers` | Returns `{google, linkedin, facebook, x}` booleans — which providers have credentials configured, so the frontend only shows working buttons |
+| `GET` | `/api/auth/:provider/start` | Redirects the browser to the provider's login page. Sets a short-lived (`10 min`), `HttpOnly` state cookie for CSRF protection across the round trip; X additionally gets a PKCE code verifier in that cookie (X requires PKCE even for confidential clients — the others don't require it but ignore it harmlessly) |
+| `GET` | `/api/auth/:provider/callback` | Where the provider redirects back to. Validates state, exchanges the code for an access token, fetches the profile, then: logs in directly if this provider was already linked; links the provider to an existing account if the (provider-verified) email matches one; creates a new account otherwise; or, if the provider didn't return an email (X), redirects to `/?completeOAuth=TOKEN` for one more step |
+| `POST` | `/api/auth/complete-oauth` | `{token, email}` — finishes account creation for a provider that didn't supply an email. This email is user-typed, not provider-verified, so it's **never** auto-linked to an existing account (that would let anyone claim someone else's account by typing their email) — a match returns `409`, same as normal signup's duplicate-email check |
+
+Account linking is by email, and only ever automatic when the email came from the provider's own
+authenticated API response (Google/LinkedIn/Facebook) — never from a value the user typed in a
+form. Signing up with Google using the same email as an existing password-based account links
+the two rather than creating a duplicate; signing in again via the same provider reuses the
+existing linked account.
+
 ### Email verification
 
 Enforced only once `KNOCK_VERIFICATION_WORKFLOW_KEY` is set (see `.env.example`) — same
@@ -353,5 +380,7 @@ The feedback feature (`POST /api/feedback`) was verified locally end-to-end — 
 **Email verification.** Both configuration states were tested end-to-end: with `KNOCK_VERIFICATION_WORKFLOW_KEY` unset, a fresh signup gets `emailVerified: true` immediately and full access, confirming local dev stays frictionless. With it set, a fresh signup gets `emailVerified: false`, and every core route correctly returns `403 {code: "EMAIL_NOT_VERIFIED"}` while `/api/auth/me` still works. The real token generated at signup was pulled from the database and POSTed to `/api/auth/verify`, which correctly flipped the account to verified and unblocked access — and a second attempt with the same (now-consumed) token correctly failed with "invalid or expired," confirming single-use enforcement. Both post-verification UX paths were screenshotted: clicking the link in the same browser session that signed up unlocks the app directly; clicking it from a fresh browser (simulating a different device) correctly shows a "verify your email" screen. The `?verify=TOKEN` link handling in the frontend routes each case correctly. The migration's `DEFAULT 1` behavior was independently re-confirmed for this feature specifically (a hand-built database simulating a real pre-existing account came back `email_verified: 1`, not `0`) — critical since this app has real users on a live deployment, and a `DEFAULT 0` here would have retroactively locked all of them out.
 
 **Dark theme and health dashboard.** Sub-score math was verified directly against a hand-built schedule with known issues in each category: 5 missing-logic issues across 5 activities correctly produced `logic_quality: 0`, 2 float issues (1 negative, 1 excessive) out of 5 produced `float_distribution: 60`, and 2 constraint-hygiene issues (1 hard constraint, 1 long duration) produced `constraint_hygiene: 60` — matching the `100 - (issueCount/total)*100` formula by hand. The activity feed endpoint was tested via curl before and after resolving an issue: the resolution event correctly appeared at the top of the feed (most recent), and the resolved issue correctly dropped out of the "new critical issue" list. The full dashboard — gauge, sub-score bars, metric cards, activity feed with relative timestamps — was screenshotted end-to-end in a real browser, including the trend-delta indicator correctly showing "unchanged since last analysis" when re-analyzing identical data. Every other view (Issues, Report, Trends, Portfolio, Plan, Ask Ordo, auth/verify screens) was re-screenshotted after the theme conversion to confirm no leftover light-theme colors; the one exception (`@media print`) was independently confirmed to force light colors regardless of the on-screen theme.
+
+**Social sign-in (OAuth).** Every provider's request construction was verified against a mocked `fetch` before any real credentials existed: correct authorization-URL parameters and scopes for all four providers, PKCE `code_challenge`/`code_challenge_method` present only for X, the right token-exchange shape per provider (Google/LinkedIn as a POST body, Facebook as GET query params, X via HTTP Basic auth instead of a body secret), and correct profile parsing for each provider's real response shape (including X's nested `data.data.id`). Once real Google credentials were available, the full `start` → provider redirect → `callback` round trip was driven end-to-end against the actual running server (mocking only the outbound calls to Google, not any of this app's own code): a state-cookie mismatch is correctly rejected before any token exchange happens, a first-time sign-in creates a new account with the free-tier signup credits, and signing in again via the same provider reuses the existing linked account rather than creating a duplicate (verified by asserting the user count doesn't change). X's no-email path was verified separately end-to-end, including in a real browser via Playwright: the callback correctly detects the missing email and redirects to the "finish signing up" screen, submitting a fresh email creates the account and lands in the logged-in app state, and — the important security case — submitting an email that already belongs to another account is rejected with `409` rather than silently linking the sign-in to that account, since a self-typed email (unlike an email from Google/LinkedIn/Facebook's authenticated API) carries no proof of ownership.
 
 Not yet covered by an automated test suite — that's a reasonable next addition.

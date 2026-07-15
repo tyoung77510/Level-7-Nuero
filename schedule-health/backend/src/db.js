@@ -44,6 +44,31 @@ db.exec(`
     expires_at TEXT NOT NULL
   );
 
+  -- One row per linked social account. A user can link more than one provider to the same
+  -- account (matched by email at link time), so this is a separate table rather than columns
+  -- bolted onto users — avoids a users table with google_id/linkedin_id/facebook_id/x_id all
+  -- nullable and mostly empty.
+  CREATE TABLE IF NOT EXISTS oauth_accounts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    provider TEXT NOT NULL,
+    provider_user_id TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(provider, provider_user_id)
+  );
+
+  -- Holds a provider profile for the brief window between "signed in with a provider that
+  -- doesn't give us an email" (X, currently) and the user typing one in on the "finish signing
+  -- up" screen. Single-use, short expiry — same lifecycle as verification_tokens.
+  CREATE TABLE IF NOT EXISTS pending_oauth_signups (
+    token TEXT PRIMARY KEY,
+    provider TEXT NOT NULL,
+    provider_user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS projects (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id),
@@ -194,6 +219,43 @@ function createUser(name, email, phone, passwordHash, passwordSalt, signupCredit
 
 function getUserByReferralCode(code) {
   return db.prepare('SELECT * FROM users WHERE referral_code = ?').get(code);
+}
+
+// Social sign-in. A user signing in via a provider we've never seen before, on an account whose
+// email already exists, gets that provider linked to their existing account rather than a
+// duplicate — email is the anchor identity across password and social login.
+function getUserByOAuthAccount(provider, providerUserId) {
+  const row = db.prepare('SELECT user_id FROM oauth_accounts WHERE provider = ? AND provider_user_id = ?').get(provider, providerUserId);
+  return row ? getUserById(row.user_id) : null;
+}
+
+function linkOAuthAccount(userId, provider, providerUserId) {
+  db.prepare('INSERT OR IGNORE INTO oauth_accounts (user_id, provider, provider_user_id) VALUES (?, ?, ?)').run(userId, provider, providerUserId);
+}
+
+// OAuth-only signups still need password_hash/password_salt (NOT NULL columns) satisfied — a
+// random, never-revealed value does that without letting anyone log in with a "guessed" empty
+// password, and without a schema change to make those columns nullable.
+function createOAuthUser(name, email, signupCredits, emailVerified, referredBy) {
+  const random = crypto.randomBytes(32).toString('hex');
+  return createUser(name, email, null, random, random, signupCredits, emailVerified, referredBy);
+}
+
+function createPendingOAuthSignup(provider, providerUserId, name, expiresAt) {
+  const token = crypto.randomBytes(24).toString('hex');
+  db.prepare('INSERT INTO pending_oauth_signups (token, provider, provider_user_id, name, expires_at) VALUES (?, ?, ?, ?, ?)')
+    .run(token, provider, providerUserId, name, expiresAt);
+  return token;
+}
+
+// Single-use like verifyEmailToken — consumed whether or not it's expired, so a leaked token
+// can't be replayed.
+function consumePendingOAuthSignup(token) {
+  const row = db.prepare('SELECT * FROM pending_oauth_signups WHERE token = ?').get(token);
+  if (!row) return null;
+  db.prepare('DELETE FROM pending_oauth_signups WHERE token = ?').run(token);
+  if (new Date(row.expires_at).getTime() < Date.now()) return null;
+  return row;
 }
 
 function getReferralStats(userId) {
@@ -454,6 +516,8 @@ module.exports = {
   getIssueOwnerUserId, createFeedback,
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
   createUser, getUserByEmail, getUserById, setEmailVerified,
+  getUserByOAuthAccount, linkOAuthAccount, createOAuthUser,
+  createPendingOAuthSignup, consumePendingOAuthSignup,
   getUserByReferralCode, getReferralStats,
   getUserByStripeCustomerId, getUserByStripeSubscriptionId, setStripeCustomerId, setSubscriptionStatus,
   setUserTier, deductCredits, addCredits, logAiUsage,

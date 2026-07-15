@@ -33,6 +33,7 @@ const billing = require('./billing');
 const knock = require('./knock');
 const ai = require('./ai');
 const pricing = require('./pricing');
+const oauth = require('./oauth');
 
 store.deleteExpiredSessions();
 
@@ -47,6 +48,13 @@ function sendJSON(res, status, data) {
     'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS'
   });
   res.end(body);
+}
+
+function sendRedirect(res, location, cookies) {
+  const headers = { Location: location };
+  if (cookies && cookies.length) headers['Set-Cookie'] = cookies;
+  res.writeHead(302, headers);
+  res.end();
 }
 
 function readBody(req) {
@@ -177,6 +185,111 @@ route('GET', '/api/referral', async (req, res, params, user) => {
     creditsEarned: stats.referredCount * pricing.REFERRAL_BONUS_CREDITS,
     bonusPerReferral: pricing.REFERRAL_BONUS_CREDITS
   });
+});
+
+route('GET', '/api/auth/oauth-providers', async (req, res) => {
+  const providers = {};
+  for (const key of Object.keys(oauth.PROVIDERS)) providers[key] = oauth.credentialsConfigured(key);
+  sendJSON(res, 200, providers);
+});
+
+route('GET', '/api/auth/:provider/start', async (req, res, params) => {
+  const providerKey = params.provider;
+  if (!oauth.PROVIDERS[providerKey]) return sendJSON(res, 404, { error: 'Unknown provider' });
+  if (!oauth.credentialsConfigured(providerKey)) return sendJSON(res, 503, { error: `${providerKey} sign-in is not configured yet` });
+
+  const state = oauth.generateState();
+  const pkce = oauth.PROVIDERS[providerKey].usesPkce ? oauth.generatePkce() : null;
+  const authUrl = oauth.buildAuthUrl(providerKey, req, state, pkce);
+  const stateCookie = auth.oauthStateCookie({ state, verifier: pkce ? pkce.verifier : undefined, provider: providerKey }, req);
+  sendRedirect(res, authUrl, [stateCookie]);
+});
+
+route('GET', '/api/auth/:provider/callback', async (req, res, params) => {
+  const providerKey = params.provider;
+  const clearState = auth.clearOAuthStateCookie(req);
+  if (!oauth.PROVIDERS[providerKey]) return sendJSON(res, 404, { error: 'Unknown provider' });
+
+  const parsed = url.parse(req.url, true);
+  const { code, state, error } = parsed.query;
+  if (error) return sendRedirect(res, '/?oauthError=' + encodeURIComponent(String(error)), [clearState]);
+  if (!code || !state) return sendRedirect(res, '/?oauthError=missing_code', [clearState]);
+
+  const cookies = auth.parseCookies(req);
+  let savedState;
+  try { savedState = JSON.parse(cookies.oauth_state || '{}'); } catch (e) { savedState = {}; }
+  if (!savedState.state || savedState.state !== state || savedState.provider !== providerKey) {
+    return sendRedirect(res, '/?oauthError=state_mismatch', [clearState]);
+  }
+
+  try {
+    const accessToken = await oauth.exchangeCode(providerKey, code, req, savedState.verifier);
+    const profile = await oauth.fetchProfile(providerKey, accessToken);
+
+    // Already linked from a previous sign-in — log straight in.
+    let user = store.getUserByOAuthAccount(providerKey, profile.id);
+
+    if (!user && profile.email) {
+      // profile.email came from the provider's own authenticated API (not typed by the user), so
+      // it's safe to treat as verified and link to a matching existing account automatically.
+      user = store.getUserByEmail(profile.email);
+      if (user) {
+        store.linkOAuthAccount(user.id, providerKey, profile.id);
+      } else {
+        user = store.createOAuthUser(profile.name, profile.email, pricing.FREE_SIGNUP_CREDITS, profile.emailVerified, null);
+        store.linkOAuthAccount(user.id, providerKey, profile.id);
+        knock.identifyUser(user).catch(() => {});
+      }
+    }
+
+    if (!user) {
+      // Provider didn't return an email (X, currently) — can't create an account without one.
+      // Stash the profile briefly and send them to a "finish signing up" step in the frontend.
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      const pendingToken = store.createPendingOAuthSignup(providerKey, profile.id, profile.name, expiresAt);
+      return sendRedirect(res, `/?completeOAuth=${pendingToken}`, [clearState]);
+    }
+
+    const { token } = auth.createSession(user.id);
+    const sessCookie = auth.sessionCookie(token, req, auth.SESSION_TTL_MS / 1000);
+    sendRedirect(res, '/', [clearState, sessCookie]);
+  } catch (e) {
+    console.error(`[oauth] ${providerKey} callback failed:`, e.message);
+    sendRedirect(res, '/?oauthError=login_failed', [clearState]);
+  }
+});
+
+route('POST', '/api/auth/complete-oauth', async (req, res) => {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const token = String(payload.token || '');
+  const email = String(payload.email || '').trim().toLowerCase();
+  if (!token) return sendJSON(res, 400, { error: 'Missing signup token' });
+  if (!auth.EMAIL_RE.test(email)) return sendJSON(res, 400, { error: 'Enter a valid email address' });
+
+  const pending = store.consumePendingOAuthSignup(token);
+  if (!pending) return sendJSON(res, 400, { error: 'This signup link is invalid or has expired — please try signing in again' });
+
+  // Unlike the provider-verified email in the callback route above, this email was typed by hand
+  // and unverified — never auto-link it to an existing account (that would let anyone claim
+  // someone else's account just by typing their email address here).
+  if (store.getUserByEmail(email)) {
+    return sendJSON(res, 409, { error: 'An account with that email already exists — log in with your password (or that provider) instead' });
+  }
+
+  const requireVerification = knock.verificationConfigured();
+  const user = store.createOAuthUser(pending.name, email, pricing.FREE_SIGNUP_CREDITS, !requireVerification, null);
+  store.linkOAuthAccount(user.id, pending.provider, pending.provider_user_id);
+  knock.identifyUser(user).catch(() => {});
+  if (requireVerification) {
+    const verifyToken = auth.createVerificationToken(user.id);
+    knock.sendVerificationEmail(user, verificationUrl(req, verifyToken)).catch(() => {});
+  }
+
+  const { token: sessionToken } = auth.createSession(user.id);
+  res.setHeader('Set-Cookie', auth.sessionCookie(sessionToken, req, auth.SESSION_TTL_MS / 1000));
+  sendJSON(res, 200, { user: publicUser(user) });
 });
 
 route('POST', '/api/auth/verify', async (req, res) => {
