@@ -203,10 +203,121 @@ function analyzeCSVTasks(csvTasks) {
   return { score, healthyPct, riskPct, critPct, issues, activities, hasDates: false, totalActivities: total, critCount: nCrit, riskCount: nRisk, ...subScores };
 }
 
+// Microsoft Project's XML interchange format (MSPDI) — what "Save As > XML" produces. This is a
+// hand-rolled tag extractor tailored to that one known, well-formed schema, in the same spirit as
+// parseXER/parseCSV above — not a general XML parser, and deliberately not a dependency (keeps
+// this app zero-dependency, matching the raw .xer/.csv parsers). Raw binary .mpp is a proprietary
+// OLE format and out of scope here; users export to XML from Project first.
+function xmlTag(block, name) {
+  const m = block.match(new RegExp('<' + name + '>([^<]*)</' + name + '>'));
+  return m ? m[1] : null;
+}
+
+function xmlBlocks(text, name) {
+  const re = new RegExp('<' + name + '>([\\s\\S]*?)<\\/' + name + '>', 'g');
+  const out = [];
+  let m;
+  while ((m = re.exec(text))) out.push(m[1]);
+  return out;
+}
+
+// MSPDI durations look like "PT80H0M0S" — hours/minutes/seconds of *working* time (already
+// calendar-independent), matching the hours-based convention the XER parser uses elsewhere.
+function parseMspDurationHours(str) {
+  if (!str) return null;
+  const m = str.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!m) return null;
+  const hours = parseInt(m[1] || '0', 10) + parseInt(m[2] || '0', 10) / 60 + parseInt(m[3] || '0', 10) / 3600;
+  return hours;
+}
+
+function parseMspXml(text) {
+  const taskBlocks = xmlBlocks(text, 'Task');
+  return taskBlocks.map(block => ({
+    uid: xmlTag(block, 'UID'),
+    name: xmlTag(block, 'Name') || 'unnamed activity',
+    start: xmlTag(block, 'Start'),
+    finish: xmlTag(block, 'Finish'),
+    baselineFinish: xmlTag(block, 'BaselineFinish'),
+    durationHours: parseMspDurationHours(xmlTag(block, 'Duration')),
+    // MSPDI represents slack as a plain integer number of minutes, not a duration string.
+    totalSlackMinutes: xmlTag(block, 'TotalSlack') != null ? parseFloat(xmlTag(block, 'TotalSlack')) : null,
+    milestone: xmlTag(block, 'Milestone') === '1',
+    critical: xmlTag(block, 'Critical') === '1',
+    percentComplete: xmlTag(block, 'PercentComplete') != null ? parseFloat(xmlTag(block, 'PercentComplete')) : 0,
+    predecessorUids: xmlBlocks(block, 'PredecessorLink').map(p => xmlTag(p, 'PredecessorUID')).filter(Boolean)
+  }));
+}
+
+function analyzeMspXml(tasks) {
+  const predCount = {}, succCount = {};
+  tasks.forEach(t => {
+    t.predecessorUids.forEach(predUid => {
+      predCount[t.uid] = (predCount[t.uid] || 0) + 1;
+      succCount[predUid] = (succCount[predUid] || 0) + 1;
+    });
+  });
+
+  const issues = [];
+  const activities = [];
+  let nCrit = 0, nRisk = 0, total = 0;
+
+  tasks.forEach(t => {
+    const durationDays = t.durationHours != null ? t.durationHours / 8 : null;
+    const floatDays = t.totalSlackMinutes != null ? Math.round((t.totalSlackMinutes / 60 / 8) * 10) / 10 : null;
+    const start = t.start ? t.start.slice(0, 10) : null;
+    const end = t.finish ? t.finish.slice(0, 10) : null;
+
+    activities.push({
+      code: t.uid,
+      name: t.name,
+      milestone: t.milestone,
+      start,
+      end,
+      durationDays: durationDays != null ? Math.round(durationDays * 10) / 10 : (t.milestone ? 0 : 1),
+      totalFloatDays: floatDays,
+      // MSPDI already tells us whether a task is on the critical path (it accounts for
+      // calendars/constraints this app can't recompute) — prefer that over deriving it from
+      // float, falling back to the float-based rule only if <Critical> wasn't present.
+      critical: t.critical || (floatDays !== null && floatDays <= 0)
+    });
+
+    if (t.milestone) return; // matches analyzeXER's treatment of milestones — not scored as activities
+    total++;
+    const name = t.name;
+    const code = t.uid;
+
+    if (floatDays !== null && floatDays < 0) {
+      issues.push({ name: name + ' has negative float', sub: 'Activity ' + code + ' · already behind', sev: 'crit' });
+      nCrit++;
+    }
+    if (!predCount[t.uid] && !succCount[t.uid]) {
+      issues.push({ name: name + ' has no predecessor or successor', sub: 'Activity ' + code + ' · missing logic', sev: 'crit' });
+      nCrit++;
+    }
+    if (floatDays !== null && floatDays > 44) {
+      issues.push({ name: name + ' has ' + Math.round(floatDays) + ' days of float', sub: 'Activity ' + code + ' · excessive float', sev: 'risk' });
+      nRisk++;
+    }
+    if (durationDays !== null && durationDays > 44 && t.percentComplete < 100) {
+      issues.push({ name: name + ' runs ' + Math.round(durationDays) + ' days, longer than 44-day guidance', sub: 'Activity ' + code + ' · long duration', sev: 'risk' });
+      nRisk++;
+    }
+  });
+
+  const { score, healthyPct, riskPct, critPct } = scoreFrom(total, nCrit, nRisk);
+  const subScores = subScoresFrom(issues, total);
+  const hasDates = activities.some(a => a.start);
+  return { score, healthyPct, riskPct, critPct, issues, activities, hasDates, totalActivities: total, critCount: nCrit, riskCount: nRisk, ...subScores };
+}
+
 function analyzeFile(filename, text) {
-  const isXER = filename.toLowerCase().endsWith('.xer') || text.includes('%T\tTASK');
+  const lower = filename.toLowerCase();
+  const isXER = lower.endsWith('.xer') || text.includes('%T\tTASK');
   if (isXER) return analyzeXER(parseXER(text));
+  const isMspXml = lower.endsWith('.xml') || (/<Project[\s>]/.test(text) && text.includes('<Tasks>'));
+  if (isMspXml) return analyzeMspXml(parseMspXml(text));
   return analyzeCSVTasks(parseCSV(text));
 }
 
-module.exports = { parseXER, parseCSV, analyzeXER, analyzeCSVTasks, analyzeFile };
+module.exports = { parseXER, parseCSV, parseMspXml, analyzeXER, analyzeCSVTasks, analyzeMspXml, analyzeFile };
