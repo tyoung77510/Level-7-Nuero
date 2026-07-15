@@ -233,6 +233,25 @@
     }
     body { padding: 0; background: #fff; }
   }
+  /* Only ever rendered into the report for Free/Pro (Teams gets a clean export) — hidden on
+     screen entirely, since it's a print/PDF-only artifact, not a UI element. */
+  .print-watermark { display: none; }
+  @media print {
+    .print-watermark {
+      display: block;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-30deg);
+      font-size: 56px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: rgba(28,43,51,0.08);
+      z-index: 999;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+  }
 </style>
 </head>
 <body class="auth-mode">
@@ -1142,7 +1161,10 @@ async function resolveIssue(issueId){
 
 function renderReport(projectName, snapshot){
   const el = document.getElementById('reportContent');
-  el.innerHTML = '<div class="card">' +
+  // Free/Pro exports carry a diagonal watermark (print-only, see .print-watermark) — Teams is the
+  // one tier that removes it, matching the "Unwatermarked report exports" bullet on that card.
+  const watermark = checkFeatureAccess('unwatermarkedReports') ? '' : '<div class="print-watermark">ORDO7 · UPGRADE TO TEAMS TO REMOVE</div>';
+  el.innerHTML = watermark + '<div class="card">' +
     '<p style="font-weight:600; margin:0 0 2px;">' + projectName + ' — schedule status</p>' +
     '<p style="font-size:12px; color:var(--muted); margin:0 0 14px;">Generated ' + new Date().toLocaleDateString() + ' · Ordo7, powered by Level 7</p>' +
     '<div class="metric-grid">' +
