@@ -44,6 +44,11 @@
   .legend span { display: inline-flex; align-items: center; gap: 5px; }
   .dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
   .issue { display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; background: var(--card); }
+  .gantt-scroll { max-height: 520px; overflow-y: auto; }
+  .gantt-row { display: flex; align-items: center; gap: 12px; padding: 5px 0; }
+  .gantt-label { width: 160px; flex: 0 0 auto; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gantt-track { flex: 1; position: relative; height: 16px; background: var(--line); border-radius: 4px; }
+  .gantt-bar { position: absolute; top: 0; height: 100%; border-radius: 4px; min-width: 4px; }
   .issue.resolved { opacity: 0.5; }
   .issue-name { font-size: 14px; font-weight: 500; margin: 0; }
   .issue-sub { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
@@ -333,6 +338,7 @@
       <button data-step="upload" class="active">Upload</button>
       <button data-step="health">Health</button>
       <button data-step="issues">Issues</button>
+      <button data-step="gantt">Gantt</button>
       <button data-step="trends">Trends</button>
       <button data-step="portfolio">Portfolio</button>
       <button data-step="report">Report</button>
@@ -462,6 +468,10 @@
       <div id="portfolioContent"><p class="empty">No projects analyzed yet.</p></div>
     </div>
 
+    <div id="v-gantt" class="view">
+      <div id="ganttContent"><p class="empty">No schedule analyzed yet.</p></div>
+    </div>
+
     <div id="v-report" class="view">
       <div id="reportContent"><p class="empty">No report yet — analyze a schedule first.</p></div>
     </div>
@@ -509,6 +519,7 @@ function setView(step){
   navButtons.forEach(b => b.classList.toggle('active', b.dataset.step === step));
   if (step === 'trends') renderTrends();
   if (step === 'portfolio') renderPortfolio();
+  if (step === 'gantt') renderGantt();
   if (step === 'pricing') renderPricing();
   if (step === 'chat') renderChat();
   if (step === 'health' && currentSnapshot) renderHealth(currentSnapshot);
@@ -517,6 +528,8 @@ navButtons.forEach(b => b.addEventListener('click', () => setView(b.dataset.step
 
 let currentProject = null;
 let currentSnapshot = null;
+let currentActivities = null;
+let currentHasDates = false;
 let currentIssues = [];
 let currentUser = null;
 let pendingOAuthToken = null;
@@ -1340,6 +1353,83 @@ async function renderPortfolio(){
   el.innerHTML = html;
 }
 
+function renderGantt(){
+  const el = document.getElementById('ganttContent');
+  if (!currentActivities || !currentActivities.length){
+    el.innerHTML = '<p class="empty">No schedule analyzed yet.</p>';
+    return;
+  }
+  if (!checkFeatureAccess('ganttTimeline')){
+    el.innerHTML = '<div class="card" style="text-align:center;">' +
+      '<p style="font-size:13px; margin:0 0 10px;">The Gantt timeline is a Pro feature — see the critical path at a glance instead of scanning the issues list.</p>' +
+      '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to unlock the Gantt timeline</button>' +
+      '</div>';
+    return;
+  }
+
+  // Every activity gets a numeric day offset, whether it came from real calendar dates (XER)
+  // or just file order (CSV, which has no dates at all) — this lets the rest of the function
+  // treat both sources the same way. An XER activity with no known start date at all (common
+  // for not-yet-started work with no target/early date in the export) has no offset — it's
+  // listed separately below rather than silently plotted at day 0, which would misrepresent it.
+  let refTime = null;
+  if (currentHasDates) {
+    const dated = currentActivities.filter(a => a.start).map(a => new Date(a.start).getTime());
+    refTime = dated.length ? Math.min(...dated) : null;
+  }
+  const resolved = currentActivities.map(a => {
+    let offset = null;
+    if (currentHasDates) { if (a.start && refTime != null) offset = (new Date(a.start).getTime() - refTime) / 86400000; }
+    else if (a.dayOffset != null) offset = a.dayOffset;
+    return { ...a, offset };
+  });
+  const scheduled = resolved.filter(a => a.offset != null).sort((a, b) => a.offset - b.offset);
+  const unscheduled = resolved.filter(a => a.offset == null);
+
+  const maxEnd = Math.max(1, ...scheduled.map(a => a.offset + a.durationDays));
+
+  const activityLabel = (a) => escapeHtml(a.name) + (a.milestone ? ' (milestone)' : '');
+
+  const rows = scheduled.map(a => {
+    const leftPct = Math.max(0, (a.offset / maxEnd) * 100);
+    const widthPct = Math.max((a.durationDays / maxEnd) * 100, 1);
+    const barColor = a.critical ? 'var(--bad)' : 'var(--accent)';
+    const label = activityLabel(a);
+    const tip = label + ' · ' + a.durationDays + ' day' + (a.durationDays === 1 ? '' : 's') +
+      (a.totalFloatDays != null ? ' · ' + a.totalFloatDays + ' float' : '');
+    return '<div class="gantt-row">' +
+      '<div class="gantt-label" title="' + label + '">' + label + '</div>' +
+      '<div class="gantt-track"><div class="gantt-bar" style="left:' + leftPct + '%; width:' + widthPct + '%; background:' + barColor + ';" title="' + tip + '"></div></div>' +
+    '</div>';
+  }).join('') || '<p class="empty">No activities with a known date to plot.</p>';
+
+  let unscheduledHtml = '';
+  if (unscheduled.length) {
+    unscheduledHtml = '<p class="section-title" style="margin:16px 0 8px;">Not yet scheduled — no start date in file</p>' +
+      unscheduled.map(a => {
+        const label = activityLabel(a);
+        const color = a.critical ? 'var(--bad)' : 'var(--muted)';
+        return '<div class="gantt-row"><div class="gantt-label" title="' + label + '">' + label + '</div>' +
+          '<div style="font-size:12px; color:' + color + ';">' + a.durationDays + ' day' + (a.durationDays === 1 ? '' : 's') +
+          (a.totalFloatDays != null ? ' · ' + a.totalFloatDays + ' float' : '') + '</div></div>';
+      }).join('');
+  }
+
+  const rangeLabel = (currentHasDates && refTime != null)
+    ? 'Timeline: ' + new Date(refTime).toLocaleDateString() + ' → ' + new Date(refTime + maxEnd * 86400000).toLocaleDateString()
+    : 'Relative sequence — this file has no calendar dates (Day 0 → Day ' + Math.round(maxEnd) + ')';
+
+  el.innerHTML =
+    '<div class="row no-print" style="justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px;">' +
+      '<span style="font-size:12px; color:var(--muted);">' + rangeLabel + '</span>' +
+      '<span class="legend" style="margin:0;">' +
+        '<span><span class="dot" style="background:var(--bad);"></span>Critical path / negative float</span>' +
+        '<span><span class="dot" style="background:var(--accent);"></span>Normal float</span>' +
+      '</span>' +
+    '</div>' +
+    '<div class="gantt-scroll">' + rows + '</div>' + unscheduledHtml;
+}
+
 async function submitAnalysis(projectName, filename, content){
   document.getElementById('uploadStatus').textContent = 'Analyzing…';
   try {
@@ -1351,6 +1441,8 @@ async function submitAnalysis(projectName, filename, content){
     currentProject = result.project.name;
     currentSnapshot = result.snapshot;
     currentIssues = result.issues;
+    currentActivities = result.activities || [];
+    currentHasDates = !!result.hasDates;
     document.getElementById('uploadStatus').textContent = 'Analyzed ' + result.snapshot.total_activities + ' activities — saved to server.';
     renderHealth(currentSnapshot);
     renderIssues(currentIssues);

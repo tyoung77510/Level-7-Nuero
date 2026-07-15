@@ -542,7 +542,9 @@ route('GET', '/api/projects/:name/latest', async (req, res, params, user) => {
   const snapshot = store.getLatestSnapshot(user.id, params.name);
   if (!snapshot) return sendJSON(res, 404, { error: 'No analysis yet for this project' });
   const issues = store.getIssuesForSnapshot(snapshot.id);
-  sendJSON(res, 200, { snapshot, issues });
+  let activities = [];
+  try { activities = JSON.parse(snapshot.activities_json || '[]'); } catch (e) { activities = []; }
+  sendJSON(res, 200, { snapshot, issues, activities });
 });
 
 function describeActivityEvent(event) {
@@ -709,7 +711,7 @@ route('POST', '/api/analyze', async (req, res, params, user) => {
 
   const { project, snapshot } = store.saveSnapshot(user.id, projectName, result, filename);
   const issues = store.getIssuesForSnapshot(snapshot.id);
-  sendJSON(res, 200, { project, snapshot, issues });
+  sendJSON(res, 200, { project, snapshot, issues, activities: result.activities || [], hasDates: !!result.hasDates });
 });
 
 // Static file serving for the frontend (public/index.html etc.)

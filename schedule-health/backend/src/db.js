@@ -98,7 +98,8 @@ db.exec(`
     narrative TEXT,
     logic_quality INTEGER,
     float_distribution INTEGER,
-    constraint_hygiene INTEGER
+    constraint_hygiene INTEGER,
+    activities_json TEXT
   );
 
   CREATE TABLE IF NOT EXISTS issues (
@@ -181,6 +182,9 @@ ensureColumn('users', 'email_verified', 'INTEGER NOT NULL DEFAULT 1');
 ensureColumn('snapshots', 'logic_quality', 'INTEGER');
 ensureColumn('snapshots', 'float_distribution', 'INTEGER');
 ensureColumn('snapshots', 'constraint_hygiene', 'INTEGER');
+// Per-activity data for the Gantt timeline (Pro/Teams feature) — old snapshots predate this and
+// simply have no bars to draw; the frontend treats a missing/empty value as "not available".
+ensureColumn('snapshots', 'activities_json', 'TEXT');
 // node:sqlite's ALTER TABLE ADD COLUMN only accepts a literal constant default (not even
 // CURRENT_TIMESTAMP, let alone a function call like datetime('now')) — that restriction doesn't
 // apply to CREATE TABLE, which is why this worked in every fresh database but crashed the moment
@@ -436,12 +440,13 @@ function saveSnapshot(userId, projectName, result, sourceFilename) {
   db.prepare(`
     INSERT INTO snapshots
       (project_id, score, healthy_pct, risk_pct, crit_pct, total_activities, crit_count, risk_count,
-       source_filename, logic_quality, float_distribution, constraint_hygiene)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       source_filename, logic_quality, float_distribution, constraint_hygiene, activities_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     project.id, result.score, result.healthyPct, result.riskPct, result.critPct,
     result.totalActivities, result.critCount, result.riskCount, sourceFilename || null,
-    result.logicQuality ?? null, result.floatDistribution ?? null, result.constraintHygiene ?? null
+    result.logicQuality ?? null, result.floatDistribution ?? null, result.constraintHygiene ?? null,
+    JSON.stringify(result.activities || [])
   );
   const snapshot = db.prepare('SELECT * FROM snapshots WHERE project_id = ? ORDER BY id DESC LIMIT 1').get(project.id);
 

@@ -37,6 +37,13 @@ function parseCSV(text) {
   return tasks;
 }
 
+// XER date fields look like "2026-01-05 08:00" or a bare "2026-01-05" — take the date part only.
+function parseXerDate(str) {
+  if (!str) return null;
+  const d = new Date(str.split(' ')[0]);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 function scoreFrom(total, nCrit, nRisk) {
   const score = Math.max(0, Math.round(100 - ((nCrit * 4 + nRisk * 1.5) / Math.max(total, 1)) * 20));
   const critPct = Math.round((nCrit / Math.max(total, 1)) * 100);
@@ -80,9 +87,28 @@ function analyzeXER(tables) {
   });
 
   const issues = [];
+  const activities = [];
   let nCrit = 0, nRisk = 0, total = 0;
 
   tasks.forEach(t => {
+    const activityName = t.task_name || t.task_code || 'unnamed activity';
+    const activityFloat = parseFloat(t.total_float_hr_cnt);
+    const floatDays = isNaN(activityFloat) ? null : Math.round((activityFloat / 8) * 10) / 10;
+    const start = parseXerDate(t.act_start_date) || parseXerDate(t.target_start_date) || parseXerDate(t.early_start_date);
+    const end = parseXerDate(t.act_end_date) || parseXerDate(t.target_end_date) || parseXerDate(t.early_end_date);
+    const drtnHrs = parseFloat(t.remain_drtn_hr_cnt || t.target_drtn_hr_cnt);
+    const durationDays = !isNaN(drtnHrs) ? Math.max(0, drtnHrs / 8) : (start && end ? Math.max(0, (end - start) / 86400000) : 1);
+    activities.push({
+      code: t.task_code || t.task_id,
+      name: activityName,
+      milestone: t.task_type === 'TT_Mile',
+      start: start ? start.toISOString().slice(0, 10) : null,
+      end: end ? end.toISOString().slice(0, 10) : (start ? new Date(start.getTime() + durationDays * 86400000).toISOString().slice(0, 10) : null),
+      durationDays: Math.round(durationDays * 10) / 10,
+      totalFloatDays: floatDays,
+      critical: floatDays !== null && floatDays <= 0
+    });
+
     if (t.task_type === 'TT_Mile') return;
     total++;
     const name = t.task_name || t.task_code || 'unnamed activity';
@@ -123,13 +149,16 @@ function analyzeXER(tables) {
 
   const { score, healthyPct, riskPct, critPct } = scoreFrom(total, nCrit, nRisk);
   const subScores = subScoresFrom(issues, total);
-  return { score, healthyPct, riskPct, critPct, issues, totalActivities: total, critCount: nCrit, riskCount: nRisk, ...subScores };
+  const hasDates = activities.some(a => a.start);
+  return { score, healthyPct, riskPct, critPct, issues, activities, hasDates, totalActivities: total, critCount: nCrit, riskCount: nRisk, ...subScores };
 }
 
 function analyzeCSVTasks(csvTasks) {
   const issues = [];
+  const activities = [];
   let nCrit = 0, nRisk = 0;
   const total = csvTasks.length;
+  let cumulativeDays = 0;
 
   csvTasks.forEach(t => {
     const name = t.task_name || t.task_code || 'unnamed activity';
@@ -137,6 +166,19 @@ function analyzeCSVTasks(csvTasks) {
     const tf = parseFloat(t.total_float_days);
     const dur = parseFloat(t.duration_days);
     const preds = (t.predecessors || '').trim();
+
+    // No dates in this format — lay activities out sequentially by file order instead of a
+    // calendar. dayOffset is days-from-start-of-file, not a real date.
+    const durationDays = !isNaN(dur) ? Math.max(0, dur) : 1;
+    activities.push({
+      code, name, milestone: false,
+      start: null, end: null,
+      dayOffset: Math.round(cumulativeDays * 10) / 10,
+      durationDays: Math.round(durationDays * 10) / 10,
+      totalFloatDays: isNaN(tf) ? null : tf,
+      critical: !isNaN(tf) && tf <= 0
+    });
+    cumulativeDays += durationDays;
 
     if (!isNaN(tf) && tf < 0) {
       issues.push({ name: name + ' has negative float', sub: 'Activity ' + code + ' \u00b7 already behind', sev: 'crit' });
@@ -158,7 +200,7 @@ function analyzeCSVTasks(csvTasks) {
 
   const { score, healthyPct, riskPct, critPct } = scoreFrom(total, nCrit, nRisk);
   const subScores = subScoresFrom(issues, total);
-  return { score, healthyPct, riskPct, critPct, issues, totalActivities: total, critCount: nCrit, riskCount: nRisk, ...subScores };
+  return { score, healthyPct, riskPct, critPct, issues, activities, hasDates: false, totalActivities: total, critCount: nCrit, riskCount: nRisk, ...subScores };
 }
 
 function analyzeFile(filename, text) {

@@ -260,11 +260,11 @@ All routes below require an authenticated session (see Authentication) and are s
 
 | Method | Path | What it does |
 |---|---|---|
-| `POST` | `/api/analyze` | Upload a schedule (JSON body: `{project, filename, content}`, or multipart form with a file field) — parses it, runs the health checks, and saves a snapshot under the current user |
+| `POST` | `/api/analyze` | Upload a schedule (JSON body: `{project, filename, content}`, or multipart form with a file field) — parses it, runs the health checks, and saves a snapshot under the current user. Response includes `activities` (per-activity name/dates/duration/float/critical-path flag, for the Gantt view — Pro/Teams) and `hasDates` (whether the source file had real calendar dates; CSV never does) |
 | `GET` | `/api/projects` | List the current user's analyzed projects |
-| `GET` | `/api/portfolio` | Latest health score for each of the current user's projects, for the portfolio view |
+| `GET` | `/api/portfolio` | Latest health score for each of the current user's projects, for the portfolio view. Free tier is capped to the top 2 by score in the UI; Pro/Teams see the full ranked list |
 | `GET` | `/api/projects/:name/history` | Full snapshot history for one of the current user's projects, for the trends view |
-| `GET` | `/api/projects/:name/latest` | Latest snapshot + its issues for one of the current user's projects |
+| `GET` | `/api/projects/:name/latest` | Latest snapshot + its issues + its `activities` for one of the current user's projects |
 | `PATCH` | `/api/issues/:id` | Update an issue's status (`open`, `acknowledged`, `resolved`) — 403s if the issue doesn't belong to one of the current user's projects |
 | `POST` | `/api/snapshots/:id/narrative` | Generate/fetch the AI narrative for a snapshot — see AI narrative section above |
 
@@ -287,7 +287,7 @@ SQLite, stored at `data/schedule-health.db`. Ten tables:
 - `sessions` — one row per active login (token, user, expiry)
 - `verification_tokens` — one row per pending email verification (token, user, expiry) — single-use, deleted on consumption whether valid or expired
 - `projects` — one row per project name, scoped to the user who created it (`UNIQUE(user_id, name)` — two users can each have a project called "River Bridge")
-- `snapshots` — one row per analysis run, with the score and breakdown, plus a cached `narrative` column for the AI-generated summary (null until generated)
+- `snapshots` — one row per analysis run, with the score and breakdown, plus a cached `narrative` column for the AI-generated summary (null until generated) and an `activities_json` column (per-activity name/dates/duration/float, for the Gantt view)
 - `issues` — one row per flagged issue, linked to the snapshot it came from, with a status field for tracking resolution
 - `feedback` — one row per feature suggestion/improvement submitted through the app, linked to the user who submitted it
 - `ai_usage` — one row per AI narrative or chat generation, logging real token counts, actual Anthropic cost, and credits charged — the audit trail behind the credit math in Pricing and AI credits above
