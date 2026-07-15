@@ -27,7 +27,12 @@
   body:not(.auth-mode) .brand, body:not(.auth-mode) .sub { display: none; }
   .app-shell-root { display: flex; flex-direction: column; height: 100vh; }
   .telemetry-shell { display: flex; flex: 1; min-height: 0; overflow: hidden; }
-  #panel-left-sidebar { flex: 0 0 20%; min-width: 240px; max-width: 300px; border-right: 1px solid var(--line); overflow-y: auto; padding: 18px 14px; }
+  #panel-left-sidebar { flex: 0 0 20%; min-width: 240px; max-width: 300px; border-right: 1px solid var(--line); overflow-y: auto; padding: 18px 14px; display: flex; flex-direction: column; }
+  .sidebar-footer { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+  .sidebar-footer button { display: flex; align-items: center; gap: 8px; text-align: left; padding: 8px 10px; font-size: 12.5px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--ink); }
+  .sidebar-footer-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); color: #06231f; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .sidebar-footer a { font-size: 11.5px; color: var(--muted); cursor: pointer; text-align: center; }
+  .sidebar-footer a:hover { color: var(--accent); }
   .sidebar-nav { display: flex; flex-direction: column; gap: 4px; }
   .sidebar-nav button { text-align: left; padding: 10px 12px; font-size: 13px; border: 1px solid transparent; background: transparent; border-radius: 8px; cursor: pointer; color: var(--ink); }
   .sidebar-nav button.active { background: var(--accent); color: #06231f; font-weight: 600; }
@@ -85,6 +90,21 @@
   .sandbox-field { display: flex; align-items: center; gap: 5px; flex: 0 0 auto; }
   .sandbox-field label { font-size: 11px; color: var(--muted); }
   .sandbox-field input { width: 58px; }
+  #tourOverlay { position: fixed; inset: 0; z-index: 200; }
+  #tourHighlightBox {
+    position: fixed; border: 2px solid var(--accent); border-radius: 8px;
+    box-shadow: 0 0 0 9999px rgba(10,14,20,0.6);
+    transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+    pointer-events: none;
+  }
+  #tourCallout {
+    position: fixed; max-width: 320px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; padding: 14px 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 201;
+    transition: top 0.25s ease, left 0.25s ease;
+  }
+  #tourCalloutStep { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin: 0 0 6px; }
+  #tourCalloutText { font-size: 13px; line-height: 1.5; margin: 0 0 14px; color: var(--ink); }
+  .tour-callout-actions { display: flex; justify-content: space-between; gap: 8px; }
   .issue.resolved { opacity: 0.5; }
   .issue-name { font-size: 14px; font-weight: 500; margin: 0; }
   .issue-sub { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
@@ -367,6 +387,10 @@
           <button data-step="portfolio">Multi-Project Leaderboard</button>
           <button data-step="pricing">Billing / Plan</button>
         </div>
+        <div class="sidebar-footer">
+          <button data-step="guide"><span class="sidebar-footer-icon">?</span> App Guide / Capabilities</button>
+          <a id="replayTourLink">Replay tour</a>
+        </div>
       </nav>
 
       <main id="panel-central-workspace">
@@ -527,6 +551,35 @@
       <div id="reportContent"><p class="empty">No report yet — analyze a schedule first.</p></div>
     </div>
 
+    <div id="v-guide" class="view">
+      <p class="section-title" style="margin-bottom:14px;">App Guide &amp; Capabilities</p>
+      <div class="card" style="margin-bottom:12px;">
+        <h2 style="margin:0 0 8px; font-size:15px;">Milestone Hygiene Check</h2>
+        <ul style="margin:0; padding-left:18px; font-size:13px; line-height:1.7; color:var(--ink);">
+          <li>Every milestone is checked for <strong>logical anchoring</strong> — does it actually have a predecessor and a successor in the schedule logic, or is it floating disconnected from the network?</li>
+          <li><strong>Negative float</strong> concentrated on a milestone is flagged separately from general activity float — a milestone already behind its own float budget is a hard signal, not a soft one.</li>
+          <li>Milestone-specific issues roll up into a dedicated <strong>Milestone hygiene</strong> sub-score on the Dashboard, alongside logic quality, float distribution, and constraint hygiene.</li>
+          <li>Open the <strong>Milestones</strong> tab (visible once a schedule is loaded) for the full list with an on-track / missing-logic-anchor / negative-float status per milestone.</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-bottom:12px;">
+        <h2 style="margin:0 0 8px; font-size:15px;">Critical Path Gantt Timeline <span class="badge risk" style="font-size:10px; vertical-align:middle;">Pro/Teams</span></h2>
+        <ul style="margin:0; padding-left:18px; font-size:13px; line-height:1.7; color:var(--ink);">
+          <li>Bars are laid out by real calendar dates when the source file has them (XER/MS Project XML), or a relative day-by-day sequence when it doesn't (CSV).</li>
+          <li><strong>Red bars</strong> mark activities on the critical path or already carrying negative float — trace them upstream to find the actual bottleneck driving the delay, not just the symptom.</li>
+          <li>Activities with no resolvable start date are listed separately underneath rather than plotted at a misleading day zero.</li>
+        </ul>
+      </div>
+      <div class="card" style="margin-bottom:12px;">
+        <h2 style="margin:0 0 8px; font-size:15px;">What-If Sandbox Simulator <span class="badge risk" style="font-size:10px; vertical-align:middle;">Pro/Teams</span></h2>
+        <ul style="margin:0; padding-left:18px; font-size:13px; line-height:1.7; color:var(--ink);">
+          <li>Edit any activity's <strong>float</strong> or <strong>duration</strong> directly in the Sandbox tab and watch the health score recalculate instantly.</li>
+          <li>Everything happens client-side — nothing is sent to the server, and your saved analysis is never altered. Use it to test recovery scenarios before committing to a real schedule revision.</li>
+          <li><strong>Reset to saved</strong> clears every override and snaps back to your actual saved score in one click.</li>
+        </ul>
+      </div>
+    </div>
+
     <div id="v-feedback" class="view">
       <div class="card">
         <p style="font-weight:500; margin:0 0 4px;">What would make Ordo7 better for you?</p>
@@ -567,7 +620,7 @@
 <script>
 const API = ''; // same-origin: server.js serves this file and the API together
 
-const navButtons = document.querySelectorAll('.sidebar-nav button, .central-subnav button');
+const navButtons = document.querySelectorAll('.sidebar-nav button, .central-subnav button, .sidebar-footer button[data-step]');
 // Views that live inside an active project's context — the central sub-tab row only makes sense
 // for these; sidebar-only destinations (issues/portfolio/pricing/feedback/projects) take the full
 // central panel instead. Ask Ordo isn't here — it's permanently docked in the right panel now,
@@ -601,6 +654,89 @@ function updateBreadcrumb(){
   if (currentSnapshot) html += ' › Snapshot #' + currentSnapshot.id;
   el.innerHTML = html;
 }
+
+// --- Spotlight onboarding tour ---
+
+const TOUR_STEPS = [
+  { selector: '#panel-left-sidebar', view: null, text: 'Your Global Project Portfolio Matrix & Leaderboards.' },
+  { selector: '.drop', view: 'upload', text: 'Drag P6 (.xer) or MS Project XML files for instant structural health validation.' },
+  { selector: '#panel-right-command-bar', view: null, text: 'Your Always-On AI Co-Pilot. Ask contextual questions about critical paths or float slippage without losing your data view.' }
+];
+let tourStepIndex = 0;
+
+function startOrdoTour(){
+  tourStepIndex = 0;
+  buildTourOverlay();
+  showTourStep(0);
+}
+
+function buildTourOverlay(){
+  if (document.getElementById('tourOverlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'tourOverlay';
+  overlay.innerHTML =
+    '<div id="tourHighlightBox"></div>' +
+    '<div id="tourCallout">' +
+      '<p id="tourCalloutStep"></p>' +
+      '<p id="tourCalloutText"></p>' +
+      '<div class="tour-callout-actions">' +
+        '<button class="btn" id="tourSkipBtn">Skip tour</button>' +
+        '<button class="btn primary" id="tourNextBtn">Next</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  document.getElementById('tourSkipBtn').addEventListener('click', endOrdoTour);
+  document.getElementById('tourNextBtn').addEventListener('click', tourNextStep);
+  window.addEventListener('resize', tourReposition);
+}
+
+function tourReposition(){
+  if (!document.getElementById('tourOverlay')) return;
+  positionTourHighlight(TOUR_STEPS[tourStepIndex]);
+}
+
+function showTourStep(i){
+  const step = TOUR_STEPS[i];
+  if (step.view) setView(step.view);
+  const target = document.querySelector(step.selector);
+  if (!target) { tourNextStep(); return; } // target not present in the current DOM state — skip gracefully rather than highlight nothing
+  document.getElementById('tourCalloutStep').textContent = 'Step ' + (i + 1) + ' of ' + TOUR_STEPS.length;
+  document.getElementById('tourCalloutText').textContent = step.text;
+  document.getElementById('tourNextBtn').textContent = (i === TOUR_STEPS.length - 1) ? 'Finish' : 'Next';
+  positionTourHighlight(step);
+}
+
+function positionTourHighlight(step){
+  const target = document.querySelector(step.selector);
+  if (!target) return;
+  const rect = target.getBoundingClientRect();
+  const box = document.getElementById('tourHighlightBox');
+  box.style.top = rect.top + 'px';
+  box.style.left = rect.left + 'px';
+  box.style.width = rect.width + 'px';
+  box.style.height = rect.height + 'px';
+
+  const callout = document.getElementById('tourCallout');
+  const calloutTop = Math.min(Math.max(rect.bottom + 12, 12), window.innerHeight - 160);
+  const calloutLeft = Math.min(Math.max(rect.left, 12), window.innerWidth - 336);
+  callout.style.top = calloutTop + 'px';
+  callout.style.left = calloutLeft + 'px';
+}
+
+function tourNextStep(){
+  tourStepIndex++;
+  if (tourStepIndex >= TOUR_STEPS.length) { endOrdoTour(); return; }
+  showTourStep(tourStepIndex);
+}
+
+function endOrdoTour(){
+  const overlay = document.getElementById('tourOverlay');
+  if (overlay) overlay.remove();
+  window.removeEventListener('resize', tourReposition);
+  try { localStorage.setItem('ordo7_tour_seen', '1'); } catch (e) { /* localStorage unavailable — just skip persistence, tour still works this session */ }
+}
+
+document.getElementById('replayTourLink').addEventListener('click', startOrdoTour);
 
 let currentProject = null;
 let currentSnapshot = null;
@@ -668,6 +804,12 @@ function showApp(user){
   setView('upload');
   updateBreadcrumb();
   renderChat();
+  try {
+    if (!localStorage.getItem('ordo7_tour_seen')) {
+      // Small delay so the shell finishes laying out before the tour measures bounding boxes.
+      setTimeout(startOrdoTour, 400);
+    }
+  } catch (e) { /* localStorage unavailable — skip auto-launch; tour is still reachable via the sidebar link */ }
 }
 
 function tierLabel(tier){
