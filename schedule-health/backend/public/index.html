@@ -1307,19 +1307,37 @@ async function renderTrends(){
   sel.onchange = renderTrends;
 }
 
+const FREE_LEADERBOARD_CAP = 2;
+
 async function renderPortfolio(){
   const el = document.getElementById('portfolioContent');
   let rows;
   try { rows = await api('/api/portfolio'); } catch (e) { el.innerHTML = '<p class="error">Could not reach the server: ' + e.message + '</p>'; return; }
   if (!rows.length){ el.innerHTML = '<p class="empty">No projects analyzed yet.</p>'; return; }
-  el.innerHTML = rows.map(r =>
-    '<div class="issue"><div style="width:140px; font-size:13px; font-weight:500;">' + r.name + '</div>' +
+
+  const ranked = rows.slice().sort((a, b) => b.score - a.score);
+  const unrestricted = checkFeatureAccess('unrestrictedLeaderboard');
+  const hiddenCount = unrestricted ? 0 : Math.max(0, ranked.length - FREE_LEADERBOARD_CAP);
+  const visible = unrestricted ? ranked : ranked.slice(0, FREE_LEADERBOARD_CAP);
+
+  let html = visible.map((r, i) =>
+    '<div class="issue"><div style="width:22px; font-size:12px; color:var(--muted); font-weight:600;">#' + (i + 1) + '</div>' +
+    '<div style="width:140px; font-size:13px; font-weight:500;">' + escapeHtml(r.name) + '</div>' +
     '<div style="flex:1; display:flex; height:10px; border-radius:5px; overflow:hidden; margin:0 12px;">' +
     '<div style="width:' + r.healthyPct + '%; background:var(--good);"></div>' +
     '<div style="width:' + r.riskPct + '%; background:var(--warn);"></div>' +
     '<div style="width:' + r.critPct + '%; background:var(--bad);"></div></div>' +
     '<div style="font-weight:600; font-size:13px;">' + r.score + '</div></div>'
   ).join('');
+
+  if (hiddenCount > 0) {
+    html += '<div class="card" style="text-align:center; margin-top:8px;">' +
+      '<p style="font-size:13px; margin:0 0 10px;">' + hiddenCount + ' more project' + (hiddenCount === 1 ? '' : 's') + ' ranked in your portfolio — Free plan shows the top ' + FREE_LEADERBOARD_CAP + '.</p>' +
+      '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to see full leaderboard</button>' +
+      '</div>';
+  }
+
+  el.innerHTML = html;
 }
 
 async function submitAnalysis(projectName, filename, content){
