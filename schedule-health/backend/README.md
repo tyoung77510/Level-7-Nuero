@@ -130,11 +130,15 @@ narrative generation** (see below), spent as credits:
 - **Free** — every signup gets 20 credits once, free, no card required.
 - **Starter — $19.99/month** — 150 credits/month, refilled each billing cycle.
 - **Pro — $49/month** — 500 credits/month, refilled each billing cycle.
-- **Teams / Enterprise** — shown in the Plan tab for lead-gen ("Contact us", mailing
-  `admin@level7data.com`) but not wired up to real checkout — this app doesn't support multiple
-  seats on one account yet, so building real billing for a feature that doesn't exist would just
-  be dead code. Add real multi-seat support first, then wire these up the same way Starter/Pro
-  are wired.
+- **Teams — $149/month** — 2,500 pooled credits/month (see `getEffectiveTierUser()` below),
+  unwatermarked report exports. Wired up the same way as Starter/Pro — `pricing.TIERS.teams` is
+  just another entry, so checkout/webhook/credit-refill all work with no tier-specific code.
+  Launched with an honest feature list: multi-seat invites and live review rooms are **not**
+  included, because neither is built yet (there's no route that actually adds a team member —
+  `addTeamMember()` exists in `db.js` but nothing calls it) — advertising them would mean selling
+  access to something that doesn't work. Add real multi-seat support first, then extend this tier.
+- **Enterprise** — still a "Contact us" lead-gen card (mailing `admin@level7data.com`), no
+  checkout wired up.
 - **One-time credit top-ups** — any account, on any plan, can also buy AI credits directly (no
   subscription change) from the "Need more credits" card in the Plan tab: $10 minimum, in $10
   increments, credits never expire and stack on top of whatever the plan already refills monthly.
@@ -309,11 +313,11 @@ manual migration step needed.
 - **Role-based access / orgs** — every user only sees their own projects; there's no team/workspace concept yet where multiple people share the same project (see the roadmap's "Authentication and multi-tenancy" section).
 - **Password reset / email verification** — signup and login only. No email sending is wired up.
 - **File upload size limits / virus scanning** — the multipart parser here is intentionally minimal; swap in a real library (e.g., `busboy`) before accepting uploads from untrusted users.
-- **MPP (MS Project) parsing** — still XER and CSV only. MPP needs a library like `mpxj`.
+- **Raw binary .mpp parsing** — MS Project's XML export is supported (see below); the proprietary binary `.mpp` format itself needs a real library like `mpxj`, deliberately not added to keep this zero-dependency.
 - **Failed-payment / dunning handling** — a `past_due` or `unpaid` Stripe status isn't specially handled; there's no dedicated "your payment failed, update your card" screen yet, and credits aren't clawed back if a renewal fails.
 - **Webhook-driven subscription updates** — written and ready, but inert until this is deployed with a public URL and registered in the Stripe Dashboard (see Billing section above). Until then, cancellations/renewals (and the credit refill on renewal) won't reflect here automatically — only the post-checkout verify call keeps things in sync.
 - **No in-app feedback review screen** — submissions land in the `feedback` table and (once configured) trigger a Knock notification, but there's no admin view in the app itself yet; reviewing them today means querying the database directly or reading the Knock notification.
-- **Teams/Enterprise tiers aren't real plans** — they're "Contact us" cards in the Plan tab with no checkout behind them, because this app has no multi-seat/org support to sell yet (see Pricing and AI credits above).
+- **Multi-seat Teams support** — the Teams tier is live and billed, but with an honest feature set that excludes seat invites (still no route calling `addTeamMember()`) and live review rooms (no real-time infra); Enterprise remains a "Contact us" card (see Pricing and AI credits above).
 
 ## Frontend
 

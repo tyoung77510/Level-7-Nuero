@@ -27,9 +27,11 @@ const FREE_SIGNUP_CREDITS = 20;
 // the loop simple and immediate rather than waiting on a conversion event).
 const REFERRAL_BONUS_CREDITS = 25;
 
-// Self-serve tiers. Teams/Enterprise are intentionally not listed here — this app doesn't yet
-// support multiple seats on one account, so those are "Contact us" placeholders in the UI with
-// no checkout wired up, rather than half-built billing for a feature that doesn't exist.
+// Self-serve tiers. Enterprise is intentionally not listed here — still a "Contact us"
+// placeholder with no checkout wired up. Teams went live with an honest feature set: everything
+// that's actually built (pooled credits, unwatermarked reports) and nothing that isn't yet —
+// multi-seat invites and live review rooms are left off the pricing card entirely rather than
+// advertised and gated behind something that doesn't work. Revisit this list once those exist.
 const TIERS = {
   starter: {
     key: 'starter',
@@ -44,6 +46,13 @@ const TIERS = {
     priceLabel: '$49/month',
     monthlyCredits: 500,
     stripePriceEnvVar: 'STRIPE_PRICE_ID_PRO'
+  },
+  teams: {
+    key: 'teams',
+    name: 'Teams',
+    priceLabel: '$149/month',
+    monthlyCredits: 2500,
+    stripePriceEnvVar: 'STRIPE_PRICE_ID_TEAMS'
   }
 };
 
