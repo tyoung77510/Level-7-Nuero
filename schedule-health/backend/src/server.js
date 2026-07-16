@@ -1097,7 +1097,7 @@ function serveStatic(req, res, pathname) {
   fs.readFile(filePath, (err, data) => {
     if (err) { res.writeHead(404); return res.end('Not found'); }
     const ext = path.extname(filePath);
-    const type = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.txt': 'text/plain', '.xml': 'application/xml' }[ext] || 'application/octet-stream';
+    const type = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.txt': 'text/plain', '.xml': 'application/xml', '.png': 'image/png', '.ico': 'image/x-icon', '.svg': 'image/svg+xml' }[ext] || 'application/octet-stream';
     res.writeHead(200, { 'Content-Type': type });
     res.end(data);
   });
