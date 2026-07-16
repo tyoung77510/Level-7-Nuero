@@ -55,7 +55,17 @@
   #panel-right-command-bar { flex: 0 0 25%; min-width: 320px; max-width: 420px; border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
   .breadcrumb { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
   .breadcrumb .crumb-link { color: var(--accent); cursor: pointer; }
-  .central-subnav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+  /* Smooth collapse/expand for the sub-nav row instead of a hard display:none snap, using the
+     CSS Grid 0fr/1fr row-sizing trick — animating grid-template-rows works for "auto" height
+     content without JS measuring scrollHeight. The margin lives on the wrapper (not
+     .central-subnav) because a margin on the grid item itself doesn't shrink away at 0fr, which
+     would leave a dead gap even fully collapsed. */
+  .central-subnav-wrap {
+    display: grid; grid-template-rows: 1fr; margin-bottom: 18px;
+    transition: grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1), margin-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .central-subnav-wrap.collapsed { grid-template-rows: 0fr; margin-bottom: 0; }
+  .central-subnav { display: flex; flex-wrap: wrap; gap: 6px; overflow: hidden; min-height: 0; }
   .central-subnav button { display: flex; align-items: center; gap: 7px; padding: 8px 12px; font-size: 12.5px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--ink); }
   .central-subnav button.active { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
   /* Icons inherit color from their button via currentColor, so they automatically match whatever
@@ -89,6 +99,14 @@
   .nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 20px; }
   .nav button { padding: 10px 6px; font-size: 13px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--ink); }
   .nav button.active { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
+  /* Shared one-shot reveal, used for scroll-into-view list items (activity feed, issue rows —
+     see the IntersectionObserver in the script below) and for the one-directional OAuth button
+     reveal. Uses an @keyframes animation rather than a transition specifically so it doesn't
+     collide with .issue's own hover-lift transition on the same transform property — animation
+     and transition are separate CSS properties and never fight over which wins. */
+  @keyframes revealItem { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .reveal-item { opacity: 0; }
+  .reveal-item.revealed { opacity: 1; transform: translateY(0); animation: revealItem 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
   .view { display: none; }
   /* display:none -> block can't be interpolated by a CSS transition (no prior painted frame to
      animate from), so the fade-in uses a keyframe animation instead, which runs correctly the
@@ -388,13 +406,13 @@
   <div id="authScreen" class="auth-box">
     <div class="card">
       <h2 id="authTitle" style="margin:0; font-size:16px;">Log in</h2>
-      <div id="oauthButtons" style="display:none; flex-direction:column; gap:8px;">
+      <div id="oauthButtons" class="reveal-item" style="display:none; flex-direction:column; gap:8px;">
         <button class="btn oauth-btn" data-oauth="google" style="display:none;"><svg class="share-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.66-.22-2.45H12v4.63h6.47c-.28 1.5-1.13 2.77-2.4 3.62v3h3.88c2.27-2.09 3.57-5.17 3.57-8.8z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.95-2.9l-3.88-3c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11C3.25 21.3 7.31 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.6l4 3.11C6.22 6.86 8.87 4.75 12 4.75z"/></svg> Continue with Google</button>
         <button class="btn oauth-btn" data-oauth="linkedin" style="display:none;"><svg class="share-icon" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.446-2.136 2.94v5.666h-3.554V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.119 20.452H3.555V9h3.564zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0z"/></svg> Continue with LinkedIn</button>
         <button class="btn oauth-btn" data-oauth="facebook" style="display:none;"><svg class="share-icon" viewBox="0 0 24 24" fill="#1877F2"><path d="M22.675 0h-21.35C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24h11.495v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24h-1.918c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.114c.73 0 1.323-.593 1.323-1.325V1.325C24 .593 23.407 0 22.675 0z"/></svg> Continue with Facebook</button>
         <button class="btn oauth-btn" data-oauth="x" style="display:none;"><svg class="share-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg> Continue with X</button>
       </div>
-      <div id="oauthDivider" style="display:none; text-align:center; color:var(--muted); font-size:11px; margin:2px 0;">or</div>
+      <div id="oauthDivider" class="reveal-item" style="display:none; text-align:center; color:var(--muted); font-size:11px; margin:2px 0;">or</div>
       <input type="text" id="authName" placeholder="Full name" autocomplete="name" style="display:none;">
       <input type="email" id="authEmail" placeholder="Email" autocomplete="username">
       <input type="tel" id="authPhone" placeholder="Phone" autocomplete="tel" style="display:none;">
@@ -475,15 +493,17 @@
 
       <main id="panel-central-workspace">
         <div id="breadcrumb" class="breadcrumb no-print"><span class="crumb-link" onclick="setView('portfolio')">Portfolios</span></div>
-        <div class="central-subnav no-print">
-          <button data-step="upload">Upload</button>
-          <button data-step="health">Dashboard</button>
-          <button data-step="milestones"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg> Milestones</button>
-          <button data-step="gantt"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg> Gantt Timeline</button>
-          <button data-step="sandbox"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="currentColor" stroke="none"/></svg> Sandbox</button>
-          <button data-step="activity">Activity Feed</button>
-          <button data-step="trends">Trends</button>
-          <button data-step="report">Executive Reports</button>
+        <div class="central-subnav-wrap no-print">
+          <div class="central-subnav">
+            <button data-step="upload">Upload</button>
+            <button data-step="health">Dashboard</button>
+            <button data-step="milestones"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg> Milestones</button>
+            <button data-step="gantt"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg> Gantt Timeline</button>
+            <button data-step="sandbox"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="currentColor" stroke="none"/></svg> Sandbox</button>
+            <button data-step="activity">Activity Feed</button>
+            <button data-step="trends">Trends</button>
+            <button data-step="report">Executive Reports</button>
+          </div>
         </div>
 
     <div id="v-pricing" class="view">
@@ -700,8 +720,8 @@ function setView(step){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('v-' + step).classList.add('active');
   navButtons.forEach(b => b.classList.toggle('active', b.dataset.step === step));
-  const subnav = document.querySelector('.central-subnav');
-  if (subnav) subnav.style.display = PROJECT_SCOPED_STEPS.includes(step) ? '' : 'none';
+  const subnavWrap = document.querySelector('.central-subnav-wrap');
+  if (subnavWrap) subnavWrap.classList.toggle('collapsed', !PROJECT_SCOPED_STEPS.includes(step));
   document.getElementById('panel-central-workspace').scrollTop = 0;
   if (step === 'trends') renderTrends();
   if (step === 'portfolio') renderPortfolio();
@@ -740,6 +760,46 @@ document.addEventListener('mousemove', (e) => {
   el.style.setProperty('--mouse-x', (e.clientX - rect.left) + 'px');
   el.style.setProperty('--mouse-y', (e.clientY - rect.top) + 'px');
 });
+
+// --- Scroll-reveal for list items ---
+// One shared observer, rooted against the actual scrolling ancestor (#panel-central-workspace,
+// which has its own overflow-y — the default viewport root would never fire for a list scrolled
+// inside it). Each item unobserves itself the first time it's revealed, so this is a one-time
+// entrance rather than a toggle that replays on every scroll back into view.
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    entry.target.classList.add('revealed');
+    revealObserver.unobserve(entry.target);
+  });
+}, { root: document.getElementById('panel-central-workspace'), threshold: 0.15 });
+
+function observeReveal(container){
+  container.querySelectorAll('.reveal-item:not(.revealed)').forEach(el => revealObserver.observe(el));
+}
+
+// --- Animated metric counters ---
+// Only used on renderHealth/renderReport — the dashboard/report "reveal" moments where a count-up
+// feels like Stripe's own summary numbers animating in. Deliberately NOT used on the sandbox's
+// live summary (renderSandboxSummary), which updates on every keystroke — a 500ms tween firing on
+// every digit typed would fight the user's input instead of feeling responsive; instant feedback
+// is the correct call there.
+function animateMetricCounters(container){
+  container.querySelectorAll('.metric .val').forEach(el => {
+    const target = parseInt(el.textContent, 10);
+    if (isNaN(target)) return; // defensive — no non-numeric .metric .val exists today, but this guards against text if one's ever added
+    const duration = 600;
+    const startTime = performance.now();
+    function frame(now){
+      const t = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(target * eased);
+      if (t < 1) requestAnimationFrame(frame);
+      else el.textContent = target; // pin the exact final value, avoids rounding drift on the last frame
+    }
+    requestAnimationFrame(frame);
+  });
+}
 
 function updateBreadcrumb(){
   const el = document.getElementById('breadcrumb');
@@ -1039,8 +1099,15 @@ document.getElementById('resendVerification').addEventListener('click', async ()
       }
     });
     if (anyEnabled) {
-      document.getElementById('oauthButtons').style.display = 'flex';
-      document.getElementById('oauthDivider').style.display = 'block';
+      const btns = document.getElementById('oauthButtons');
+      const divider = document.getElementById('oauthDivider');
+      btns.style.display = 'flex';
+      divider.style.display = 'block';
+      // rAF so the browser registers the pre-reveal (display:none -> flex/block) layout in one
+      // frame before the .revealed class kicks off the animation in the next — otherwise the
+      // keyframe's 0% state and the display change can land in the same paint and never visibly
+      // animate.
+      requestAnimationFrame(() => { btns.classList.add('revealed'); divider.classList.add('revealed'); });
     }
   } catch (e) {
     // If this fails, the social buttons just stay hidden — email/password signup still works.
@@ -1454,6 +1521,7 @@ function renderHealth(snapshot){
         '<ul id="activityFeed" class="activity-feed"><li class="msg" style="color:var(--muted);">Loading…</li></ul>' +
       '</div>' +
     '</div>';
+  animateMetricCounters(el);
   loadHealthExtras(snapshot);
 }
 
@@ -1477,10 +1545,11 @@ async function loadHealthExtras(snapshot){
     const feedEl = document.getElementById('activityFeed');
     if (!feedEl) return;
     if (!events.length) { feedEl.innerHTML = '<li class="msg" style="color:var(--muted);">No activity yet.</li>'; return; }
-    feedEl.innerHTML = events.map(e =>
-      '<li><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
+    feedEl.innerHTML = events.map((e, i) =>
+      '<li class="reveal-item" style="animation-delay:' + (i * 40) + 'ms;"><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
       '<span class="when">' + formatRelativeTime(e.timestamp) + '</span></li>'
     ).join('');
+    observeReveal(feedEl);
   } catch (e) {
     const feedEl = document.getElementById('activityFeed');
     if (feedEl) feedEl.innerHTML = '<li class="msg error" style="color:var(--bad);">Could not load activity: ' + e.message + '</li>';
@@ -1490,14 +1559,14 @@ async function loadHealthExtras(snapshot){
 function renderIssues(issues){
   const el = document.getElementById('issuesContent');
   if (!issues.length){ el.innerHTML = '<p class="empty">No issues found.</p>'; return; }
-  el.innerHTML = issues.map(i => {
+  el.innerHTML = issues.map((i, idx) => {
     const resolved = i.status === 'resolved';
     const name = escapeHtml(i.name);
     const sub = escapeHtml(i.sub);
     const shareBtn = (!resolved && i.severity === 'crit')
       ? '<button class="btn tiny no-print" onclick="shareCatch(\'' + escapeHtml(jsStringEscape(i.name)) + '\', \'' + escapeHtml(jsStringEscape(i.sub)) + '\')">🏆 Share This Catch</button>'
       : '';
-    return '<div class="issue' + (resolved ? ' resolved' : '') + '"><div><p class="issue-name">' + name + '</p><p class="issue-sub">' + sub + '</p></div>' +
+    return '<div class="issue reveal-item' + (resolved ? ' resolved' : '') + '" style="animation-delay:' + (idx * 40) + 'ms;"><div><p class="issue-name">' + name + '</p><p class="issue-sub">' + sub + '</p></div>' +
     '<div class="issue-right">' +
       (resolved
         ? '<span class="badge resolved-badge">resolved</span>'
@@ -1506,6 +1575,7 @@ function renderIssues(issues){
           '<button class="btn tiny no-print" onclick="resolveIssue(' + i.id + ')">Mark resolved</button>') +
     '</div></div>';
   }).join('');
+  observeReveal(el);
 }
 
 function shareCatch(name, sub){
@@ -1545,6 +1615,7 @@ function renderReport(projectName, snapshot){
     '<div id="narrativeBox" style="margin:16px 0;"></div>' +
     '<button class="btn primary no-print" onclick="window.print()">Export as PDF</button>' +
     '</div>';
+  animateMetricCounters(el);
   loadNarrative(snapshot);
 }
 
@@ -1771,10 +1842,11 @@ async function renderActivityFeedTab(){
   try {
     const events = await api('/api/projects/' + encodeURIComponent(currentProject) + '/activity');
     if (!events.length) { listEl.innerHTML = '<li class="msg" style="color:var(--muted);">No activity yet.</li>'; return; }
-    listEl.innerHTML = events.map(e =>
-      '<li><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
+    listEl.innerHTML = events.map((e, i) =>
+      '<li class="reveal-item" style="animation-delay:' + (i * 40) + 'ms;"><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
       '<span class="when">' + formatRelativeTime(e.timestamp) + '</span></li>'
     ).join('');
+    observeReveal(listEl);
   } catch (e) {
     listEl.innerHTML = '<li class="msg error" style="color:var(--bad);">Could not load activity: ' + e.message + '</li>';
   }
