@@ -34,20 +34,34 @@
   .sidebar-footer a { font-size: 11.5px; color: var(--muted); cursor: pointer; text-align: center; }
   .sidebar-footer a:hover { color: var(--accent); }
   .sidebar-nav { display: flex; flex-direction: column; gap: 4px; }
-  .sidebar-nav button { text-align: left; padding: 10px 12px; font-size: 13px; border: 1px solid transparent; background: transparent; border-radius: 8px; cursor: pointer; color: var(--ink); }
+  .sidebar-nav button { display: flex; align-items: center; gap: 9px; text-align: left; padding: 10px 12px; font-size: 13px; border: 1px solid transparent; background: transparent; border-radius: 8px; cursor: pointer; color: var(--ink); }
   .sidebar-nav button.active { background: var(--accent); color: #06231f; font-weight: 600; }
   #panel-central-workspace { flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 20px 24px; }
   #panel-right-command-bar { flex: 0 0 25%; min-width: 320px; max-width: 420px; border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
   .breadcrumb { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
   .breadcrumb .crumb-link { color: var(--accent); cursor: pointer; }
   .central-subnav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
-  .central-subnav button { padding: 8px 12px; font-size: 12.5px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--ink); }
+  .central-subnav button { display: flex; align-items: center; gap: 7px; padding: 8px 12px; font-size: 12.5px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--ink); }
   .central-subnav button.active { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
+  /* Icons inherit color from their button via currentColor, so they automatically match whatever
+     text color is already correct for that state (dark on the light active fill, muted ink
+     otherwise) — no separate active-state icon color rule needed. */
+  .nav-icon { flex-shrink: 0; transition: color 0.2s ease; }
+  #mobileSidebarToggle { display: none; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; margin-right: 8px; }
+  #sidebarBackdrop { display: none; }
   @media (max-width: 980px) {
-    .app-shell-root { height: auto; }
-    .telemetry-shell { flex-direction: column; height: auto; overflow: visible; }
-    #panel-left-sidebar { flex: none; width: 100%; max-width: none; min-width: 0; border-right: none; border-bottom: 1px solid var(--line); }
-    .sidebar-nav { flex-direction: row; overflow-x: auto; }
+    .app-shell-root { height: 100vh; }
+    .telemetry-shell { flex-direction: column; height: auto; overflow: visible; position: relative; }
+    #mobileSidebarToggle { display: inline-flex; }
+    /* Folded away by default on mobile — a touch-slide overlay drawer instead of the desktop
+       column, toggled by #mobileSidebarToggle. Central workspace gets the full width back. */
+    #panel-left-sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 260px; max-width: 80vw; flex: none;
+      transform: translateX(-100%); transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 210; background: var(--paper);
+    }
+    body.sidebar-open #panel-left-sidebar { transform: translateX(0); box-shadow: 8px 0 24px rgba(0,0,0,0.4); }
+    body.sidebar-open #sidebarBackdrop { display: block; position: fixed; inset: 0; background: rgba(10,14,20,0.5); z-index: 205; }
     #panel-central-workspace { flex: none; width: 100%; padding: 16px; }
     #panel-right-command-bar { flex: none; width: 100%; max-width: none; min-width: 0; border-left: none; border-top: 1px solid var(--line); height: 420px; }
   }
@@ -61,11 +75,22 @@
   .nav button { padding: 10px 6px; font-size: 13px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--ink); }
   .nav button.active { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
   .view { display: none; }
-  .view.active { display: block; }
+  /* display:none -> block can't be interpolated by a CSS transition (no prior painted frame to
+     animate from), so the fade-in uses a keyframe animation instead, which runs correctly the
+     instant the element enters the render tree regardless of the display jump. */
+  @keyframes viewFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .view.active { display: block; animation: viewFadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1); }
   .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 40px 16px; text-align: center; background: var(--card); }
   .drop input[type=file] { margin-top: 12px; color: var(--ink); }
   .row { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
-  button.btn, a.btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-size: 13px; color: var(--ink); text-decoration: none; display: inline-block; }
+  button.btn, a.btn {
+    padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
+    cursor: pointer; font-size: 13px; color: var(--ink); text-decoration: none; display: inline-block;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  button.btn:hover:not(:disabled), a.btn:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 4px 12px rgba(0,0,0,0.2); }
+  button.btn:active:not(:disabled), a.btn:active { transform: scale(0.98) translateY(0); }
+  button.btn:disabled { cursor: default; }
   button.btn.primary, a.btn.primary { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
   button.btn.cta { background: var(--orange); color: #fff; border-color: var(--orange); font-weight: 600; }
   button.btn.tiny { padding: 4px 10px; font-size: 11px; }
@@ -332,11 +357,15 @@
 
   <div id="appScreen" class="app-shell-root" style="display:none;">
     <div class="user-bar no-print">
-      <span><span id="userEmail"></span> <button id="creditPill" class="credit-pill"></button></span>
+      <span>
+        <button id="mobileSidebarToggle" aria-label="Toggle menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        <span id="userEmail"></span> <button id="creditPill" class="credit-pill"></button>
+      </span>
       <span>
         <button class="btn tiny" id="logoutBtn">Log out</button>
       </span>
     </div>
+    <div id="sidebarBackdrop" class="no-print"></div>
 
     <div id="modal-referral-perk" class="modal-overlay no-print" style="display:none;">
       <div class="modal-box">
@@ -355,10 +384,10 @@
       <nav id="panel-left-sidebar" class="no-print">
         <div class="sidebar-nav">
           <button data-step="health">Dashboard</button>
-          <button data-step="portfolio">Portfolio Overview</button>
+          <button data-step="portfolio"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Portfolio Overview</button>
           <button data-step="projects">Active Projects</button>
           <button data-step="issues">Issue Punch List</button>
-          <button data-step="portfolio">Multi-Project Leaderboard</button>
+          <button data-step="portfolio"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Multi-Project Leaderboard</button>
           <button data-step="pricing">Billing / Plan</button>
         </div>
         <div class="sidebar-footer">
@@ -372,9 +401,9 @@
         <div class="central-subnav no-print">
           <button data-step="upload">Upload</button>
           <button data-step="health">Dashboard</button>
-          <button data-step="milestones">Milestones</button>
-          <button data-step="gantt">Gantt Timeline</button>
-          <button data-step="sandbox">Sandbox</button>
+          <button data-step="milestones"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg> Milestones</button>
+          <button data-step="gantt"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg> Gantt Timeline</button>
+          <button data-step="sandbox"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="currentColor" stroke="none"/></svg> Sandbox</button>
           <button data-step="activity">Activity Feed</button>
           <button data-step="trends">Trends</button>
           <button data-step="report">Executive Reports</button>
@@ -562,7 +591,7 @@
             <span class="brand-mark"></span>
             <span>Ask Ordo</span>
           </div>
-          <button class="chat-suggest-pill no-print" id="suggestFeaturePill">💡 Suggest a Feature</button>
+          <button class="chat-suggest-pill no-print" id="suggestFeaturePill"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.4 1 1.2 1 2.3h6c0-1.1.4-1.9 1-2.3A7 7 0 0 0 12 2z"/></svg> Suggest a Feature</button>
           <div id="chatEmpty" class="empty" style="display:none; padding:24px 16px;">Analyze a schedule first, then come back here to ask questions about it.</div>
           <div id="chatWrap" class="chat-panel-body" style="display:none;">
             <div id="chatMessages" class="chat-panel-messages"></div>
@@ -608,6 +637,17 @@ function setView(step){
   if (step === 'health' && currentSnapshot) renderHealth(currentSnapshot);
 }
 navButtons.forEach(b => b.addEventListener('click', () => setView(b.dataset.step)));
+
+// --- Mobile sidebar drawer ---
+
+document.getElementById('mobileSidebarToggle').addEventListener('click', () => {
+  document.body.classList.toggle('sidebar-open');
+});
+document.getElementById('sidebarBackdrop').addEventListener('click', () => {
+  document.body.classList.remove('sidebar-open');
+});
+// Picking a destination closes the drawer too — no reason to leave it open once you've navigated.
+navButtons.forEach(b => b.addEventListener('click', () => document.body.classList.remove('sidebar-open')));
 
 function updateBreadcrumb(){
   const el = document.getElementById('breadcrumb');
