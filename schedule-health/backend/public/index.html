@@ -35,7 +35,14 @@
   .sidebar-footer a:hover { color: var(--accent); }
   .sidebar-nav { display: flex; flex-direction: column; gap: 4px; }
   .sidebar-nav button { display: flex; align-items: center; gap: 9px; text-align: left; padding: 10px 12px; font-size: 13px; border: 1px solid transparent; background: transparent; border-radius: 8px; cursor: pointer; color: var(--ink); }
-  .sidebar-nav button.active { background: var(--accent); color: #06231f; font-weight: 600; }
+  /* A flat solid fill on the active tab is exactly what reads as a plain webform control -- a
+     subtle gradient + glow + inner highlight gives it real depth instead, like a lit surface
+     rather than a painted rectangle. */
+  .sidebar-nav button.active {
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, white));
+    color: #06231f; font-weight: 600;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
   /* Nav-family buttons (sidebar items, sub-nav tabs, sidebar footer) aren't .btn elements — they
      have their own layout rules above — so they need their own copy of the same Linear-style
      motion instead of inheriting it. Excluded on .active since that state already has its own
@@ -67,7 +74,11 @@
   .central-subnav-wrap.collapsed { grid-template-rows: 0fr; margin-bottom: 0; }
   .central-subnav { display: flex; flex-wrap: wrap; gap: 6px; overflow: hidden; min-height: 0; }
   .central-subnav button { display: flex; align-items: center; gap: 7px; padding: 8px 12px; font-size: 12.5px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--ink); }
-  .central-subnav button.active { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
+  .central-subnav button.active {
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, white));
+    color: #06231f; border-color: var(--accent); font-weight: 600;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
   /* Icons inherit color from their button via currentColor, so they automatically match whatever
      text color is already correct for that state (dark on the light active fill, muted ink
      otherwise) — no separate active-state icon color rule needed. */
@@ -127,8 +138,16 @@
   button.btn:hover:not(:disabled), a.btn:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 4px 12px rgba(0,0,0,0.2); }
   button.btn:active:not(:disabled), a.btn:active { transform: scale(0.98) translateY(0); }
   button.btn:disabled { cursor: default; }
-  button.btn.primary, a.btn.primary { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
-  button.btn.cta { background: var(--orange); color: #fff; border-color: var(--orange); font-weight: 600; }
+  button.btn.primary, a.btn.primary {
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, white));
+    color: #06231f; border-color: var(--accent); font-weight: 600;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  button.btn.cta {
+    background: linear-gradient(135deg, var(--orange), color-mix(in srgb, var(--orange) 65%, white));
+    color: #fff; border-color: var(--orange); font-weight: 600;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--orange) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
   button.btn.tiny { padding: 4px 10px; font-size: 11px; }
   button.btn:disabled { opacity: 0.6; cursor: default; }
   /* Ambient mouse-follow glow — --mouse-x/--mouse-y are set on these elements by the delegated
@@ -172,9 +191,10 @@
   .issue {
     display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--line);
     border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; background: var(--card);
-    transition: transform 0.325s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.325s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.325s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.325s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.325s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .issue:hover { transform: translateY(-1px); border-color: var(--accent); }
+  .issue:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: 0 4px 10px rgba(0,0,0,0.28); }
   .gantt-scroll { max-height: 520px; overflow-y: auto; }
   .gantt-row { display: flex; align-items: center; gap: 12px; padding: 5px 0; }
   .gantt-label { width: 160px; flex: 0 0 auto; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -247,8 +267,19 @@
   .subscore-track { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
   .subscore-fill { height: 100%; border-radius: 3px; }
   .activity-feed { list-style: none; margin: 0; padding: 0; }
-  .activity-feed li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
-  .activity-feed li:last-child { border-bottom: none; }
+  /* Plain text rows separated only by a bottom border is exactly the "table row" look that reads
+     as a webform rather than an app -- a faint background tint + rounded corners + resting shadow
+     turns each entry into its own small card instead, consistent with .issue's treatment. */
+  .activity-feed li {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 8px 12px; margin-bottom: 6px; border-radius: 6px; font-size: 12.5px;
+    background: color-mix(in srgb, var(--card), white 6%);
+    border: 1px solid var(--line);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    transition: transform 0.325s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.325s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.325s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .activity-feed li:last-child { margin-bottom: 0; }
+  .activity-feed li:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: 0 3px 8px rgba(0,0,0,0.2); }
   .activity-feed .dot-lead { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 8px; flex-shrink: 0; }
   .activity-feed .msg { display: flex; align-items: center; color: var(--ink); }
   .activity-feed .when { color: var(--muted); white-space: nowrap; }
@@ -478,12 +509,12 @@
     <div class="telemetry-shell">
       <nav id="panel-left-sidebar" class="no-print">
         <div class="sidebar-nav">
-          <button data-step="health">Dashboard</button>
+          <button data-step="health"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 8 12 10 6 14 18 16 12 20 12"/></svg> Dashboard</button>
           <button data-step="portfolio"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Portfolio Overview</button>
-          <button data-step="projects">Active Projects</button>
-          <button data-step="issues">Issue Punch List</button>
+          <button data-step="projects"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z"/></svg> Active Projects</button>
+          <button data-step="issues"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4"/><path d="M4 4h13l-2.5 4L17 12H4"/></svg> Issue Punch List</button>
           <button data-step="portfolio"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Multi-Project Leaderboard</button>
-          <button data-step="pricing">Billing / Plan</button>
+          <button data-step="pricing"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Billing / Plan</button>
         </div>
         <div class="sidebar-footer">
           <button data-step="guide"><span class="sidebar-footer-icon">?</span> App Guide / Capabilities</button>
@@ -495,14 +526,14 @@
         <div id="breadcrumb" class="breadcrumb no-print"><span class="crumb-link" onclick="setView('portfolio')">Portfolios</span></div>
         <div class="central-subnav-wrap no-print">
           <div class="central-subnav">
-            <button data-step="upload">Upload</button>
-            <button data-step="health">Dashboard</button>
+            <button data-step="upload"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 8 12 3 17 8"/><path d="M5 21h14"/></svg> Upload</button>
+            <button data-step="health"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 8 12 10 6 14 18 16 12 20 12"/></svg> Dashboard</button>
             <button data-step="milestones"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg> Milestones</button>
             <button data-step="gantt"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg> Gantt Timeline</button>
             <button data-step="sandbox"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="currentColor" stroke="none"/></svg> Sandbox</button>
-            <button data-step="activity">Activity Feed</button>
-            <button data-step="trends">Trends</button>
-            <button data-step="report">Executive Reports</button>
+            <button data-step="activity"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none"/><line x1="8" y1="6" x2="20" y2="6"/><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/><line x1="8" y1="12" x2="20" y2="12"/><circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none"/><line x1="8" y1="18" x2="20" y2="18"/></svg> Activity Feed</button>
+            <button data-step="trends"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg> Trends</button>
+            <button data-step="report"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6z"/><line x1="9" y1="12" x2="16" y2="12"/><line x1="9" y1="16" x2="16" y2="16"/></svg> Executive Reports</button>
           </div>
         </div>
 
@@ -710,16 +741,37 @@
 const API = ''; // same-origin: server.js serves this file and the API together
 
 const navButtons = document.querySelectorAll('.sidebar-nav button, .central-subnav button, .sidebar-footer button[data-step]');
+// Active-highlight scoping is per nav GROUP, not global: the sidebar's "Dashboard" and the
+// sub-nav's "Dashboard" intentionally share data-step="health" across two different, always
+// simultaneously visible lists, and both should light up together as "you are here" indicators
+// at two levels. Portfolio Overview and Multi-Project Leaderboard share data-step="portfolio"
+// WITHIN the same list though, which is the actually-confusing case (see setView below).
+const NAV_GROUPS = [
+  document.querySelector('.sidebar-nav'),
+  document.querySelector('.central-subnav'),
+  document.querySelector('.sidebar-footer')
+].filter(Boolean);
 // Views that live inside an active project's context — the central sub-tab row only makes sense
 // for these; sidebar-only destinations (issues/portfolio/pricing/projects/guide) take the full
 // central panel instead. Ask Ordo isn't here — it's permanently docked in the right panel now,
 // not part of the .view toggle system at all.
 const PROJECT_SCOPED_STEPS = ['upload', 'health', 'milestones', 'gantt', 'sandbox', 'activity', 'trends', 'report'];
 
-function setView(step){
+function setView(step, sourceBtn){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('v-' + step).classList.add('active');
-  navButtons.forEach(b => b.classList.toggle('active', b.dataset.step === step));
+  // Within the sidebar-nav group specifically, Portfolio Overview and Multi-Project Leaderboard
+  // share data-step="portfolio" (both route to the same v-portfolio view) -- naively matching on
+  // data-step alone highlighted both simultaneously whichever one was actually clicked. When
+  // setView is invoked directly by a button click, sourceBtn pins the highlight to that exact
+  // button within its own group; every other caller (the breadcrumb link, the tour, "Replay tour")
+  // has no specific button in mind, so each group falls back to its own first matching button.
+  NAV_GROUPS.forEach(group => {
+    const groupButtons = [...group.querySelectorAll('button[data-step]')];
+    const matches = groupButtons.filter(b => b.dataset.step === step);
+    const toHighlight = (sourceBtn && matches.includes(sourceBtn)) ? sourceBtn : matches[0];
+    groupButtons.forEach(b => b.classList.toggle('active', b === toHighlight));
+  });
   const subnavWrap = document.querySelector('.central-subnav-wrap');
   if (subnavWrap) subnavWrap.classList.toggle('collapsed', !PROJECT_SCOPED_STEPS.includes(step));
   document.getElementById('panel-central-workspace').scrollTop = 0;
@@ -733,7 +785,7 @@ function setView(step){
   if (step === 'pricing') renderPricing();
   if (step === 'health' && currentSnapshot) renderHealth(currentSnapshot);
 }
-navButtons.forEach(b => b.addEventListener('click', () => setView(b.dataset.step)));
+navButtons.forEach(b => b.addEventListener('click', () => setView(b.dataset.step, b)));
 
 // --- Mobile sidebar drawer ---
 
