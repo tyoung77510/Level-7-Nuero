@@ -41,7 +41,7 @@
      motion instead of inheriting it. Excluded on .active since that state already has its own
      solid-fill highlight; lifting it too reads as jittery rather than responsive. */
   .sidebar-nav button, .central-subnav button, .sidebar-footer button {
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.325s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.325s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.325s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.325s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .sidebar-nav button:hover:not(.active), .central-subnav button:hover:not(.active), .sidebar-footer button:hover {
     transform: translateY(-1px);
@@ -62,7 +62,7 @@
      would leave a dead gap even fully collapsed. */
   .central-subnav-wrap {
     display: grid; grid-template-rows: 1fr; margin-bottom: 18px;
-    transition: grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1), margin-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: grid-template-rows 0.39s cubic-bezier(0.16, 1, 0.3, 1), margin-bottom 0.39s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .central-subnav-wrap.collapsed { grid-template-rows: 0fr; margin-bottom: 0; }
   .central-subnav { display: flex; flex-wrap: wrap; gap: 6px; overflow: hidden; min-height: 0; }
@@ -71,7 +71,7 @@
   /* Icons inherit color from their button via currentColor, so they automatically match whatever
      text color is already correct for that state (dark on the light active fill, muted ink
      otherwise) — no separate active-state icon color rule needed. */
-  .nav-icon { flex-shrink: 0; transition: color 0.2s ease; }
+  .nav-icon { flex-shrink: 0; transition: color 0.26s ease; }
   #mobileSidebarToggle { display: none; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; margin-right: 8px; }
   #sidebarBackdrop { display: none; }
   @media (max-width: 980px) {
@@ -82,7 +82,7 @@
        column, toggled by #mobileSidebarToggle. Central workspace gets the full width back. */
     #panel-left-sidebar {
       position: fixed; top: 0; left: 0; bottom: 0; width: 260px; max-width: 80vw; flex: none;
-      transform: translateX(-100%); transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateX(-100%); transition: transform 0.325s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 210; background: var(--paper);
     }
     body.sidebar-open #panel-left-sidebar { transform: translateX(0); box-shadow: 8px 0 24px rgba(0,0,0,0.4); }
@@ -106,7 +106,7 @@
      and transition are separate CSS properties and never fight over which wins. */
   @keyframes revealItem { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .reveal-item { opacity: 0; }
-  .reveal-item.revealed { opacity: 1; transform: translateY(0); animation: revealItem 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+  .reveal-item.revealed { opacity: 1; transform: translateY(0); animation: revealItem 0.52s cubic-bezier(0.16, 1, 0.3, 1); }
   .view { display: none; }
   /* display:none -> block can't be interpolated by a CSS transition (no prior painted frame to
      animate from), so the fade-in uses a keyframe animation instead, which runs correctly the
@@ -115,14 +115,14 @@
     0% { opacity: 0; transform: scale(0.995) translateY(6px); filter: blur(2px); }
     100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
   }
-  .view.active { display: block; animation: stripeMorphIn 300ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .view.active { display: block; animation: stripeMorphIn 390ms cubic-bezier(0.16, 1, 0.3, 1); }
   .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 40px 16px; text-align: center; background: var(--card); }
   .drop input[type=file] { margin-top: 12px; color: var(--ink); }
   .row { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
   button.btn, a.btn {
     padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
     cursor: pointer; font-size: 13px; color: var(--ink); text-decoration: none; display: inline-block;
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.325s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.325s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.325s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.325s cubic-bezier(0.16, 1, 0.3, 1);
   }
   button.btn:hover:not(:disabled), a.btn:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 4px 12px rgba(0,0,0,0.2); }
   button.btn:active:not(:disabled), a.btn:active { transform: scale(0.98) translateY(0); }
@@ -150,7 +150,7 @@
     position: absolute; inset: 0;
     background: radial-gradient(80px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.35), transparent 80%);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.39s ease;
     pointer-events: none;
   }
   .tier-card::before, .conversion-banner::before {
@@ -158,7 +158,7 @@
     position: absolute; inset: 0;
     background: radial-gradient(120px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), color-mix(in srgb, var(--accent) 16%, transparent), transparent 80%);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.39s ease;
     pointer-events: none;
   }
   button.btn.primary:hover::before, a.btn.primary:hover::before, button.btn.cta:hover::before, .tier-card:hover::before, .conversion-banner:hover::before { opacity: 1; }
@@ -172,7 +172,7 @@
   .issue {
     display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--line);
     border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; background: var(--card);
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.325s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.325s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .issue:hover { transform: translateY(-1px); border-color: var(--accent); }
   .gantt-scroll { max-height: 520px; overflow-y: auto; }
@@ -198,7 +198,7 @@
     background-color: var(--paper);
     background-image: radial-gradient(var(--line) 1px, transparent 1px);
     background-size: 22px 22px;
-    animation: heroFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: heroFadeIn 0.52s cubic-bezier(0.16, 1, 0.3, 1);
   }
   #welcomeHero h1 { font-size: clamp(30px, 5.5vw, 54px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; margin: 0 0 18px; max-width: 780px; }
   #welcomeHero h1 .seven { color: var(--orange); }
@@ -788,7 +788,7 @@ function animateMetricCounters(container){
   container.querySelectorAll('.metric .val').forEach(el => {
     const target = parseInt(el.textContent, 10);
     if (isNaN(target)) return; // defensive — no non-numeric .metric .val exists today, but this guards against text if one's ever added
-    const duration = 600;
+    const duration = 780;
     const startTime = performance.now();
     function frame(now){
       const t = Math.min(1, (now - startTime) / duration);
@@ -1546,7 +1546,7 @@ async function loadHealthExtras(snapshot){
     if (!feedEl) return;
     if (!events.length) { feedEl.innerHTML = '<li class="msg" style="color:var(--muted);">No activity yet.</li>'; return; }
     feedEl.innerHTML = events.map((e, i) =>
-      '<li class="reveal-item" style="animation-delay:' + (i * 40) + 'ms;"><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
+      '<li class="reveal-item" style="animation-delay:' + (i * 52) + 'ms;"><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
       '<span class="when">' + formatRelativeTime(e.timestamp) + '</span></li>'
     ).join('');
     observeReveal(feedEl);
@@ -1566,7 +1566,7 @@ function renderIssues(issues){
     const shareBtn = (!resolved && i.severity === 'crit')
       ? '<button class="btn tiny no-print" onclick="shareCatch(\'' + escapeHtml(jsStringEscape(i.name)) + '\', \'' + escapeHtml(jsStringEscape(i.sub)) + '\')">🏆 Share This Catch</button>'
       : '';
-    return '<div class="issue reveal-item' + (resolved ? ' resolved' : '') + '" style="animation-delay:' + (idx * 40) + 'ms;"><div><p class="issue-name">' + name + '</p><p class="issue-sub">' + sub + '</p></div>' +
+    return '<div class="issue reveal-item' + (resolved ? ' resolved' : '') + '" style="animation-delay:' + (idx * 52) + 'ms;"><div><p class="issue-name">' + name + '</p><p class="issue-sub">' + sub + '</p></div>' +
     '<div class="issue-right">' +
       (resolved
         ? '<span class="badge resolved-badge">resolved</span>'
@@ -1843,7 +1843,7 @@ async function renderActivityFeedTab(){
     const events = await api('/api/projects/' + encodeURIComponent(currentProject) + '/activity');
     if (!events.length) { listEl.innerHTML = '<li class="msg" style="color:var(--muted);">No activity yet.</li>'; return; }
     listEl.innerHTML = events.map((e, i) =>
-      '<li class="reveal-item" style="animation-delay:' + (i * 40) + 'ms;"><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
+      '<li class="reveal-item" style="animation-delay:' + (i * 52) + 'ms;"><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
       '<span class="when">' + formatRelativeTime(e.timestamp) + '</span></li>'
     ).join('');
     observeReveal(listEl);
