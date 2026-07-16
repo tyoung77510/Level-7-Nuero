@@ -862,6 +862,13 @@ route('GET', '/api/snapshots/compare', async (req, res, params, user) => {
 // and are returned by GET, just not replayed to Claude past this point.
 const CHAT_HISTORY_LIMIT = 20;
 
+// Separates the streamed reply text from the trailing bookkeeping JSON (credit balance) that's
+// only known once the full response and its token usage are in. Plain text, not a real framing
+// protocol (SSE, chunked JSON lines) — this endpoint streams to a single client, not a
+// multiplexed event bus, so this simpler scheme is enough. Must match the identical constant in
+// public/index.html exactly.
+const CHAT_STREAM_META_MARKER = ' CHATMETA ';
+
 route('GET', '/api/snapshots/:id/chat', async (req, res, params, user) => {
   const snapshotId = Number(params.id);
   const ownerId = store.getSnapshotOwnerUserId(snapshotId);
@@ -894,8 +901,22 @@ route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
   const issues = store.getIssuesForSnapshot(snapshotId);
   const history = store.getChatMessages(snapshotId).slice(-CHAT_HISTORY_LIMIT);
 
-  const result = await ai.generateChatReply(snapshot, issues, history, message);
-  if (!result) return sendJSON(res, 502, { error: 'Could not get a reply right now — try again in a moment' });
+  // Streamed as plain text chunks, not a single JSON response — the client renders each chunk as
+  // it arrives for a real typewriter effect, not a delayed reveal of an already-complete reply.
+  // Headers are deferred until the first chunk actually arrives so a failure before any text was
+  // generated can still return a normal JSON error status; a failure *after* streaming has begun
+  // has no such option (the 200 status is already committed) — the client detects that case by a
+  // stream that ends without the trailing CHAT_STREAM_META_MARKER payload.
+  let headersSent = false;
+  const result = await ai.generateChatReplyStream(snapshot, issues, history, message, (chunk) => {
+    if (!headersSent) { res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }); headersSent = true; }
+    res.write(chunk);
+  }).catch(err => { console.error('[chat] stream error', err.message); return null; });
+
+  if (!result) {
+    if (!headersSent) return sendJSON(res, 502, { error: 'Could not get a reply right now — try again in a moment' });
+    return res.end();
+  }
 
   const cost = pricing.costUsd(result.inputTokens, result.outputTokens);
   const credits = pricing.creditsForUsage(result.inputTokens, result.outputTokens);
@@ -904,7 +925,7 @@ route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
   store.logAiUsage(user.id, snapshotId, result.inputTokens, result.outputTokens, cost, credits);
   const updatedBillingUser = store.deductCredits(billingUser.id, credits);
 
-  sendJSON(res, 200, { reply: result.text, creditsUsed: credits, creditBalance: updatedBillingUser.credit_balance });
+  res.end(CHAT_STREAM_META_MARKER + JSON.stringify({ creditsUsed: credits, creditBalance: updatedBillingUser.credit_balance }));
 });
 
 route('POST', '/api/feedback', async (req, res, params, user) => {

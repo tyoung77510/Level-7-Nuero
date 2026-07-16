@@ -1,5 +1,7 @@
 // ai.js — AI-generated report narrative via the Claude API (raw HTTPS, no SDK dependency)
-const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
+// Override only exists for local testing against a mock server that speaks the same SSE wire
+// format — never set in any real deployment, so this always points at the real API in production.
+const ANTHROPIC_API = process.env.ANTHROPIC_API_BASE_URL || 'https://api.anthropic.com/v1/messages';
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5';
 
 function aiConfigured() {
@@ -89,11 +91,13 @@ async function generateNarrative(snapshot, issues) {
   }
 }
 
-// Multi-turn Q&A about a specific schedule. `history` is prior chat_messages rows
-// ({role, content}, oldest first) for that snapshot; `userMessage` is the new question.
-// Anthropic caps conversation length via max_tokens per turn, not overall — the caller is
-// responsible for capping how much history gets resent if a conversation gets very long.
-async function generateChatReply(snapshot, issues, history, userMessage) {
+// Multi-turn Q&A about a specific schedule, streamed token-by-token. `history` is prior
+// chat_messages rows ({role, content}, oldest first) for that snapshot; `userMessage` is the new
+// question; `onChunk(text)` is called for each text fragment as it arrives so the caller can
+// forward it to the client in real time instead of waiting for the full reply. Anthropic caps
+// conversation length via max_tokens per turn, not overall — the caller is responsible for
+// capping how much history gets resent if a conversation gets very long.
+async function generateChatReplyStream(snapshot, issues, history, userMessage, onChunk) {
   if (!aiConfigured()) return null;
   // Two things this needs to do, not one: answer questions grounded in the specific schedule
   // below (use its real numbers, don't hand-wave), AND answer general project management/project
@@ -126,7 +130,8 @@ ${buildScheduleContext(snapshot, issues)}`;
         model: MODEL,
         max_tokens: 500,
         system,
-        messages
+        messages,
+        stream: true
       })
     });
     if (!res.ok) {
@@ -134,18 +139,41 @@ ${buildScheduleContext(snapshot, issues)}`;
       console.error('[ai] Claude API error', res.status, text);
       return null;
     }
-    const data = await res.json();
-    const text = (data.content || []).map(block => block.text || '').join('').trim();
-    if (!text) return null;
-    return {
-      text,
-      inputTokens: data.usage?.input_tokens || 0,
-      outputTokens: data.usage?.output_tokens || 0
-    };
+
+    // Anthropic's streaming Messages API is server-sent events: one `data: {...}` line per event.
+    // The pieces this needs are spread across three event types — message_start carries
+    // input_tokens, content_block_delta carries each text fragment, and the final message_delta
+    // carries the completed output_tokens count (not incremental — it's the running total, so the
+    // last one seen is the real figure).
+    let fullText = '', inputTokens = 0, outputTokens = 0, buffer = '';
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // last entry may be a partial line split across chunks — keep it
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let evt;
+        try { evt = JSON.parse(line.slice(6)); } catch (e) { continue; }
+        if (evt.type === 'message_start') {
+          inputTokens = evt.message?.usage?.input_tokens || 0;
+        } else if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+          fullText += evt.delta.text;
+          onChunk(evt.delta.text);
+        } else if (evt.type === 'message_delta') {
+          outputTokens = evt.usage?.output_tokens || outputTokens;
+        }
+      }
+    }
+    if (!fullText) return null;
+    return { text: fullText, inputTokens, outputTokens };
   } catch (err) {
-    console.error('[ai] generateChatReply failed', err.message);
+    console.error('[ai] generateChatReplyStream failed', err.message);
     return null;
   }
 }
 
-module.exports = { aiConfigured, verifyApiKeyWorks, generateNarrative, generateChatReply };
+module.exports = { aiConfigured, verifyApiKeyWorks, generateNarrative, generateChatReplyStream };
