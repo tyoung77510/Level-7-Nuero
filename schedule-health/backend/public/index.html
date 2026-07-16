@@ -262,6 +262,10 @@
   .gantt-label { width: 160px; flex: 0 0 auto; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .gantt-track { flex: 1; position: relative; height: 16px; background: var(--line); border-radius: 4px; }
   .gantt-bar { position: absolute; top: 0; height: 100%; border-radius: 4px; min-width: 4px; }
+  .crit-path-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .crit-path-row:last-child { border-bottom: none; }
+  .crit-path-name { font-size: 13px; flex: 1 1 220px; min-width: 0; }
+  .crit-path-meta { display: flex; gap: 14px; font-size: 12px; color: var(--muted); flex-shrink: 0; }
   .sandbox-row { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); padding: 8px 0; }
   .sandbox-row:last-child { border-bottom: none; }
   .sandbox-row .dot { flex: 0 0 auto; }
@@ -447,6 +451,25 @@
     border-bottom: 1px solid var(--line);
     font-weight: 600; font-size: 14px;
     flex-shrink: 0;
+  }
+  #chatCollapseBtn {
+    margin-left: auto; flex-shrink: 0;
+    width: 26px; height: 26px; border-radius: 6px;
+    border: none; background: transparent; color: var(--muted);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  #chatCollapseBtn:hover { background: var(--card); color: var(--ink); }
+  #chatCollapseBtn svg { transition: transform 0.2s ease; }
+  /* Collapsed: shrink the whole aside to a thin strip with just the header (and its toggle)
+     visible — same technique as the central-subnav's .collapsed class elsewhere in this file. */
+  #panel-right-command-bar.collapsed { flex: 0 0 auto; width: 52px; min-width: 52px; }
+  #panel-right-command-bar.collapsed .chat-panel-header > span,
+  #panel-right-command-bar.collapsed .chat-suggest-pill,
+  #panel-right-command-bar.collapsed #chatEmpty,
+  #panel-right-command-bar.collapsed #chatWrap { display: none !important; }
+  #panel-right-command-bar.collapsed #chatCollapseBtn svg { transform: rotate(180deg); }
+  @media (max-width: 900px) {
+    #panel-right-command-bar.collapsed { width: 100%; height: 52px; min-width: 0; }
   }
   .chat-panel-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   .chat-panel-messages {
@@ -664,6 +687,7 @@
             <button data-step="health"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 8 12 10 6 14 18 16 12 20 12"/></svg> Dashboard</button>
             <button data-step="milestones"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg> Milestones</button>
             <button data-step="gantt"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg> Gantt Timeline</button>
+            <button data-step="criticalpath"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 6h6a4 4 0 0 1 4 4v2a4 4 0 0 0 4 4h-4"/></svg> Critical Path</button>
             <button data-step="sandbox"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="currentColor" stroke="none"/></svg> Sandbox</button>
             <button data-step="activity"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none"/><line x1="8" y1="6" x2="20" y2="6"/><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/><line x1="8" y1="12" x2="20" y2="12"/><circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none"/><line x1="8" y1="18" x2="20" y2="18"/></svg> Activity Feed</button>
             <button data-step="trends"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg> Trends</button>
@@ -805,6 +829,18 @@
         <select id="trendProjectSelect"></select>
       </div>
       <div id="trendsContent"><p class="empty">Analyze at least one file to start tracking trends.</p></div>
+
+      <div id="varianceSection" style="display:none; margin-top:24px;">
+        <h2 style="margin:0 0 4px; font-size:15px;">Compare snapshots</h2>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">See exactly what changed between two analyses of this project — score, issues, and which activities moved.</p>
+        <div class="row no-print" style="justify-content:flex-start; gap:8px; flex-wrap:wrap; margin-top:0;">
+          <select id="varianceFromSelect"></select>
+          <span style="color:var(--muted); font-size:13px; align-self:center;">&rarr;</span>
+          <select id="varianceToSelect"></select>
+          <button class="btn cta" id="varianceCompareBtn">Compare</button>
+        </div>
+        <div id="varianceContent" style="margin-top:14px;"></div>
+      </div>
     </div>
 
     <div id="v-portfolio" class="view">
@@ -826,6 +862,10 @@
 
     <div id="v-gantt" class="view">
       <div id="ganttContent"><p class="empty">No schedule analyzed yet.</p></div>
+    </div>
+
+    <div id="v-criticalpath" class="view">
+      <div id="criticalPathContent"><p class="empty">No schedule analyzed yet.</p></div>
     </div>
 
     <div id="v-sandbox" class="view">
@@ -872,6 +912,9 @@
           <div class="chat-panel-header">
             <span class="brand-mark"></span>
             <span>Ask Ordo</span>
+            <button id="chatCollapseBtn" class="no-print" aria-label="Collapse Ask Ordo panel" title="Collapse">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+            </button>
           </div>
           <button class="chat-suggest-pill no-print" id="suggestFeaturePill"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.4 1 1.2 1 2.3h6c0-1.1.4-1.9 1-2.3A7 7 0 0 0 12 2z"/></svg> Suggest a Feature</button>
           <div id="chatEmpty" class="empty" style="display:none; padding:24px 16px;">Analyze a schedule first, then come back here to ask questions about it.</div>
@@ -909,7 +952,7 @@ const NAV_GROUPS = [
 // for these; sidebar-only destinations (issues/portfolio/pricing/projects/guide) take the full
 // central panel instead. Ask Ordo isn't here — it's permanently docked in the right panel now,
 // not part of the .view toggle system at all.
-const PROJECT_SCOPED_STEPS = ['upload', 'health', 'milestones', 'gantt', 'sandbox', 'activity', 'trends', 'report'];
+const PROJECT_SCOPED_STEPS = ['upload', 'health', 'milestones', 'gantt', 'criticalpath', 'sandbox', 'activity', 'trends', 'report'];
 
 function setView(step, sourceBtn){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -933,6 +976,7 @@ function setView(step, sourceBtn){
   if (step === 'portfolio') renderPortfolio();
   if (step === 'milestones') renderMilestones();
   if (step === 'gantt') renderGantt();
+  if (step === 'criticalpath') renderCriticalPath();
   if (step === 'sandbox') renderSandbox();
   if (step === 'projects') renderActiveProjects();
   if (step === 'activity') renderActivityFeedTab();
@@ -1260,6 +1304,8 @@ function updateCreditPill(user){
 const FEATURE_TIERS = {
   sandboxSimulator: ['pro', 'teams'],
   ganttTimeline: ['pro', 'teams'],
+  criticalPath: ['pro', 'teams'],
+  crossSnapshotVariance: ['pro', 'teams'],
   liveReviewRooms: ['teams'],
   unwatermarkedReports: ['teams'],
   unrestrictedLeaderboard: ['pro', 'teams']
@@ -1498,6 +1544,24 @@ async function shareRiskAudit(snapshotId){
     btn.textContent = original;
   }
 }
+
+// --- Chat panel collapse/expand ---
+// Persisted per-browser (not per-account — this is a screen-space preference, not app state) so
+// it survives reloads and view switches without needing a server round-trip.
+function applyChatCollapsedState(){
+  const collapsed = localStorage.getItem('ordo7_chat_collapsed') === '1';
+  const bar = document.getElementById('panel-right-command-bar');
+  const btn = document.getElementById('chatCollapseBtn');
+  bar.classList.toggle('collapsed', collapsed);
+  btn.title = collapsed ? 'Expand' : 'Collapse';
+  btn.setAttribute('aria-label', collapsed ? 'Expand Ask Ordo panel' : 'Collapse Ask Ordo panel');
+}
+document.getElementById('chatCollapseBtn').addEventListener('click', () => {
+  const nowCollapsed = !document.getElementById('panel-right-command-bar').classList.contains('collapsed');
+  localStorage.setItem('ordo7_chat_collapsed', nowCollapsed ? '1' : '0');
+  applyChatCollapsedState();
+});
+applyChatCollapsedState();
 
 // --- Suggest a Feature (chat plug) ---
 // Reuses the same chat input the user already has open — /suggest-prefixed messages are routed
@@ -2159,6 +2223,106 @@ async function renderTrends(){
     '<svg class="spark" viewBox="0 0 200 50"><polyline points="' + pts + '" fill="none" stroke="var(--accent)" stroke-width="2"/></svg></div>' +
     '<p style="font-size:13px; color:var(--muted);">' + n + ' snapshot' + (n===1?'':'s') + ' recorded for ' + chosen + ', stored on the server.</p>';
   sel.onchange = renderTrends;
+
+  renderVarianceSection(history);
+}
+
+function varianceSnapshotLabel(h){
+  return new Date(h.date.includes('T') ? h.date : h.date + 'Z').toLocaleDateString() + ' — score ' + h.score;
+}
+
+function renderVarianceSection(history){
+  const section = document.getElementById('varianceSection');
+  const varContent = document.getElementById('varianceContent');
+  if (history.length < 2){ section.style.display = 'none'; return; }
+  section.style.display = '';
+  varContent.innerHTML = '';
+
+  if (!checkFeatureAccess('crossSnapshotVariance')){
+    document.getElementById('varianceFromSelect').innerHTML = '';
+    document.getElementById('varianceToSelect').innerHTML = '';
+    document.getElementById('varianceCompareBtn').disabled = true;
+    varContent.innerHTML = '<div class="card" style="text-align:center;">' +
+      '<p style="font-size:13px; margin:0 0 10px;">Comparing snapshots is a Pro feature — see exactly what changed since your last analysis.</p>' +
+      '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to unlock snapshot comparison</button>' +
+      '</div>';
+    return;
+  }
+  document.getElementById('varianceCompareBtn').disabled = false;
+
+  const options = history.map(h => '<option value="' + h.id + '">' + escapeHtml(varianceSnapshotLabel(h)) + '</option>').join('');
+  const fromSel = document.getElementById('varianceFromSelect');
+  const toSel = document.getElementById('varianceToSelect');
+  fromSel.innerHTML = options;
+  toSel.innerHTML = options;
+  // Default to comparing the two most recent snapshots — the comparison most people actually want.
+  fromSel.value = history[history.length - 2].id;
+  toSel.value = history[history.length - 1].id;
+
+  document.getElementById('varianceCompareBtn').onclick = runVarianceCompare;
+  runVarianceCompare();
+}
+
+async function runVarianceCompare(){
+  const varContent = document.getElementById('varianceContent');
+  const fromId = document.getElementById('varianceFromSelect').value;
+  const toId = document.getElementById('varianceToSelect').value;
+  if (!fromId || !toId) return;
+  if (fromId === toId){ varContent.innerHTML = '<p class="empty">Pick two different snapshots to compare.</p>'; return; }
+  varContent.innerHTML = '<p class="empty">Comparing…</p>';
+  let data;
+  try {
+    data = await api('/api/snapshots/compare?from=' + encodeURIComponent(fromId) + '&to=' + encodeURIComponent(toId));
+  } catch (e) {
+    varContent.innerHTML = '<p class="error">' + e.message + '</p>';
+    return;
+  }
+  varContent.innerHTML = renderVarianceResult(data);
+}
+
+function deltaLabel(n, goodWhenNegative){
+  if (n === 0) return '<span style="color:var(--muted);">no change</span>';
+  const good = goodWhenNegative ? n < 0 : n > 0;
+  const sign = n > 0 ? '+' : '';
+  return '<span style="color:' + (good ? 'var(--good)' : 'var(--bad)') + '; font-weight:600;">' + sign + n + '</span>';
+}
+
+function varianceActivityList(items, emptyText){
+  if (!items.length) return '<p class="empty" style="padding:6px 0;">' + emptyText + '</p>';
+  return '<ul style="margin:0; padding-left:18px; font-size:12.5px;">' +
+    items.map(a => '<li>' + escapeHtml(a.name) + '</li>').join('') + '</ul>';
+}
+
+function renderVarianceResult(data){
+  const floatRows = data.activityChanges.floatChanges.map(f =>
+    '<div class="crit-path-row"><div class="crit-path-name">' + escapeHtml(f.name) + '</div>' +
+      '<div class="crit-path-meta"><span>' + f.fromFloat + 'd &rarr; ' + f.toFloat + 'd</span>' +
+      '<span style="color:' + (f.delta < 0 ? 'var(--bad)' : 'var(--good)') + ';">' + (f.delta > 0 ? '+' : '') + f.delta + 'd</span></div></div>'
+  ).join('');
+
+  const issueRow = (i) => '<div class="issue"><div style="font-size:13px; font-weight:500;">' + escapeHtml(i.name) + '</div>' +
+    '<div class="issue-right" style="font-size:12px; color:var(--muted);">' + escapeHtml(i.sub) + '</div></div>';
+
+  return '<div class="metric-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px;">' +
+      '<div class="card" style="text-align:center; padding:12px;"><div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Score</div><div style="font-size:20px; font-weight:700; margin-top:4px;">' + data.from.score + ' &rarr; ' + data.to.score + '</div><div style="margin-top:2px;">' + deltaLabel(data.scoreDelta, false) + '</div></div>' +
+      '<div class="card" style="text-align:center; padding:12px;"><div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Critical issues</div><div style="font-size:20px; font-weight:700; margin-top:4px;">' + data.from.critCount + ' &rarr; ' + data.to.critCount + '</div><div style="margin-top:2px;">' + deltaLabel(data.critCountDelta, true) + '</div></div>' +
+      '<div class="card" style="text-align:center; padding:12px;"><div style="font-size:11px; color:var(--muted); text-transform:uppercase;">At-risk issues</div><div style="font-size:20px; font-weight:700; margin-top:4px;">' + data.from.riskCount + ' &rarr; ' + data.to.riskCount + '</div><div style="margin-top:2px;">' + deltaLabel(data.riskCountDelta, true) + '</div></div>' +
+    '</div>' +
+    '<div class="card" style="margin-bottom:12px;">' +
+      '<h2 style="margin:0 0 8px; font-size:14px;">Activities that became critical</h2>' + varianceActivityList(data.activityChanges.becameCritical, 'None.') +
+    '</div>' +
+    '<div class="card" style="margin-bottom:12px;">' +
+      '<h2 style="margin:0 0 8px; font-size:14px;">Activities no longer critical</h2>' + varianceActivityList(data.activityChanges.resolvedCritical, 'None.') +
+    '</div>' +
+    (floatRows ? '<div class="card" style="margin-bottom:12px;"><h2 style="margin:0 0 8px; font-size:14px;">Float changes (1+ day)</h2><div class="crit-path-list">' + floatRows + '</div></div>' : '') +
+    (data.activityChanges.added.length ? '<div class="card" style="margin-bottom:12px;"><h2 style="margin:0 0 8px; font-size:14px;">New activities</h2>' + varianceActivityList(data.activityChanges.added, 'None.') + '</div>' : '') +
+    (data.activityChanges.removed.length ? '<div class="card" style="margin-bottom:12px;"><h2 style="margin:0 0 8px; font-size:14px;">Activities removed</h2>' + varianceActivityList(data.activityChanges.removed, 'None.') + '</div>' : '') +
+    '<div class="card" style="margin-bottom:12px;"><h2 style="margin:0 0 8px; font-size:14px;">New issues</h2>' +
+      (data.issueChanges.newIssues.length ? data.issueChanges.newIssues.map(issueRow).join('') : '<p class="empty" style="padding:6px 0;">None.</p>') +
+    '</div>' +
+    '<div class="card"><h2 style="margin:0 0 8px; font-size:14px;">Resolved issues</h2>' +
+      (data.issueChanges.resolvedIssues.length ? data.issueChanges.resolvedIssues.map(issueRow).join('') : '<p class="empty" style="padding:6px 0;">None.</p>') +
+    '</div>';
 }
 
 const FREE_LEADERBOARD_CAP = 2;
@@ -2365,6 +2529,59 @@ function renderGantt(){
       '</span>' +
     '</div>' +
     '<div class="gantt-scroll">' + rows + '</div>' + unscheduledHtml;
+}
+
+// Lists the activities actually driving the finish date (float <= 0, trusted from the source
+// file's own scheduling engine) — deliberately NOT a "drag" calculation (how many days shortening
+// one specific activity would pull in the finish date). Real drag requires the full predecessor/
+// successor network with lags and a forward/backward CPM pass, which this app doesn't rebuild —
+// it trusts each activity's own total_float from the file rather than recomputing the network.
+// This view answers "what's critical right now," not "what would moving this activity save me."
+function renderCriticalPath(){
+  const el = document.getElementById('criticalPathContent');
+  if (!currentActivities || !currentActivities.length){
+    el.innerHTML = '<p class="empty">No schedule analyzed yet.</p>';
+    return;
+  }
+  if (!checkFeatureAccess('criticalPath')){
+    el.innerHTML = '<div class="card" style="text-align:center;">' +
+      '<p style="font-size:13px; margin:0 0 10px;">The critical path view is a Pro feature — see exactly which activities are driving your finish date, at a glance.</p>' +
+      '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to unlock the critical path view</button>' +
+      '</div>';
+    return;
+  }
+
+  const critical = currentActivities.filter(a => a.critical);
+  if (!critical.length){
+    el.innerHTML = '<p class="empty">No activities are currently at zero or negative float in this schedule.</p>';
+    return;
+  }
+
+  // Sort by date when the file has real dates; otherwise fall back to file order (the only
+  // ordering signal the CSV format has — see currentHasDates/dayOffset in the Gantt view above).
+  const sorted = currentHasDates
+    ? [...critical].sort((a, b) => (a.start ? new Date(a.start).getTime() : Infinity) - (b.start ? new Date(b.start).getTime() : Infinity))
+    : critical;
+  const totalDays = Math.round(sorted.reduce((sum, a) => sum + (a.durationDays || 0), 0) * 10) / 10;
+
+  const rows = sorted.map(a => {
+    const dateLabel = a.start ? (a.start + (a.end && a.end !== a.start ? ' → ' + a.end : '')) : '—';
+    const floatLabel = a.totalFloatDays != null ? a.totalFloatDays + 'd float' : 'no float data';
+    return '<div class="crit-path-row">' +
+      '<div class="crit-path-name">' + escapeHtml(a.name) + (a.milestone ? ' <span class="badge crit" style="font-size:10px; vertical-align:middle;">Milestone</span>' : '') + '</div>' +
+      '<div class="crit-path-meta">' +
+        '<span>' + escapeHtml(dateLabel) + '</span>' +
+        '<span>' + a.durationDays + 'd</span>' +
+        '<span style="color:var(--bad);">' + floatLabel + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  el.innerHTML =
+    '<p style="font-size:12px; color:var(--muted); margin:0 0 4px;">' + sorted.length + ' activities on the critical path' +
+      (currentHasDates ? '' : ' (file has no dates — shown in file order)') + ' · ' + totalDays + ' total critical-path days</p>' +
+    '<p style="font-size:12px; color:var(--muted); margin:0 0 14px;">These are the activities at zero or negative float today — slipping any one of them slips your finish date. This lists what\'s critical right now; it doesn\'t calculate how many days delaying one specific activity would cost you, which needs the full dependency network from your source file.</p>' +
+    '<div class="card"><div class="crit-path-list">' + rows + '</div></div>';
 }
 
 // --- What-If sandbox: tweak an activity's float/duration and see the health score

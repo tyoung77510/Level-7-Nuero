@@ -667,7 +667,7 @@ route('GET', '/api/portfolio', async (req, res, params, user) => {
 
 route('GET', '/api/projects/:name/history', async (req, res, params, user) => {
   const history = store.getHistory(user.id, params.name).map(s => ({
-    date: s.created_at, score: s.score, critCount: s.crit_count, riskCount: s.risk_count, totalActivities: s.total_activities
+    id: s.id, date: s.created_at, score: s.score, critCount: s.crit_count, riskCount: s.risk_count, totalActivities: s.total_activities
   }));
   sendJSON(res, 200, history);
 });
@@ -782,6 +782,75 @@ route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => 
   const updatedBillingUser = store.deductCredits(billingUser.id, credits);
 
   sendJSON(res, 200, { narrative: result.text, cached: false, creditsUsed: credits, creditBalance: updatedBillingUser.credit_balance });
+});
+
+// Compares two snapshots of the same project, purely as a diff over already-computed, already-
+// trusted per-snapshot data (score/issues/activities) — no new schedule math, just set/value
+// comparison between two points in time. Activities are matched across snapshots by `code` (the
+// source file's own task code/id), which is only a stable identity within the same project's
+// re-uploads of what's meant to be the same schedule — comparing snapshots from two unrelated
+// projects would just show everything as added/removed, which is accurate, if not useful.
+route('GET', '/api/snapshots/compare', async (req, res, params, user) => {
+  const parsed = url.parse(req.url, true);
+  const fromId = Number(parsed.query.from);
+  const toId = Number(parsed.query.to);
+  if (!fromId || !toId) return sendJSON(res, 400, { error: 'Provide both from and to snapshot ids' });
+
+  for (const id of [fromId, toId]) {
+    const ownerId = store.getSnapshotOwnerUserId(id);
+    if (ownerId === null) return sendJSON(res, 404, { error: 'No such snapshot' });
+    if (ownerId !== user.id) return sendJSON(res, 403, { error: 'Not your project' });
+  }
+
+  const fromSnap = store.getSnapshotById(fromId);
+  const toSnap = store.getSnapshotById(toId);
+  const summarize = (s) => ({
+    id: s.id, createdAt: s.created_at, score: s.score,
+    critCount: s.crit_count, riskCount: s.risk_count, totalActivities: s.total_activities
+  });
+
+  let fromActivities = [], toActivities = [];
+  try { fromActivities = JSON.parse(fromSnap.activities_json || '[]'); } catch (e) {}
+  try { toActivities = JSON.parse(toSnap.activities_json || '[]'); } catch (e) {}
+  const fromByCode = new Map(fromActivities.map(a => [a.code, a]));
+  const toByCode = new Map(toActivities.map(a => [a.code, a]));
+
+  const added = toActivities.filter(a => !fromByCode.has(a.code)).map(a => ({ code: a.code, name: a.name }));
+  const removed = fromActivities.filter(a => !toByCode.has(a.code)).map(a => ({ code: a.code, name: a.name }));
+  const becameCritical = [], resolvedCritical = [], floatChanges = [];
+  for (const [code, toA] of toByCode) {
+    const fromA = fromByCode.get(code);
+    if (!fromA) continue;
+    if (!fromA.critical && toA.critical) becameCritical.push({ code, name: toA.name });
+    if (fromA.critical && !toA.critical) resolvedCritical.push({ code, name: toA.name });
+    if (fromA.totalFloatDays != null && toA.totalFloatDays != null) {
+      const delta = Math.round((toA.totalFloatDays - fromA.totalFloatDays) * 10) / 10;
+      // 1 day is the smallest change worth surfacing — anything smaller is noise from rounding,
+      // not a real shift a reviewer would care about.
+      if (Math.abs(delta) >= 1) floatChanges.push({ code, name: toA.name, fromFloat: fromA.totalFloatDays, toFloat: toA.totalFloatDays, delta });
+    }
+  }
+  floatChanges.sort((a, b) => a.delta - b.delta);
+
+  const fromIssues = store.getIssuesForSnapshot(fromId);
+  const toIssues = store.getIssuesForSnapshot(toId);
+  // name+sub together are the deterministic, generated description of one specific condition on
+  // one specific activity — identical text across two analyses means the same issue, since both
+  // are derived from the same analyze.js logic run over each snapshot's own data.
+  const issueKey = (i) => i.name + '||' + i.sub;
+  const fromIssueKeys = new Set(fromIssues.map(issueKey));
+  const toIssueKeys = new Set(toIssues.map(issueKey));
+  const newIssues = toIssues.filter(i => !fromIssueKeys.has(issueKey(i))).map(i => ({ name: i.name, sub: i.sub, severity: i.severity }));
+  const resolvedIssues = fromIssues.filter(i => !toIssueKeys.has(issueKey(i))).map(i => ({ name: i.name, sub: i.sub, severity: i.severity }));
+
+  sendJSON(res, 200, {
+    from: summarize(fromSnap), to: summarize(toSnap),
+    scoreDelta: toSnap.score - fromSnap.score,
+    critCountDelta: toSnap.crit_count - fromSnap.crit_count,
+    riskCountDelta: toSnap.risk_count - fromSnap.risk_count,
+    activityChanges: { added, removed, becameCritical, resolvedCritical, floatChanges },
+    issueChanges: { newIssues, resolvedIssues }
+  });
 });
 
 // How many prior turns get resent as conversation context on each new chat message — caps
