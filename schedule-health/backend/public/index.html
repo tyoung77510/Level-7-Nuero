@@ -949,6 +949,9 @@
 
 <script>
 const API = ''; // same-origin: server.js serves this file and the API together
+// Must match CHAT_STREAM_META_MARKER in src/server.js exactly — separates the streamed chat
+// reply text from the trailing bookkeeping JSON (credit balance) sent once the stream completes.
+const CHAT_STREAM_META_MARKER = ' CHATMETA ';
 
 const navButtons = document.querySelectorAll('.sidebar-nav button, .central-subnav button, .sidebar-footer button[data-step]');
 // Active-highlight scoping is per nav GROUP, not global: the sidebar's "Dashboard" and the
@@ -2251,15 +2254,52 @@ async function sendChatMessage(){
   appendChatBubble('user', message);
   const thinking = appendThinkingIndicator();
 
+  let assistantDiv = null;
   try {
-    const result = await api('/api/snapshots/' + currentSnapshot.id + '/chat', {
+    const res = await fetch(API + '/api/snapshots/' + currentSnapshot.id + '/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message })
     });
-    thinking.stop();
-    appendChatBubble('assistant', result.reply);
-    if (result.creditBalance != null && currentUser) { currentUser.creditBalance = result.creditBalance; updateCreditPill(currentUser); }
+    if (res.status === 401) { showAuth(); throw new Error('Please log in'); }
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.error || ('Request failed: ' + res.status));
+    }
+
+    // Real streaming, not a delayed reveal of an already-complete reply — each chunk is rendered
+    // the moment it arrives. raw accumulates everything received so far (text + marker + trailing
+    // JSON once the stream nears its end); visibleText is raw with that trailing part stripped.
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let raw = '', meta = null;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      raw += decoder.decode(value, { stream: true });
+      const markerIdx = raw.indexOf(CHAT_STREAM_META_MARKER);
+      const visibleText = markerIdx === -1 ? raw : raw.slice(0, markerIdx);
+      if (visibleText) {
+        if (!assistantDiv) { thinking.stop(); assistantDiv = appendChatBubble('assistant', ''); }
+        assistantDiv.innerHTML = formatAssistantMarkdown(visibleText);
+        box.scrollTop = box.scrollHeight;
+      }
+      if (markerIdx !== -1) {
+        try { meta = JSON.parse(raw.slice(markerIdx + CHAT_STREAM_META_MARKER.length)); } catch (e) {}
+      }
+    }
+    raw += decoder.decode(); // flush any multi-byte char split across the final chunk boundary
+    if (!meta) {
+      const markerIdx = raw.indexOf(CHAT_STREAM_META_MARKER);
+      if (markerIdx !== -1) { try { meta = JSON.parse(raw.slice(markerIdx + CHAT_STREAM_META_MARKER.length)); } catch (e) {} }
+    }
+
+    if (meta && meta.error) throw new Error(meta.error);
+    // Stream ended with no marker at all — headers were already committed 200 before the failure
+    // happened server-side (see the chat route's comment), so this is the only way the client can
+    // tell a mid-stream failure from a real, complete answer.
+    if (!meta) throw new Error(assistantDiv ? 'Connection interrupted — try asking again.' : 'Could not get a reply right now — try again in a moment.');
+    if (meta.creditBalance != null && currentUser) { currentUser.creditBalance = meta.creditBalance; updateCreditPill(currentUser); }
   } catch (e) {
     thinking.stop();
     errEl.textContent = e.message;
