@@ -1914,7 +1914,7 @@ function renderSandboxCelebration(baseline, sim){
   box.innerHTML = qualifies
     ? '<div class="card no-print" style="margin-top:14px; text-align:center; border-color:var(--good);">' +
         '<p style="font-weight:600; margin:0 0 10px; color:var(--good);">🚀 Recovery scenario found — DCMA compliant range</p>' +
-        '<button class="btn primary" onclick="shareBeforeAfter(' + baseline + ', ' + sim.score + ')">🚀 Share Before &amp; After</button>' +
+        '<button class="btn primary" onclick="shareBeforeAfter(' + baseline + ', ' + sim.score + ')">🚀 Share Before &amp; After to LinkedIn</button>' +
       '</div>'
     : '';
 }
@@ -1924,7 +1924,7 @@ function shareBeforeAfter(originalScore, newScore){
     '• Initial Baseline Health: ' + originalScore + ' (Logic Risks Flagged)\n' +
     '• Current Optimized Health: ' + newScore + ' (DCMA Compliant)\n\n' +
     'Tested our re-sequencing scenarios inside the sandbox before committing. Streamline your project controls at https://ordo7.pro';
-  navigator.clipboard.writeText(text).then(() => showToast('Optimization summary copied to clipboard! Ready for LinkedIn/Slack.'));
+  navigator.clipboard.writeText(text).then(() => showToast('Victory summary copied to clipboard! Ready to post.'));
 }
 
 async function submitAnalysis(projectName, filename, content){
