@@ -7,6 +7,7 @@ const store = require('./db');
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const TEAM_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const SCRYPT_KEYLEN = 64;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -45,6 +46,13 @@ function createVerificationToken(userId) {
   const token = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + VERIFICATION_TTL_MS).toISOString();
   store.createVerificationToken(token, userId, expiresAt);
+  return token;
+}
+
+function createTeamInviteToken(ownerId, email) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + TEAM_INVITE_TTL_MS).toISOString();
+  store.createTeamInvite(token, ownerId, email, expiresAt);
   return token;
 }
 
@@ -107,7 +115,7 @@ function clearOAuthStateCookie(req) {
 
 module.exports = {
   hashPassword, verifyPassword, createSession, getUserForToken,
-  createVerificationToken, verifyEmailToken,
+  createVerificationToken, verifyEmailToken, createTeamInviteToken,
   parseCookies, sessionCookie, clearCookie,
   oauthStateCookie, clearOAuthStateCookie,
   EMAIL_RE, SESSION_TTL_MS, VERIFICATION_TTL_MS

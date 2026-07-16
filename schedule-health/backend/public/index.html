@@ -720,6 +720,7 @@
           <ul class="paywall-features">
             <li>Everything in Pro, plus:</li>
             <li>2,500 pooled AI summary credits/month</li>
+            <li>Invite up to 9 team members, sharing your plan and credits</li>
             <li>Unwatermarked executive progress reports</li>
             <li>1-click PDF presentation exports</li>
           </ul>
@@ -755,6 +756,25 @@
         </div>
         <p id="topupError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
         <p id="topupNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
+      </div>
+
+      <div id="teamOwnerCard" class="card" style="margin-top:16px; display:none;">
+        <h2 style="margin:0 0 4px; font-size:15px;">Team members</h2>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Invite people onto your Teams plan — they get full access and share your pooled credits, no separate subscription needed. <span id="teamSeatCount"></span></p>
+        <ul id="teamMemberList" style="list-style:none; padding:0; margin:0 0 12px;"></ul>
+        <div class="row" style="justify-content:flex-start; gap:8px; margin-top:0;">
+          <input type="email" id="teamInviteEmail" placeholder="teammate@company.com" style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
+          <button class="btn cta" id="teamInviteBtn">Send invite</button>
+        </div>
+        <p id="teamError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
+        <p id="teamNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
+      </div>
+
+      <div id="teamMemberCard" class="card" style="margin-top:16px; display:none;">
+        <h2 style="margin:0 0 4px; font-size:15px;">Team</h2>
+        <p id="teamMemberOwnerLine" style="font-size:13px; margin:0 0 12px;"></p>
+        <button class="btn" id="teamLeaveBtn">Leave team</button>
+        <p id="teamMemberNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
       </div>
     </div>
 
@@ -1173,6 +1193,53 @@ function showApp(user){
   // different person logs into a shared browser. The tour itself starts once the hero is
   // dismissed (see dismissWelcomeHero), not here.
   if (!user.onboarded) showWelcomeHero();
+  tryAcceptPendingTeamInvite();
+}
+
+// Set by captureTeamInvite() when the page loads with a ?team_invite= link. Held in memory (not
+// localStorage) since the whole flow — land on the link, sign up or log in, accept — happens
+// within one page load; nothing here needs to survive a reload.
+let pendingTeamInviteToken = null;
+let pendingTeamInviteEmail = null;
+
+async function captureTeamInvite(){
+  const token = new URLSearchParams(window.location.search).get('team_invite');
+  if (!token) return;
+  history.replaceState({}, '', window.location.pathname);
+  try {
+    const preview = await api('/api/team/invite/' + encodeURIComponent(token));
+    pendingTeamInviteToken = token;
+    pendingTeamInviteEmail = preview.email;
+    setAuthMode('signup');
+    document.getElementById('authEmail').value = preview.email;
+    const notice = document.getElementById('authNotice');
+    notice.textContent = preview.ownerName + ' invited you to join their team on Ordo7 — sign up or log in with ' + preview.email + ' to accept.';
+    notice.style.display = 'block';
+  } catch (e) {
+    // Invalid/expired invite token — nothing to prefill, just fall through to a normal auth screen.
+  }
+}
+
+// Called from showApp() — the one checkpoint every path (fresh signup, login, email verification,
+// OAuth) all funnel through once a user is actually inside the app with a verified session, which
+// is also the earliest point /api/team/invite/:token/accept will accept a request from them.
+async function tryAcceptPendingTeamInvite(){
+  if (!pendingTeamInviteToken) return;
+  const token = pendingTeamInviteToken;
+  const expectedEmail = pendingTeamInviteEmail;
+  pendingTeamInviteToken = null;
+  pendingTeamInviteEmail = null;
+  if (!currentUser || !expectedEmail || currentUser.email.toLowerCase() !== expectedEmail.toLowerCase()) return;
+  try {
+    const result = await api('/api/team/invite/' + encodeURIComponent(token) + '/accept', { method: 'POST' });
+    currentUser = result.user;
+    updateCreditPill(result.user);
+    setView('pricing');
+    document.getElementById('teamMemberNote').textContent = "You've joined " + (result.user.teamOwnerName || 'the team') + "'s Ordo7 Teams account!";
+  } catch (e) {
+    // Expired/already-consumed/team-full — nothing actionable to surface mid-onboarding; the
+    // owner can see it didn't take (member list unchanged) and re-invite if needed.
+  }
 }
 
 function tierLabel(tier){
@@ -1456,7 +1523,116 @@ function renderPricing(){
       btn.textContent = 'Current plan';
     }
   });
+  renderTeamSection();
 }
+
+function formatInviteDate(iso){
+  return new Date(iso.includes('T') ? iso : iso + 'Z').toLocaleDateString();
+}
+
+async function renderTeamSection(){
+  const ownerCard = document.getElementById('teamOwnerCard');
+  const memberCard = document.getElementById('teamMemberCard');
+  ownerCard.style.display = 'none';
+  memberCard.style.display = 'none';
+  // Effective tier covers both an actual Teams owner and a member riding on one — the /api/team
+  // call itself distinguishes which, so this is just "don't bother calling for Free/Starter/Pro".
+  if (!currentUser || currentUser.effectiveTier !== 'teams') return;
+
+  let data;
+  try { data = await api('/api/team'); } catch (e) { return; }
+
+  if (data.isOwner) {
+    ownerCard.style.display = '';
+    document.getElementById('teamSeatCount').textContent = data.seatsUsed + ' / ' + data.maxSeats + ' seats used.';
+    const list = document.getElementById('teamMemberList');
+    const memberRows = data.members.map(m =>
+      '<li style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); font-size:13px;">' +
+        '<span>' + escapeHtml(m.name) + ' <span style="color:var(--muted);">' + escapeHtml(m.email) + '</span></span>' +
+        '<button class="btn" data-remove-member="' + m.id + '" style="padding:3px 8px; font-size:12px;">Remove</button>' +
+      '</li>'
+    );
+    const inviteRows = data.pendingInvites.map(i =>
+      '<li style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); font-size:13px;">' +
+        '<span>' + escapeHtml(i.email) + ' <span style="color:var(--muted);">pending, sent ' + formatInviteDate(i.createdAt) + '</span></span>' +
+        '<button class="btn" data-cancel-invite="' + escapeHtml(i.token) + '" style="padding:3px 8px; font-size:12px;">Cancel</button>' +
+      '</li>'
+    );
+    const rows = memberRows.concat(inviteRows);
+    list.innerHTML = rows.length ? rows.join('') : '<li style="font-size:13px; color:var(--muted); padding:6px 0;">No team members yet.</li>';
+
+    list.querySelectorAll('[data-remove-member]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try { await api('/api/team/member/' + btn.dataset.removeMember + '/remove', { method: 'POST' }); renderTeamSection(); }
+        catch (e) { showTeamError(e.message); btn.disabled = false; }
+      });
+    });
+    list.querySelectorAll('[data-cancel-invite]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try { await api('/api/team/invite/' + btn.dataset.cancelInvite + '/cancel', { method: 'POST' }); renderTeamSection(); }
+        catch (e) { showTeamError(e.message); btn.disabled = false; }
+      });
+    });
+  } else {
+    memberCard.style.display = '';
+    document.getElementById('teamMemberOwnerLine').textContent =
+      "You're on " + (data.ownerName || 'a teammate') + "'s Ordo7 Teams account, sharing their credits and plan.";
+  }
+}
+
+function showTeamError(msg){
+  const el = document.getElementById('teamError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+document.getElementById('teamInviteBtn').addEventListener('click', async () => {
+  const input = document.getElementById('teamInviteEmail');
+  const email = input.value.trim();
+  const errEl = document.getElementById('teamError');
+  const noteEl = document.getElementById('teamNote');
+  errEl.style.display = 'none';
+  noteEl.textContent = '';
+  if (!email) { showTeamError('Enter an email address'); return; }
+  const btn = document.getElementById('teamInviteBtn');
+  btn.disabled = true;
+  try {
+    const result = await api('/api/team/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    input.value = '';
+    // Knock's team-invite workflow is opt-in server-side (see knock.js) and may not be configured
+    // yet — the raw link is always shown too, so an owner can share it by hand regardless.
+    noteEl.innerHTML = 'Invite sent to ' + escapeHtml(result.email) + '. Share this link if the email doesn\'t arrive: ' +
+      '<input readonly value="' + escapeHtml(result.inviteUrl) + '" onclick="this.select()" style="width:100%; margin-top:4px; padding:4px 6px; font-size:11px; border:1px solid var(--line); border-radius:4px; background:var(--card); color:var(--ink);">';
+    renderTeamSection();
+  } catch (e) {
+    showTeamError(e.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('teamLeaveBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('teamLeaveBtn');
+  const noteEl = document.getElementById('teamMemberNote');
+  btn.disabled = true;
+  try {
+    const result = await api('/api/team/leave', { method: 'POST' });
+    currentUser = result.user;
+    updateCreditPill(result.user);
+    renderTeamSection();
+    noteEl.textContent = "You've left the team.";
+  } catch (e) {
+    noteEl.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 document.querySelectorAll('#v-pricing [data-tier]').forEach(btn => {
   btn.addEventListener('click', async () => {
@@ -1606,6 +1782,11 @@ async function handleVerifyRedirect(loggedInUser){
 
 (async function checkAuth(){
   try {
+    // Must run before routeForUser() below — a visitor who's already logged in when they click an
+    // invite link goes straight to showApp() with no auth screen in between, so
+    // pendingTeamInviteToken has to be set before that happens for tryAcceptPendingTeamInvite() to
+    // see it.
+    await captureTeamInvite();
     const { user } = await api('/api/auth/me');
     if (!user) {
       const handledOAuth = await handleOAuthRedirect();
