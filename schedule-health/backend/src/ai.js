@@ -118,6 +118,16 @@ ${buildScheduleContext(snapshot, issues)}`;
     { role: 'user', content: userMessage }
   ];
 
+  return streamAnthropicMessage(system, messages, 500, onChunk, 'generateChatReplyStream');
+}
+
+// Shared by every streamed Claude call in this file (Ask Ordo, the admin Business Advisor).
+// Anthropic's streaming Messages API is server-sent events: one `data: {...}` line per event. The
+// pieces this needs are spread across three event types — message_start carries input_tokens,
+// content_block_delta carries each text fragment, and the final message_delta carries the
+// completed output_tokens count (not incremental — it's the running total, so the last one seen
+// is the real figure).
+async function streamAnthropicMessage(system, messages, maxTokens, onChunk, callerName) {
   try {
     const res = await fetch(ANTHROPIC_API, {
       method: 'POST',
@@ -128,7 +138,7 @@ ${buildScheduleContext(snapshot, issues)}`;
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 500,
+        max_tokens: maxTokens,
         system,
         messages,
         stream: true
@@ -140,11 +150,6 @@ ${buildScheduleContext(snapshot, issues)}`;
       return null;
     }
 
-    // Anthropic's streaming Messages API is server-sent events: one `data: {...}` line per event.
-    // The pieces this needs are spread across three event types — message_start carries
-    // input_tokens, content_block_delta carries each text fragment, and the final message_delta
-    // carries the completed output_tokens count (not incremental — it's the running total, so the
-    // last one seen is the real figure).
     let fullText = '', inputTokens = 0, outputTokens = 0, buffer = '';
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -171,9 +176,35 @@ ${buildScheduleContext(snapshot, issues)}`;
     if (!fullText) return null;
     return { text: fullText, inputTokens, outputTokens };
   } catch (err) {
-    console.error('[ai] generateChatReplyStream failed', err.message);
+    console.error(`[ai] ${callerName} failed`, err.message);
     return null;
   }
 }
 
-module.exports = { aiConfigured, verifyApiKeyWorks, generateNarrative, generateChatReplyStream };
+// The Admin Command Center's Business Advisor — analyzes the real operational data pulled from
+// this app's own admin endpoints (telemetry, feature flags, feedback backlog) from the
+// perspective of a CTO/CEO/CFO, to help the owner make product/pricing/ops decisions. `dataContext`
+// is a plain-text summary of real numbers built by the caller (server.js) from the same store
+// functions the admin console itself uses — never fabricated, and the model is explicitly told not
+// to invent numbers beyond what's given.
+async function generateAdvisorReplyStream(dataContext, history, userMessage, onChunk) {
+  if (!aiConfigured()) return null;
+  const system = `You are the Business Advisor inside Ordo7's internal Admin Command Center — a single voice that reasons like an experienced startup CTO, CEO, and CFO at once, advising the founder of this SaaS business.
+
+Ground every answer in the real operational data below — it's a live snapshot pulled directly from the production database moments ago. Never invent a number that isn't in it. If a question needs data that isn't provided (e.g. churn rate, CAC, cohort retention — none of which this app tracks yet), say plainly that the data doesn't exist yet rather than guessing or estimating one.
+
+Be direct and decisive, not diplomatic — this is a "Truth-Teller" brand: no hedging, no generic startup-advice filler, no "it depends" without then actually picking a side. Give a specific recommendation when asked for one. Flag risks the founder might not be looking at (e.g. a feature flag with broad blast radius, a feedback backlog going stale, a tier mix that's too free-heavy). When the data is genuinely too thin to support a real conclusion, say that instead of padding an answer.
+
+Formatting: you may use **bold** for emphasis and "- " or "1. " for lists — nothing else renders, so don't use headers (#), code blocks, tables, or links. Keep answers tight — a few sentences to a short paragraph, longer only if the question genuinely needs the detail.
+
+${dataContext}`;
+
+  const messages = [
+    ...history.map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: userMessage }
+  ];
+
+  return streamAnthropicMessage(system, messages, 600, onChunk, 'generateAdvisorReplyStream');
+}
+
+module.exports = { aiConfigured, verifyApiKeyWorks, generateNarrative, generateChatReplyStream, generateAdvisorReplyStream };
