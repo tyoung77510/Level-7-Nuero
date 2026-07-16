@@ -114,7 +114,11 @@ function route(method, pattern, handler) {
 // "is production configured correctly" is a single URL to check instead of digging through the
 // hosting dashboard's env var list.
 route('GET', '/api/health', async (req, res) => {
-  sendJSON(res, 200, { ok: true, aiConfigured: ai.aiConfigured(), billingConfigured: billing.stripeConfigured() });
+  // aiConfigured just means the env var is set — an expired/revoked key still passes that check,
+  // which is exactly how Ask Ordo silently broke in production before. aiWorking makes one real
+  // (cached, cheap) call to Anthropic to confirm the key is actually accepted.
+  const aiWorking = await ai.verifyApiKeyWorks();
+  sendJSON(res, 200, { ok: true, aiConfigured: ai.aiConfigured(), aiWorking, billingConfigured: billing.stripeConfigured() });
 });
 
 function matchRoute(method, pathname) {

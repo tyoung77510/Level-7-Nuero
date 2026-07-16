@@ -6,6 +6,31 @@ function aiConfigured() {
   return !!process.env.ANTHROPIC_API_KEY;
 }
 
+// aiConfigured() only proves the env var is *set* — an expired or revoked key still passes it,
+// which is exactly what silently broke Ask Ordo in production for days before anyone noticed.
+// This makes one real, cheap call (GET /v1/models needs a valid key but returns no generated
+// tokens, so it's free) and caches the result briefly so /api/health can call it on every hit
+// without hammering Anthropic if something like an uptime monitor pings it often.
+let keyCheckCache = null; // { ok: boolean, checkedAt: number }
+const KEY_CHECK_TTL_MS = 5 * 60 * 1000;
+
+async function verifyApiKeyWorks() {
+  if (!aiConfigured()) return false;
+  if (keyCheckCache && Date.now() - keyCheckCache.checkedAt < KEY_CHECK_TTL_MS) return keyCheckCache.ok;
+  let ok = false;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/models', {
+      headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }
+    });
+    ok = res.ok;
+    if (!ok) console.error('[ai] API key check failed', res.status, await res.text().catch(() => ''));
+  } catch (err) {
+    console.error('[ai] API key check failed', err.message);
+  }
+  keyCheckCache = { ok, checkedAt: Date.now() };
+  return ok;
+}
+
 function buildScheduleContext(snapshot, issues) {
   const topIssues = issues
     .filter(i => i.status !== 'resolved')
@@ -70,7 +95,17 @@ async function generateNarrative(snapshot, issues) {
 // responsible for capping how much history gets resent if a conversation gets very long.
 async function generateChatReply(snapshot, issues, history, userMessage) {
   if (!aiConfigured()) return null;
-  const system = `You are a scheduling/PMO analyst answering questions about a specific project schedule. Be direct and specific — use the data below, don't give generic project management advice. Keep answers conversational and concise (a few sentences, longer only if the question genuinely needs it). Reply in plain text only — no markdown (no **bold**, no headers, no bullet asterisks); use plain numbered or dashed lines if you need a list.
+  // Two things this needs to do, not one: answer questions grounded in the specific schedule
+  // below (use its real numbers, don't hand-wave), AND answer general project management/project
+  // controls/scheduling questions — DCMA checks, EVM, critical path method, float, constraints,
+  // baselines, how to run a status meeting, PMBOK concepts, whatever — even when the question has
+  // nothing to do with this particular file. The schedule data is context to draw on when
+  // relevant, not a boundary that caps what can be asked.
+  const system = `You are Ask Ordo, a project controls and scheduling analyst built into Ordo7. You answer two kinds of questions, and you shouldn't refuse or deflect either one:
+1. Questions about the specific schedule below — ground these in its real numbers (score, issues, float, dates). Be direct and specific, not generic, when the data is relevant.
+2. General project management, project controls, and scheduling questions — DCMA 14-point checks, earned value management, critical path method, float and constraint types, baseline management, resource leveling, how to run status meetings or claims, PMBOK/PMI concepts, industry terminology, and anything else a working PMO analyst would know. Answer these the same way a knowledgeable human consultant would, even when they have nothing to do with the schedule loaded below.
+
+Keep answers conversational and concise (a few sentences, longer only if the question genuinely needs it). Reply in plain text only — no markdown (no **bold**, no headers, no bullet asterisks); use plain numbered or dashed lines if you need a list.
 
 ${buildScheduleContext(snapshot, issues)}`;
 
@@ -113,4 +148,4 @@ ${buildScheduleContext(snapshot, issues)}`;
   }
 }
 
-module.exports = { aiConfigured, generateNarrative, generateChatReply };
+module.exports = { aiConfigured, verifyApiKeyWorks, generateNarrative, generateChatReply };
