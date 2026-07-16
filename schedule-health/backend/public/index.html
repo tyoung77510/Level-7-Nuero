@@ -123,10 +123,22 @@
     position: relative;
     overflow: hidden;
   }
-  button.btn.primary::before, a.btn.primary::before, button.btn.cta::before, .tier-card::before, .conversion-banner::before {
+  /* .btn.primary/.btn.cta are solid-filled (accent teal / orange) -- a teal-tinted glow painted on
+     top of an already-teal button has no contrast and is invisible, so solid buttons get a white
+     sheen instead. .tier-card/.conversion-banner sit on the dark --card background, where the teal
+     accent glow reads clearly, so they keep the colored version. */
+  button.btn.primary::before, a.btn.primary::before, button.btn.cta::before {
     content: '';
     position: absolute; inset: 0;
-    background: radial-gradient(80px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), color-mix(in srgb, var(--accent) 16%, transparent), transparent 80%);
+    background: radial-gradient(80px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.35), transparent 80%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  .tier-card::before, .conversion-banner::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(120px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), color-mix(in srgb, var(--accent) 16%, transparent), transparent 80%);
     opacity: 0;
     transition: opacity 0.3s ease;
     pointer-events: none;
