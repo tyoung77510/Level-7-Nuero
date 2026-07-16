@@ -173,6 +173,32 @@ db.exec(`
     published_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Admin Command Center: real on/off kill switches for specific features, checked server-side
+  -- on every gated route (never just hidden client-side) so a flipped flag actually disables the
+  -- feature app-wide, not just cosmetically in the UI. Seeded with 5 rows below, once.
+  CREATE TABLE IF NOT EXISTS feature_flags (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1
+  );
+
+  -- One row per real click on the dashboard's "Book Strategy Session" CTA — a count derived from
+  -- actual rows (COUNT(*)) rather than a manually-incremented counter, so it can't drift out of
+  -- sync and doubles as real historical data if a trend view is ever built on top of it later.
+  CREATE TABLE IF NOT EXISTS advisory_clicks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Small generic key/value store for admin-maintained config that isn't auto-tracked anywhere
+  -- (e.g. real monthly hosting cost) — a deliberately-entered honest number, not a fabricated one.
+  CREATE TABLE IF NOT EXISTS admin_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS idx_snapshots_project ON snapshots(project_id);
   CREATE INDEX IF NOT EXISTS idx_issues_snapshot ON issues(snapshot_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
@@ -183,7 +209,24 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_credit_purchases_user ON credit_purchases(user_id);
   CREATE INDEX IF NOT EXISTS idx_verification_tokens_user ON verification_tokens(user_id);
   CREATE INDEX IF NOT EXISTS idx_team_invites_owner ON team_invites(owner_id);
+  CREATE INDEX IF NOT EXISTS idx_advisory_clicks_user ON advisory_clicks(user_id);
 `);
+
+// Seed the 5 kill-switchable features, once — INSERT OR IGNORE so re-running this on every boot
+// never resets an admin's already-flipped toggle back to its default.
+const FEATURE_FLAG_SEEDS = [
+  { id: 'sandbox-simulator', name: 'Sandbox Simulator', description: 'Interactive "What-If" schedule duration overrides.' },
+  { id: 'milestone-hygiene', name: 'Milestone Hygiene', description: 'Milestone logical-anchoring check view.' },
+  { id: 'critical-path-engine', name: 'Critical Path Engine', description: 'Lists activities currently on the critical path.' },
+  { id: 'dcma-14-check', name: 'DCMA 14-Point Check', description: 'Federal schedule-quality issue detection — the core scoring engine for every new analysis.' },
+  { id: 'ask-ordo-ai', name: 'Ask Ordo AI', description: 'Claude-powered schedule Q&A in the sidebar.' }
+];
+for (const f of FEATURE_FLAG_SEEDS) {
+  db.prepare('INSERT OR IGNORE INTO feature_flags (id, name, description, enabled) VALUES (?, ?, ?, 1)').run(f.id, f.name, f.description);
+}
+// Real Railway bill, entered manually since hosting cost isn't tracked anywhere in this app's
+// data model — an honest, admin-maintained figure rather than a fabricated one.
+db.prepare('INSERT OR IGNORE INTO admin_settings (key, value) VALUES (?, ?)').run('server_cost_monthly_usd', '3200');
 
 // Lightweight migration: CREATE TABLE IF NOT EXISTS doesn't add columns to a table that already
 // existed from an earlier version of this schema (e.g. a local dev database created before the
@@ -242,6 +285,10 @@ ensureColumn('users', 'team_owner_id', 'INTEGER REFERENCES users(id)');
 // or clearing storage must not re-trigger onboarding, and a second person logging into a shared
 // browser must not silently skip it because a previous user already dismissed it there.
 ensureColumn('users', 'onboarded_at', 'TEXT');
+// Admin feedback-triage status — 0 (open) until an admin marks it reviewed. Existing pre-migration
+// feedback rows default to open (0) rather than silently marked reviewed, so nothing already
+// submitted gets skipped just because this column didn't used to exist.
+ensureColumn('feedback', 'reviewed', 'INTEGER NOT NULL DEFAULT 0');
 
 // Backfill referral codes for any pre-existing users (fresh databases already get one via
 // createUser at signup; this only runs once, for accounts created before this feature existed).
@@ -648,6 +695,99 @@ function createBlogPost(slug, title, description, contentHtml) {
   return getBlogPostBySlug(slug);
 }
 
+// --- Admin Command Center ---
+
+// Search is optional — an empty/undefined query returns every account, newest first, capped so
+// a large user base can't return an unbounded response to the console in one call.
+function searchUsersForAdmin(query, limit) {
+  const cap = limit || 200;
+  if (query && query.trim()) {
+    const like = '%' + query.trim().toLowerCase() + '%';
+    return db.prepare('SELECT * FROM users WHERE lower(email) LIKE ? OR lower(plan_tier) LIKE ? ORDER BY id DESC LIMIT ?').all(like, like, cap);
+  }
+  return db.prepare('SELECT * FROM users ORDER BY id DESC LIMIT ?').all(cap);
+}
+
+function listFeatureFlags() {
+  return db.prepare('SELECT * FROM feature_flags ORDER BY name').all();
+}
+
+function isFeatureEnabled(id) {
+  const row = db.prepare('SELECT enabled FROM feature_flags WHERE id = ?').get(id);
+  // Fail open (treat an unknown/never-seeded id as enabled) rather than silently breaking a
+  // feature just because its flag row doesn't exist for some reason — kill switches should be an
+  // explicit, deliberate OFF, never an accidental one from a missing row.
+  return !row || !!row.enabled;
+}
+
+function setFeatureFlag(id, enabled) {
+  const result = db.prepare('UPDATE feature_flags SET enabled = ? WHERE id = ?').run(enabled ? 1 : 0, id);
+  if (result.changes === 0) return null;
+  return db.prepare('SELECT * FROM feature_flags WHERE id = ?').get(id);
+}
+
+function logAdvisoryClick(userId) {
+  db.prepare('INSERT INTO advisory_clicks (user_id) VALUES (?)').run(userId);
+}
+
+function getAdvisoryClickCount() {
+  return db.prepare('SELECT COUNT(*) AS n FROM advisory_clicks').get().n;
+}
+
+function getAdminSetting(key) {
+  const row = db.prepare('SELECT value FROM admin_settings WHERE key = ?').get(key);
+  return row ? row.value : null;
+}
+
+function setAdminSetting(key, value) {
+  db.prepare('INSERT INTO admin_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, String(value));
+}
+
+function listFeedbackForAdmin() {
+  return db.prepare(`
+    SELECT f.id, f.message, f.reviewed, f.created_at, u.email AS user_email
+    FROM feedback f JOIN users u ON u.id = f.user_id
+    ORDER BY f.created_at DESC
+  `).all();
+}
+
+function setFeedbackReviewed(id, reviewed) {
+  const result = db.prepare('UPDATE feedback SET reviewed = ? WHERE id = ?').run(reviewed ? 1 : 0, id);
+  return result.changes > 0;
+}
+
+// Counts of paying accounts by tier — the caller (server.js, where pricing.js already lives)
+// turns this into real dollar MRR using the actual price points; db.js stays pure data access.
+function getUserCountsByTier() {
+  const rows = db.prepare('SELECT plan_tier, COUNT(*) AS n FROM users WHERE team_owner_id IS NULL GROUP BY plan_tier').all();
+  const counts = { free: 0, starter: 0, pro: 0, teams: 0 };
+  rows.forEach(r => { if (r.plan_tier in counts) counts[r.plan_tier] = r.n; });
+  return counts;
+}
+
+// File-format breakdown of analyses run in the last 30 days — source_filename's extension is the
+// only signal available (no separate "format" column), same inference the frontend already uses.
+function getFileIngestionStats() {
+  const rows = db.prepare("SELECT source_filename FROM snapshots WHERE created_at >= datetime('now', '-30 days')").all();
+  const stats = { total: rows.length, xer: 0, xml: 0, csv: 0, other: 0 };
+  rows.forEach(r => {
+    const name = (r.source_filename || '').toLowerCase();
+    if (name.endsWith('.xer')) stats.xer++;
+    else if (name.endsWith('.xml')) stats.xml++;
+    else if (name.endsWith('.csv')) stats.csv++;
+    else stats.other++;
+  });
+  return stats;
+}
+
+// Real Anthropic spend + token usage, all-time — straight from the same rows logAiUsage() already
+// writes for every narrative/chat call, so this is exactly what's actually been billed, not an
+// estimate.
+function getAiSpendTotal() {
+  const row = db.prepare('SELECT COALESCE(SUM(cost_usd), 0) AS costUsd, COALESCE(SUM(input_tokens + output_tokens), 0) AS tokens FROM ai_usage').get();
+  return { costUsd: row.costUsd, tokens: row.tokens };
+}
+
 module.exports = {
   db, getOrCreateProject, listProjects, saveSnapshot,
   getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio, getActivityFeed,
@@ -666,5 +806,8 @@ module.exports = {
   getChatMessages, addChatMessage,
   createSession, getSession, deleteSession, deleteExpiredSessions,
   createVerificationToken, getVerificationToken, deleteVerificationToken, deleteExpiredVerificationTokens,
-  listBlogPosts, getBlogPostBySlug, createBlogPost
+  listBlogPosts, getBlogPostBySlug, createBlogPost,
+  searchUsersForAdmin, listFeatureFlags, isFeatureEnabled, setFeatureFlag,
+  logAdvisoryClick, getAdvisoryClickCount, getAdminSetting, setAdminSetting,
+  listFeedbackForAdmin, setFeedbackReviewed, getUserCountsByTier, getFileIngestionStats, getAiSpendTotal
 };

@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ordo7 Admin — Back Office</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" sizes="32x32" href="/brand/musk/icon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Same token values as the main app's re-theme (public/index.html) — this is a separate page,
+       not a shared stylesheet, so the values are duplicated here rather than the variable names
+       drifting apart from a shared source that doesn't exist yet. */
+    --ink: #f4f8fc; --paper: #06090f; --line: #1d222a; --line-faint: #171b23;
+    --muted: #8695a8; --secondary: #aab6c6; --faint: #6b7a8d;
+    --good: #46d19e; --warn: #f4b955; --bad: #f2716a;
+    --card: #0e1626; --card-nested: #0b111c;
+    --teal: #5eead4; --accent-2: #22d3b0; --on-accent: #06231f;
+    --accent: var(--teal);
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Manrope', -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--paper);
+    background-image: radial-gradient(1400px 700px at 22% -8%, #0f1c2d 0%, #06090f 58%);
+    background-attachment: fixed;
+    color: var(--ink); margin: 0; padding: 0; height: 100vh; overflow: hidden;
+  }
+  h1, h2, h3 { font-family: 'Space Grotesk', 'Manrope', sans-serif; margin: 0; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  button, input, select { font-family: inherit; }
+  button { cursor: pointer; transition: all 250ms cubic-bezier(0.16,1,0.3,1); }
+  button:active { transform: scale(0.98); }
+  input:focus-visible, select:focus-visible, button:focus-visible {
+    outline: 2px solid var(--teal); outline-offset: 2px;
+  }
+  @keyframes riseIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; animation-delay: 0s !important; transition-duration: 0.01ms !important; }
+  }
+
+  /* --- Login gate --- */
+  #loginScreen { height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .login-card {
+    width: 400px; background: var(--card); border: 1px solid rgba(94,234,212,0.14); border-radius: 18px;
+    padding: 36px 34px; box-shadow: 0 40px 90px -50px rgba(0,0,0,.9); animation: riseIn 400ms cubic-bezier(0.16,1,0.3,1);
+  }
+  .login-glyph { width: 34px; height: 34px; display: block; margin-bottom: 10px; }
+  .login-kicker { font-size: 11px; letter-spacing: .12em; color: var(--teal); margin-bottom: 4px; }
+  .login-title { font-size: 18px; font-weight: 700; margin-bottom: 22px; }
+  .login-field { margin-bottom: 14px; }
+  .login-field label { display: block; font-size: 11.5px; color: var(--muted); margin-bottom: 6px; }
+  .login-field input {
+    width: 100%; background: var(--paper); border: 1px solid rgba(148,163,184,.18); border-radius: 10px;
+    padding: 12px 13px; font-size: 14px; color: var(--ink);
+  }
+  .login-field input:focus-visible { border-color: var(--teal); }
+  .login-error { font-size: 12.5px; color: var(--bad); margin: -4px 0 14px; display: none; }
+  .btn-primary {
+    width: 100%; background: linear-gradient(135deg, var(--teal), var(--accent-2)); color: var(--on-accent);
+    border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 600;
+  }
+  .login-footer { display: flex; align-items: center; gap: 7px; margin-top: 20px; font-size: 11.5px; color: var(--faint); }
+  .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--bad); animation: pulseDot 1.8s infinite; flex-shrink: 0; }
+
+  /* --- Console shell --- */
+  #consoleScreen { display: none; height: 100vh; flex-direction: column; overflow: hidden; }
+  header.topbar {
+    display: flex; align-items: center; justify-content: space-between; padding: 12px 22px;
+    border-bottom: 1px solid rgba(148,163,184,.08); flex-shrink: 0;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-left img { width: 26px; height: 26px; }
+  .topbar-left h1 { font-size: 17px; font-weight: 700; }
+  .env-badge {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--teal);
+    background: rgba(94,234,212,.1); border: 1px solid rgba(94,234,212,.28); border-radius: 20px; padding: 3px 10px;
+  }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 8px currentColor; animation: pulseDot 1.8s infinite; }
+  .live-indicator { display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--teal); }
+  .topbar-right { display: flex; align-items: center; gap: 14px; }
+  .btn-ghost {
+    background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: 8px;
+    padding: 8px 14px; font-size: 12.5px;
+  }
+  .btn-ghost:hover { border-color: var(--bad); color: var(--bad); }
+  .btn-export {
+    background: #06231f; color: var(--teal); border: 1px solid var(--teal); border-radius: 8px; padding: 8px 14px; font-size: 12.5px;
+  }
+  .btn-export:hover { background: #08312a; }
+  .admin-email-label { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--muted); }
+
+  #workspace { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 20px 22px; gap: 16px; overflow: hidden; }
+
+  /* --- KPI ribbon --- */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; flex-shrink: 0; }
+  .kpi {
+    position: relative; overflow: hidden; background: var(--card); border: 1px solid rgba(94,234,212,0.14);
+    border-radius: 14px; padding: 18px; transition: all 250ms cubic-bezier(0.16,1,0.3,1);
+    animation: riseIn 400ms cubic-bezier(0.16,1,0.3,1) backwards;
+  }
+  .kpi:nth-child(1) { animation-delay: 0s; }
+  .kpi:nth-child(2) { animation-delay: .05s; }
+  .kpi:nth-child(3) { animation-delay: .1s; }
+  .kpi:nth-child(4) { animation-delay: .15s; }
+  .kpi:hover { border-color: rgba(94,234,212,0.4); transform: translateY(-2px); }
+  .kpi-glow { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(260px circle at var(--mx,50%) var(--my,0%), rgba(94,234,212,0.12), transparent 60%); }
+  .kpi-body { position: relative; }
+  .kpi-kicker { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .1em; color: var(--faint); text-transform: uppercase; margin-bottom: 8px; }
+  .kpi-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+  .kpi-sub { font-size: 12px; color: var(--muted); }
+
+  /* --- 3-column workspace --- */
+  .split { flex: 1; min-height: 0; display: grid; grid-template-columns: 40fr 30fr 30fr; gap: 16px; }
+  .col { display: flex; flex-direction: column; min-height: 0; background: var(--card); border: 1px solid rgba(148,163,184,0.1); border-radius: 14px; overflow: hidden; }
+  .col-header { flex-shrink: 0; padding: 14px 16px; border-bottom: 1px solid rgba(148,163,184,.08); display: flex; align-items: center; justify-content: space-between; }
+  .col-header h2 { font-size: 15px; font-weight: 600; }
+  .col-header .tag { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--muted); }
+  .col-body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; }
+
+  /* Column 1: users */
+  .search-input {
+    width: 100%; background: var(--paper); border: 1px solid rgba(148,163,184,.18); border-radius: 10px;
+    padding: 10px 12px; font-size: 13px; color: var(--ink); margin: 0 0 10px;
+  }
+  .search-input:focus-visible { border-color: var(--teal); }
+  .user-row { background: var(--card-nested); border-radius: 10px; padding: 11px 10px; margin-bottom: 8px; }
+  .user-row-main { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 10px; }
+  .user-email { font-size: 12.5px; color: #dfe8f2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tier-pill { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; border-radius: 20px; padding: 3px 9px; white-space: nowrap; }
+  .tier-pill.free { color: #8695a8; background: rgba(134,149,168,.14); }
+  .tier-pill.starter { color: #f4b955; background: rgba(244,185,85,.12); }
+  .tier-pill.pro { color: #5eead4; background: rgba(94,234,212,.12); }
+  .tier-pill.teams { color: #f4b955; background: rgba(244,185,85,.12); }
+  .user-credits { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #cdd7e3; text-align: right; }
+  .user-drawer { display: none; margin-top: 10px; background: var(--paper); border: 1px solid rgba(94,234,212,.18); border-radius: 10px; padding: 12px; animation: riseIn 250ms cubic-bezier(0.16,1,0.3,1); }
+  .user-drawer.open { display: block; }
+  .drawer-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .1em; color: var(--faint); margin-bottom: 8px; }
+  .drawer-row { display: flex; gap: 8px; align-items: center; }
+  .drawer-row select, .drawer-row input {
+    background: var(--card-nested); border: 1px solid rgba(148,163,184,.18); border-radius: 8px; color: var(--ink);
+    padding: 7px 9px; font-size: 12.5px;
+  }
+  .drawer-row select { flex: 1; }
+  .drawer-row input { width: 90px; font-family: 'JetBrains Mono', monospace; }
+  .drawer-row .btn-primary-sm {
+    background: linear-gradient(135deg, var(--teal), var(--accent-2)); color: var(--on-accent); border: none;
+    border-radius: 8px; padding: 7px 12px; font-size: 12.5px; font-weight: 600; white-space: nowrap;
+  }
+
+  /* Column 2: flags */
+  .flag-item { background: var(--card-nested); border: 1px solid rgba(148,163,184,.1); border-radius: 11px; padding: 14px; margin-bottom: 10px; transition: opacity 250ms; }
+  .flag-item.disabled-state { opacity: 0.5; }
+  .flag-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .flag-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .flag-name { font-size: 13.5px; font-weight: 600; }
+  .flag-id { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #8695a8; background: #121a28; border-radius: 5px; padding: 2px 6px; }
+  .flag-off-pill { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; color: var(--bad); background: rgba(242,113,106,.12); border: 1px solid rgba(242,113,106,.4); border-radius: 5px; padding: 2px 6px; }
+  .flag-desc { font-size: 12px; color: #8695a8; margin-top: 6px; }
+  .toggle-switch { width: 42px; height: 24px; border-radius: 20px; background: #242a37; position: relative; flex-shrink: 0; border: none; padding: 0; transition: background 250ms; }
+  .toggle-switch.on { background: linear-gradient(135deg, var(--teal), var(--accent-2)); }
+  .toggle-knob { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.4); transition: transform 250ms cubic-bezier(0.16,1,0.3,1); }
+  .toggle-switch.on .toggle-knob { transform: translateX(18px); }
+
+  /* Column 3: feedback */
+  .feedback-card { background: var(--card-nested); border: 1px solid rgba(148,163,184,.1); border-radius: 11px; padding: 13px 14px; margin-bottom: 10px; transition: border-color 250ms; }
+  .feedback-card:hover { border-color: rgba(94,234,212,.25); }
+  .feedback-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .feedback-handle { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--teal); }
+  .feedback-time { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--faint); }
+  .feedback-text { font-size: 12.5px; color: #cdd7e3; margin-bottom: 10px; }
+  .feedback-status { display: flex; align-items: center; gap: 7px; background: transparent; border: none; padding: 0; }
+  .status-box { width: 17px; height: 17px; border-radius: 5px; border: 1.5px solid rgba(148,163,184,.35); display: flex; align-items: center; justify-content: center; font-size: 11px; transition: all 250ms; }
+  .status-box.reviewed { background: linear-gradient(135deg, var(--teal), var(--accent-2)); color: #06231f; border-color: transparent; }
+  .status-label { font-size: 11.5px; color: #8695a8; }
+  .status-label.reviewed { color: var(--teal); }
+
+  .empty-note { font-size: 12.5px; color: var(--muted); padding: 20px 8px; text-align: center; }
+
+  /* --- Toast --- */
+  #toast {
+    position: fixed; bottom: 20px; right: 20px; z-index: 50; background: var(--card); border: 1px solid rgba(94,234,212,.4);
+    border-radius: 11px; padding: 13px 16px; box-shadow: 0 24px 50px -24px rgba(0,0,0,.8); display: none;
+    align-items: center; gap: 9px; font-size: 12.5px; animation: toastIn 300ms cubic-bezier(0.16,1,0.3,1);
+  }
+  #toast .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); flex-shrink: 0; }
+
+  @media (max-width: 1100px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .split { grid-template-columns: 1fr; overflow-y: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <img class="login-glyph" src="/brand/musk/icon-64.png" alt="Ordo7">
+    <div class="login-kicker mono">ORDO7 · BACK OFFICE</div>
+    <div class="login-title">Admin Command Center</div>
+    <form id="loginForm">
+      <div class="login-field">
+        <label for="loginEmail">Staff email</label>
+        <input id="loginEmail" type="email" autocomplete="username" required>
+      </div>
+      <div class="login-field">
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" required>
+      </div>
+      <div class="login-error" id="loginError"></div>
+      <button type="submit" class="btn-primary">Sign in to console →</button>
+    </form>
+    <div class="login-footer">
+      <div class="pulse-dot"></div>
+      Restricted · Ordo7 staff only · all actions audited
+    </div>
+  </div>
+</div>
+
+<div id="consoleScreen">
+  <header class="topbar">
+    <div class="topbar-left">
+      <img src="/brand/musk/icon-32.png" alt="Ordo7">
+      <h1>Admin Command Center</h1>
+      <span class="env-badge mono" id="envBadge">PRODUCTION</span>
+      <span class="live-indicator"><span class="live-dot"></span>LIVE</span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-export" id="exportBtn">Export report</button>
+      <span class="admin-email-label mono" id="adminEmailLabel"></span>
+      <button class="btn-ghost" id="logoutBtn">Log out</button>
+    </div>
+  </header>
+
+  <div id="workspace">
+    <div class="kpi-grid" id="kpiGrid">
+      <div class="kpi"><div class="kpi-glow"></div><div class="kpi-body">
+        <div class="kpi-kicker mono">MRR</div>
+        <div class="kpi-value" id="kpiMrr">—</div>
+        <div class="kpi-sub" id="kpiMrrSub">Loading…</div>
+      </div></div>
+      <div class="kpi"><div class="kpi-glow"></div><div class="kpi-body">
+        <div class="kpi-kicker mono">File Ingestion · 30D</div>
+        <div class="kpi-value" id="kpiFiles">—</div>
+        <div class="kpi-sub" id="kpiFilesSub">Loading…</div>
+      </div></div>
+      <div class="kpi"><div class="kpi-glow"></div><div class="kpi-body">
+        <div class="kpi-kicker mono">AI Spend / Server Cost</div>
+        <div class="kpi-value" id="kpiSpend">—</div>
+        <div class="kpi-sub" id="kpiSpendSub">Loading…</div>
+      </div></div>
+      <div class="kpi"><div class="kpi-glow"></div><div class="kpi-body">
+        <div class="kpi-kicker mono">Advisory Pipeline</div>
+        <div class="kpi-value" id="kpiAdvisory">—</div>
+        <div class="kpi-sub">"Book Strategy Session" clicks, all-time</div>
+      </div></div>
+    </div>
+
+    <div class="split">
+      <section class="col">
+        <div class="col-header">
+          <h2>User Control Matrix</h2>
+          <span class="tag mono" id="userCount">0 shown</span>
+        </div>
+        <div class="col-body">
+          <input type="text" class="search-input" id="userSearch" placeholder="Search user email or tier...">
+          <div id="userList"></div>
+        </div>
+      </section>
+
+      <section class="col">
+        <div class="col-header">
+          <h2>Feature Flags &amp; Kill Switches</h2>
+          <span class="tag mono">SYSTEM OPS</span>
+        </div>
+        <div class="col-body" id="flagList"></div>
+      </section>
+
+      <section class="col">
+        <div class="col-header">
+          <h2>Product Feedback</h2>
+          <span class="tag mono">/suggest</span>
+        </div>
+        <div class="col-body" id="feedbackList"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><span class="dot"></span><span id="toastText"></span></div>
+
+<script>
+const API = '';
+let currentAdmin = null;
+let openDrawerUserId = null;
+
+async function api(path, options = {}) {
+  const res = await fetch(API + path, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    credentials: 'same-origin'
+  });
+  let data = null;
+  try { data = await res.json(); } catch (e) { /* non-JSON response (e.g. CSV) handled by caller */ }
+  if (!res.ok) throw new Error((data && data.error) || ('Request failed: ' + res.status));
+  return data;
+}
+
+function showToast(message) {
+  const el = document.getElementById('toast');
+  document.getElementById('toastText').textContent = message;
+  el.style.display = 'flex';
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { el.style.display = 'none'; }, 2800);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 60) return mins + 'm ago';
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return hours + 'h ago';
+  const days = Math.floor(hours / 24);
+  return days + 'd ago';
+}
+
+// --- Login ---
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  try {
+    const { user } = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+    if (!user.isAdmin) {
+      errEl.textContent = 'This account does not have admin console access.';
+      errEl.style.display = 'block';
+      await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
+      return;
+    }
+    enterConsole(user);
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
+  openDrawerUserId = null;
+  document.getElementById('consoleScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+});
+
+function enterConsole(user) {
+  currentAdmin = user;
+  document.getElementById('adminEmailLabel').textContent = user.email;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('consoleScreen').style.display = 'flex';
+  loadAll();
+}
+
+// On load, an existing admin session should drop straight into the console rather than
+// re-prompting for credentials every page visit — same session cookie /api/auth/me already uses.
+(async () => {
+  try {
+    const { user } = await api('/api/auth/me');
+    if (user && user.isAdmin) enterConsole(user);
+  } catch (e) { /* not logged in — login screen stays up */ }
+})();
+
+// --- Data loading ---
+
+async function loadAll() {
+  await Promise.all([loadTelemetry(), loadUsers(), loadFlags(), loadFeedback()]);
+}
+
+function fmtUsd(n) {
+  return '$' + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+async function loadTelemetry() {
+  try {
+    const t = await api('/api/admin/telemetry');
+    document.getElementById('kpiMrr').textContent = fmtUsd(t.mrrUsd);
+    const c = t.userCountsByTier;
+    document.getElementById('kpiMrrSub').textContent =
+      c.pro + ' Pro · ' + c.teams + ' Teams · ' + c.starter + ' Starter · ' + c.free + ' Free';
+
+    document.getElementById('kpiFiles').textContent = t.fileIngestion30d.total.toLocaleString();
+    const f = t.fileIngestion30d;
+    document.getElementById('kpiFilesSub').textContent =
+      f.xer + ' .xer · ' + f.xml + ' XML · ' + f.csv + ' CSV' + (f.other ? ' · ' + f.other + ' other' : '');
+
+    document.getElementById('kpiSpend').textContent = fmtUsd(t.aiSpendUsd);
+    const serverCost = t.serverCostMonthlyUsd != null ? fmtUsd(t.serverCostMonthlyUsd) + '/mo' : 'not set';
+    // Deliberately no combined gross-margin % here — server cost is a manually-maintained config
+    // value (see admin_settings), not something this app can honestly measure moment to moment,
+    // and combining it with real AI spend would imply a precision that doesn't exist.
+    document.getElementById('kpiSpendSub').textContent =
+      t.aiTokensUsed.toLocaleString() + ' tokens · server cost ' + serverCost + ' (manual)';
+
+    document.getElementById('kpiAdvisory').textContent = t.advisoryClickCount.toLocaleString();
+  } catch (e) {
+    showToast('Could not load telemetry: ' + e.message);
+  }
+}
+
+let allUsers = [];
+async function loadUsers(query) {
+  try {
+    const { users } = await api('/api/admin/users' + (query ? '?q=' + encodeURIComponent(query) : ''));
+    allUsers = users;
+    renderUsers();
+  } catch (e) {
+    showToast('Could not load users: ' + e.message);
+  }
+}
+
+function renderUsers() {
+  const list = document.getElementById('userList');
+  document.getElementById('userCount').textContent = allUsers.length + ' shown';
+  if (!allUsers.length) {
+    list.innerHTML = '<div class="empty-note">No users match.</div>';
+    return;
+  }
+  list.innerHTML = allUsers.map(u => {
+    const tier = (u.planTier || 'free').toLowerCase();
+    const drawerOpen = openDrawerUserId === u.id;
+    return '<div class="user-row">' +
+      '<div class="user-row-main">' +
+        '<div class="user-email" title="' + escapeHtml(u.email) + '">' + escapeHtml(u.email) + (u.isTeamMember ? ' <span class="mono" style="color:var(--faint);font-size:10px;">(team)</span>' : '') + '</div>' +
+        '<span class="tier-pill ' + escapeHtml(tier) + '">' + escapeHtml(tier.toUpperCase()) + '</span>' +
+        '<span class="user-credits">' + Number(u.creditBalance || 0).toLocaleString() + '</span>' +
+        '<button class="btn-ghost" style="padding:5px 10px;font-size:11.5px;" onclick="toggleDrawer(' + u.id + ')">Actions ▾</button>' +
+      '</div>' +
+      '<div class="user-drawer' + (drawerOpen ? ' open' : '') + '" id="drawer-' + u.id + '">' +
+        '<div class="drawer-label mono">TENANT OVERRIDE</div>' +
+        '<div class="drawer-row">' +
+          '<select id="drawerTier-' + u.id + '">' +
+            ['free', 'starter', 'pro', 'teams'].map(t => '<option value="' + t + '"' + (t === tier ? ' selected' : '') + '>' + t.toUpperCase() + '</option>').join('') +
+          '</select>' +
+          '<input type="number" min="0" id="drawerCredits-' + u.id + '" value="' + Number(u.creditBalance || 0) + '">' +
+          '<button class="btn-primary-sm" onclick="updateUser(' + u.id + ')">Update</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleDrawer(userId) {
+  openDrawerUserId = openDrawerUserId === userId ? null : userId;
+  renderUsers();
+}
+
+async function updateUser(userId) {
+  const tier = document.getElementById('drawerTier-' + userId).value;
+  const credits = Number(document.getElementById('drawerCredits-' + userId).value);
+  try {
+    await api('/api/admin/users/' + userId + '/override', { method: 'POST', body: JSON.stringify({ tier, credits }) });
+    openDrawerUserId = null;
+    showToast('Updated ' + (allUsers.find(u => u.id === userId) || {}).email);
+    await loadUsers(document.getElementById('userSearch').value.trim());
+  } catch (e) {
+    showToast('Update failed: ' + e.message);
+  }
+}
+
+let searchDebounce = null;
+document.getElementById('userSearch').addEventListener('input', (e) => {
+  clearTimeout(searchDebounce);
+  const q = e.target.value.trim();
+  searchDebounce = setTimeout(() => loadUsers(q), 200);
+});
+
+// Feature-flag display names/descriptions live here (UI copy, not data) — the DB only stores
+// id/enabled state (see FEATURE_FLAG_SEEDS in db.js), matching the pattern blog-content.js already
+// uses for keeping display copy in reviewed code rather than mutable rows.
+const FLAG_LABELS = {
+  'sandbox-simulator': { name: 'Sandbox Simulator', desc: 'Interactive "What-If" schedule duration overrides.' },
+  'milestone-hygiene': { name: 'Milestone Hygiene', desc: 'Milestone logical-anchoring and negative-float checks.' },
+  'critical-path-engine': { name: 'Critical Path Engine', desc: 'Zero/negative-float critical-activity view.' },
+  'dcma-14-check': { name: 'DCMA 14-Point Check', desc: 'Federal schedule-quality assessment suite. Gates all new uploads.' },
+  'ask-ordo-ai': { name: 'Ask Ordo AI', desc: 'Claude-powered schedule Q&A in the sidebar.' }
+};
+
+async function loadFlags() {
+  try {
+    const { flags } = await api('/api/admin/flags');
+    renderFlags(flags);
+  } catch (e) {
+    showToast('Could not load feature flags: ' + e.message);
+  }
+}
+
+function renderFlags(flags) {
+  const list = document.getElementById('flagList');
+  list.innerHTML = flags.map(f => {
+    const label = FLAG_LABELS[f.id] || { name: f.name || f.id, desc: f.description || '' };
+    const on = !!f.enabled;
+    return '<div class="flag-item' + (on ? '' : ' disabled-state') + '">' +
+      '<div class="flag-top">' +
+        '<div>' +
+          '<div class="flag-name-row">' +
+            '<span class="flag-name">' + escapeHtml(label.name) + '</span>' +
+            '<span class="flag-id mono">' + escapeHtml(f.id) + '</span>' +
+            (on ? '' : '<span class="flag-off-pill mono">DISABLED / OFFLINE</span>') +
+          '</div>' +
+          '<div class="flag-desc">' + escapeHtml(label.desc) + '</div>' +
+        '</div>' +
+        '<button class="toggle-switch' + (on ? ' on' : '') + '" onclick="toggleFlag(\'' + f.id + '\', ' + !on + ')"><span class="toggle-knob"></span></button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function toggleFlag(id, enabled) {
+  try {
+    await api('/api/admin/flags/' + encodeURIComponent(id), { method: 'POST', body: JSON.stringify({ enabled }) });
+    showToast((FLAG_LABELS[id] || {}).name + (enabled ? ' enabled' : ' disabled'));
+    await loadFlags();
+  } catch (e) {
+    showToast('Toggle failed: ' + e.message);
+  }
+}
+
+async function loadFeedback() {
+  try {
+    const { feedback } = await api('/api/admin/feedback');
+    renderFeedback(feedback);
+  } catch (e) {
+    showToast('Could not load feedback: ' + e.message);
+  }
+}
+
+function renderFeedback(items) {
+  const list = document.getElementById('feedbackList');
+  if (!items.length) {
+    list.innerHTML = '<div class="empty-note">No feedback submitted yet.</div>';
+    return;
+  }
+  list.innerHTML = items.map(item => {
+    const reviewed = !!item.reviewed;
+    return '<div class="feedback-card">' +
+      '<div class="feedback-top">' +
+        '<span class="feedback-handle mono">' + escapeHtml(item.user_email) + '</span>' +
+        '<span class="feedback-time mono">' + timeAgo(item.created_at) + '</span>' +
+      '</div>' +
+      '<div class="feedback-text">' + escapeHtml(item.message) + '</div>' +
+      '<button class="feedback-status" onclick="toggleFeedback(' + item.id + ', ' + !reviewed + ')">' +
+        '<span class="status-box' + (reviewed ? ' reviewed' : '') + '">' + (reviewed ? '✓' : '') + '</span>' +
+        '<span class="status-label' + (reviewed ? ' reviewed' : '') + '">' + (reviewed ? 'Reviewed' : 'Open') + '</span>' +
+      '</button>' +
+    '</div>';
+  }).join('');
+}
+
+async function toggleFeedback(id, reviewed) {
+  try {
+    await api('/api/admin/feedback/' + id + '/reviewed', { method: 'POST', body: JSON.stringify({ reviewed }) });
+    await loadFeedback();
+  } catch (e) {
+    showToast('Update failed: ' + e.message);
+  }
+}
+
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  try {
+    const res = await fetch(API + '/api/admin/export.csv', { credentials: 'same-origin' });
+    if (!res.ok) throw new Error('Export failed: ' + res.status);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'ordo7-admin-export.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    showToast('Exported admin_kpi_report.csv');
+  } catch (e) {
+    showToast('Export failed: ' + e.message);
+  }
+});
+
+// KPI mouse-follow glow
+document.getElementById('kpiGrid').addEventListener('mousemove', (e) => {
+  const card = e.target.closest('.kpi');
+  if (!card) return;
+  const rect = card.getBoundingClientRect();
+  card.style.setProperty('--mx', (e.clientX - rect.left) + 'px');
+  card.style.setProperty('--my', (e.clientY - rect.top) + 'px');
+});
+</script>
+</body>
+</html>

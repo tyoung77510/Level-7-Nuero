@@ -48,6 +48,16 @@ for (const post of blogContent) {
 
 const PORT = process.env.PORT || 3000;
 
+// Admin Command Center access — a hardcoded allowlist, not a mutable DB flag, so the source of
+// truth for who can reach admin routes is reviewed via PR like any other code change, not
+// something that could be silently changed by writing to the database. Staff log in through the
+// same real /api/auth/login as any other account; this only gates what an already-authenticated
+// session is additionally allowed to do.
+const ADMIN_EMAILS = ['admin@ordo7.pro', 'taj.young77@gmail.com'];
+function isAdmin(user) {
+  return !!user && ADMIN_EMAILS.includes(user.email.toLowerCase());
+}
+
 function sendJSON(res, status, data) {
   const body = JSON.stringify(data);
   res.writeHead(status, {
@@ -161,7 +171,8 @@ function publicUser(user) {
     creditBalance: billingUser.credit_balance,
     emailVerified: !!user.email_verified,
     referralCode: user.referral_code,
-    onboarded: !!user.onboarded_at
+    onboarded: !!user.onboarded_at,
+    isAdmin: isAdmin(user)
   };
 }
 
@@ -880,6 +891,7 @@ route('GET', '/api/snapshots/:id/chat', async (req, res, params, user) => {
 
 route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
   if (!ai.aiConfigured()) return sendJSON(res, 503, { error: 'AI chat is not configured yet' });
+  if (!store.isFeatureEnabled('ask-ordo-ai')) return sendJSON(res, 503, { error: 'Ask Ordo is temporarily unavailable' });
   const snapshotId = Number(params.id);
   const ownerId = store.getSnapshotOwnerUserId(snapshotId);
   if (ownerId === null) return sendJSON(res, 404, { error: 'No such snapshot' });
@@ -941,7 +953,148 @@ route('POST', '/api/feedback', async (req, res, params, user) => {
   sendJSON(res, 200, { feedback });
 });
 
+// --- Admin Command Center (session required, ADMIN_EMAILS allowlist required) ---
+//
+// Every route below re-checks isAdmin(user) itself rather than trusting any client-side gate —
+// the dispatcher's blanket auth check above only proves *a* session exists, not that it belongs
+// to an admin.
+
+route('GET', '/api/admin/users', async (req, res, params, user) => {
+  if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  const parsed = url.parse(req.url, true);
+  const rows = store.searchUsersForAdmin(parsed.query.q, 200);
+  sendJSON(res, 200, { users: rows.map(u => ({
+    id: u.id, name: u.name, email: u.email, planTier: u.plan_tier, creditBalance: u.credit_balance,
+    isTeamMember: !!u.team_owner_id, emailVerified: !!u.email_verified, createdAt: u.created_at
+  })) });
+});
+
+route('POST', '/api/admin/users/:id/override', async (req, res, params, user) => {
+  if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const targetId = Number(params.id);
+  const tier = String(payload.tier || '');
+  const credits = Number(payload.credits);
+  if (!pricing.TIERS[tier] && tier !== 'free') return sendJSON(res, 400, { error: 'Unknown plan tier' });
+  if (!Number.isFinite(credits) || credits < 0) return sendJSON(res, 400, { error: 'Credits must be a non-negative number' });
+  const updated = store.setUserTier(targetId, tier, credits);
+  if (!updated) return sendJSON(res, 404, { error: 'No such user' });
+  sendJSON(res, 200, { user: publicUser(updated) });
+});
+
+route('GET', '/api/admin/feedback', async (req, res, params, user) => {
+  if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  sendJSON(res, 200, { feedback: store.listFeedbackForAdmin() });
+});
+
+route('POST', '/api/admin/feedback/:id/reviewed', async (req, res, params, user) => {
+  if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const ok = store.setFeedbackReviewed(Number(params.id), !!payload.reviewed);
+  if (!ok) return sendJSON(res, 404, { error: 'No such feedback item' });
+  sendJSON(res, 200, { ok: true });
+});
+
+route('GET', '/api/admin/flags', async (req, res, params, user) => {
+  if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  sendJSON(res, 200, { flags: store.listFeatureFlags() });
+});
+
+route('POST', '/api/admin/flags/:id', async (req, res, params, user) => {
+  if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const updated = store.setFeatureFlag(params.id, !!payload.enabled);
+  if (!updated) return sendJSON(res, 404, { error: 'No such feature flag' });
+  sendJSON(res, 200, { flag: updated });
+});
+
+// Real MRR from actual paying-tier counts x real price points; real AI spend from ai_usage rows;
+// real file-ingestion + advisory-click counts. Deliberately NO combined gross-margin % — server
+// cost is a manually-maintained config value, not something this app can honestly measure, and
+// combining it with real numbers would imply a precision that doesn't exist (see admin_settings).
+function priceUsdForTier(tierKey) {
+  const tier = pricing.TIERS[tierKey];
+  if (!tier) return 0;
+  const match = String(tier.priceLabel).match(/[\d.]+/);
+  return match ? parseFloat(match[0]) : 0;
+}
+
+route('GET', '/api/admin/telemetry', async (req, res, params, user) => {
+  if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  const counts = store.getUserCountsByTier();
+  const mrrUsd = Object.keys(counts)
+    .filter(tier => tier !== 'free')
+    .reduce((sum, tier) => sum + counts[tier] * priceUsdForTier(tier), 0);
+  const aiSpend = store.getAiSpendTotal();
+  const serverCostRaw = store.getAdminSetting('server_cost_monthly_usd');
+  sendJSON(res, 200, {
+    mrrUsd,
+    userCountsByTier: counts,
+    fileIngestion30d: store.getFileIngestionStats(),
+    aiSpendUsd: aiSpend.costUsd,
+    aiTokensUsed: aiSpend.tokens,
+    serverCostMonthlyUsd: serverCostRaw ? Number(serverCostRaw) : null,
+    advisoryClickCount: store.getAdvisoryClickCount()
+  });
+});
+
+route('GET', '/api/admin/export.csv', async (req, res, params, user) => {
+  if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  const counts = store.getUserCountsByTier();
+  const mrrUsd = Object.keys(counts)
+    .filter(tier => tier !== 'free')
+    .reduce((sum, tier) => sum + counts[tier] * priceUsdForTier(tier), 0);
+  const aiSpend = store.getAiSpendTotal();
+  const ingestion = store.getFileIngestionStats();
+  const serverCostRaw = store.getAdminSetting('server_cost_monthly_usd');
+
+  const csvEscape = v => `"${String(v).replace(/"/g, '""')}"`;
+  const lines = [
+    'metric,value',
+    `mrr_usd,${mrrUsd}`,
+    `users_free,${counts.free}`,
+    `users_starter,${counts.starter}`,
+    `users_pro,${counts.pro}`,
+    `users_teams,${counts.teams}`,
+    `file_ingestion_30d_total,${ingestion.total}`,
+    `ai_spend_usd,${aiSpend.costUsd}`,
+    `ai_tokens_used,${aiSpend.tokens}`,
+    `server_cost_monthly_usd,${serverCostRaw || ''}`,
+    `advisory_click_count,${store.getAdvisoryClickCount()}`
+  ];
+  const body = lines.map(l => l.split(',').map((v, i) => i === 0 ? v : csvEscape(v)).join(',')).join('\n');
+  res.writeHead(200, {
+    'Content-Type': 'text/csv; charset=utf-8',
+    'Content-Disposition': 'attachment; filename="ordo7-admin-export.csv"'
+  });
+  res.end(body);
+});
+
+// --- Advisory click tracking (any authenticated user, not admin-only) ---
+
+route('POST', '/api/advisory/click', async (req, res, params, user) => {
+  store.logAdvisoryClick(user.id);
+  sendJSON(res, 200, { ok: true });
+});
+
+// --- Feature flags (any authenticated user — the frontend needs current state to gate its own UI) ---
+
+route('GET', '/api/feature-flags', async (req, res, params, user) => {
+  const flags = store.listFeatureFlags();
+  sendJSON(res, 200, { flags: flags.map(f => ({ id: f.id, enabled: !!f.enabled })) });
+});
+
 route('POST', '/api/analyze', async (req, res, params, user) => {
+  // analyze.js has no sub-togglable pieces — DCMA-14 checks run as one inseparable pass over the
+  // schedule, so this flag's blast radius is the entire upload/analyze pipeline, not just the
+  // DCMA-specific findings. Disclosed, not hidden: flipping this off blocks all new uploads.
+  if (!store.isFeatureEnabled('dcma-14-check')) return sendJSON(res, 503, { error: 'Schedule analysis is temporarily unavailable' });
   const contentType = req.headers['content-type'] || '';
   const buffer = await readBody(req);
 
@@ -980,7 +1133,7 @@ route('POST', '/api/analyze', async (req, res, params, user) => {
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 // Clean-URL aliases for static pages that external services (OAuth app registration forms, etc.)
 // expect at a plain path rather than a .html extension.
-const STATIC_ALIASES = { '/privacy': '/privacy.html', '/terms': '/terms.html' };
+const STATIC_ALIASES = { '/privacy': '/privacy.html', '/terms': '/terms.html', '/admin': '/admin.html' };
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
