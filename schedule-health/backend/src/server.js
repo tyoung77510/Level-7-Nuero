@@ -136,7 +136,8 @@ function publicUser(user) {
     isTeamMember: !!user.team_owner_id,
     creditBalance: billingUser.credit_balance,
     emailVerified: !!user.email_verified,
-    referralCode: user.referral_code
+    referralCode: user.referral_code,
+    onboarded: !!user.onboarded_at
   };
 }
 
@@ -352,6 +353,17 @@ route('GET', '/api/auth/me', async (req, res) => {
   const cookies = auth.parseCookies(req);
   const user = auth.getUserForToken(cookies.session);
   sendJSON(res, 200, { user: user ? publicUser(user) : null });
+});
+
+// Marks the welcome hero + tour as seen for this account, server-side — called once the tour
+// ends (finished or skipped). Idempotent: markOnboarded() only writes if still NULL, so a late
+// duplicate call from a slow client can't clobber the original timestamp.
+// /api/auth/* is exempt from the dispatcher's blanket auth check (see below), since signup/
+// login/verify all need to work without a session — so this route checks for itself.
+route('POST', '/api/auth/onboarded', async (req, res, params, user) => {
+  if (!user) return sendJSON(res, 401, { error: 'Not authenticated' });
+  const updated = store.markOnboarded(user.id);
+  sendJSON(res, 200, { user: publicUser(updated) });
 });
 
 // --- Billing routes (session required, active subscription NOT required — you need one to get one) ---
