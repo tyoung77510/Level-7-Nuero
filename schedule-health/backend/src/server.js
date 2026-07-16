@@ -1032,6 +1032,7 @@ route('GET', '/api/admin/telemetry', async (req, res, params, user) => {
     .filter(tier => tier !== 'free')
     .reduce((sum, tier) => sum + counts[tier] * priceUsdForTier(tier), 0);
   const aiSpend = store.getAiSpendTotal();
+  const advisorSpend = store.getAdminAiUsageTotal();
   const serverCostRaw = store.getAdminSetting('server_cost_monthly_usd');
   sendJSON(res, 200, {
     mrrUsd,
@@ -1039,6 +1040,9 @@ route('GET', '/api/admin/telemetry', async (req, res, params, user) => {
     fileIngestion30d: store.getFileIngestionStats(),
     aiSpendUsd: aiSpend.costUsd,
     aiTokensUsed: aiSpend.tokens,
+    // Kept separate from aiSpendUsd above — that number represents customer-driven COGS, this is
+    // the internal Business Advisor tool's own usage, a different kind of cost entirely.
+    advisorToolSpendUsd: advisorSpend.costUsd,
     serverCostMonthlyUsd: serverCostRaw ? Number(serverCostRaw) : null,
     advisoryClickCount: store.getAdvisoryClickCount()
   });
@@ -1051,6 +1055,7 @@ route('GET', '/api/admin/export.csv', async (req, res, params, user) => {
     .filter(tier => tier !== 'free')
     .reduce((sum, tier) => sum + counts[tier] * priceUsdForTier(tier), 0);
   const aiSpend = store.getAiSpendTotal();
+  const advisorSpend = store.getAdminAiUsageTotal();
   const ingestion = store.getFileIngestionStats();
   const serverCostRaw = store.getAdminSetting('server_cost_monthly_usd');
 
@@ -1065,6 +1070,7 @@ route('GET', '/api/admin/export.csv', async (req, res, params, user) => {
     `file_ingestion_30d_total,${ingestion.total}`,
     `ai_spend_usd,${aiSpend.costUsd}`,
     `ai_tokens_used,${aiSpend.tokens}`,
+    `advisor_tool_spend_usd,${advisorSpend.costUsd}`,
     `server_cost_monthly_usd,${serverCostRaw || ''}`,
     `advisory_click_count,${store.getAdvisoryClickCount()}`
   ];
@@ -1074,6 +1080,87 @@ route('GET', '/api/admin/export.csv', async (req, res, params, user) => {
     'Content-Disposition': 'attachment; filename="ordo7-admin-export.csv"'
   });
   res.end(body);
+});
+
+// Builds a real, plain-text snapshot of the business's current state for the AI Business Advisor
+// — the exact same store functions and pricing math the telemetry endpoint and CSV export use, so
+// the advisor is never reasoning over different numbers than what the admin console itself shows.
+function buildAdvisorDataContext() {
+  const counts = store.getUserCountsByTier();
+  const mrrUsd = Object.keys(counts)
+    .filter(tier => tier !== 'free')
+    .reduce((sum, tier) => sum + counts[tier] * priceUsdForTier(tier), 0);
+  const aiSpend = store.getAiSpendTotal();
+  const ingestion = store.getFileIngestionStats();
+  const serverCostRaw = store.getAdminSetting('server_cost_monthly_usd');
+  const advisoryClicks = store.getAdvisoryClickCount();
+  const flags = store.listFeatureFlags();
+  const feedback = store.listFeedbackForAdmin();
+  const openFeedback = feedback.filter(f => !f.reviewed);
+  const reviewedCount = feedback.length - openFeedback.length;
+
+  const flagLines = flags.map(f => `- ${f.name} (${f.id}): ${f.enabled ? 'ON' : 'OFF'} — ${f.description}`).join('\n') || '(none)';
+  const openFeedbackLines = openFeedback.slice(0, 10)
+    .map(f => `- [${f.user_email}] ${f.message}`).join('\n') || '(none open)';
+
+  return `Real operational data, live snapshot from the production database:
+
+REVENUE
+- MRR: $${mrrUsd.toLocaleString()}
+- Paying accounts by tier: ${counts.starter} Starter, ${counts.pro} Pro, ${counts.teams} Teams (${counts.free} on Free)
+
+AI COST (customer-facing Ask Ordo + narrative generation, all-time)
+- Total spend: $${aiSpend.costUsd.toFixed(2)}
+- Total tokens: ${aiSpend.tokens.toLocaleString()}
+- Manually-maintained monthly server/hosting cost: ${serverCostRaw ? '$' + Number(serverCostRaw).toLocaleString() + '/mo' : 'not set'} (no automated gross-margin % exists — this app doesn't compute one)
+
+PRODUCT USAGE
+- Schedule files analyzed in the last 30 days: ${ingestion.total} (${ingestion.xer} .xer, ${ingestion.xml} XML, ${ingestion.csv} CSV, ${ingestion.other} other)
+- "Book Strategy Session" advisory-CTA clicks, all-time: ${advisoryClicks}
+
+FEATURE FLAGS (kill switches — OFF means that feature is currently unavailable to every customer)
+${flagLines}
+
+PRODUCT FEEDBACK BACKLOG
+- ${openFeedback.length} open, ${reviewedCount} reviewed (${feedback.length} total, all-time)
+- Most recent open items:
+${openFeedbackLines}`;
+}
+
+route('POST', '/api/admin/advisor/chat', async (req, res, params, user) => {
+  if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  if (!ai.aiConfigured()) return sendJSON(res, 503, { error: 'AI is not configured yet' });
+
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const message = String(payload.message || '').trim();
+  if (!message) return sendJSON(res, 400, { error: 'Message cannot be empty' });
+  if (message.length > 2000) return sendJSON(res, 400, { error: 'Keep questions under 2000 characters' });
+  // The advisor conversation isn't persisted server-side (no dedicated table) — the client resends
+  // prior turns each request, same shape as chat_messages rows ({role, content}), capped the same
+  // way the schedule chat caps its own history.
+  const history = Array.isArray(payload.history)
+    ? payload.history.slice(-CHAT_HISTORY_LIMIT).map(m => ({ role: m.role, content: String(m.content || '') }))
+    : [];
+
+  const dataContext = buildAdvisorDataContext();
+
+  let headersSent = false;
+  const result = await ai.generateAdvisorReplyStream(dataContext, history, message, (chunk) => {
+    if (!headersSent) { res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }); headersSent = true; }
+    res.write(chunk);
+  }).catch(err => { console.error('[advisor] stream error', err.message); return null; });
+
+  if (!result) {
+    if (!headersSent) return sendJSON(res, 502, { error: 'Could not get a reply right now — try again in a moment' });
+    return res.end();
+  }
+
+  const cost = pricing.costUsd(result.inputTokens, result.outputTokens);
+  store.logAdminAiUsage(user.id, result.inputTokens, result.outputTokens, cost);
+
+  res.end(CHAT_STREAM_META_MARKER + JSON.stringify({ costUsd: cost, tokens: result.inputTokens + result.outputTokens }));
 });
 
 // --- Advisory click tracking (any authenticated user, not admin-only) ---

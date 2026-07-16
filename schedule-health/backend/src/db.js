@@ -199,6 +199,19 @@ db.exec(`
     value TEXT NOT NULL
   );
 
+  -- Real Claude spend for the admin-only Business Advisor tool, tracked separately from the
+  -- customer-facing ai_usage table (which has a NOT NULL snapshot_id FK this doesn't have, and
+  -- which feeds the "AI Spend" KPI that's meant to represent customer-driven COGS — mixing an
+  -- internal tool's own usage into that number would misrepresent what it costs to serve customers).
+  CREATE TABLE IF NOT EXISTS admin_ai_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    input_tokens INTEGER NOT NULL,
+    output_tokens INTEGER NOT NULL,
+    cost_usd REAL NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_snapshots_project ON snapshots(project_id);
   CREATE INDEX IF NOT EXISTS idx_issues_snapshot ON issues(snapshot_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
@@ -788,6 +801,15 @@ function getAiSpendTotal() {
   return { costUsd: row.costUsd, tokens: row.tokens };
 }
 
+function logAdminAiUsage(userId, inputTokens, outputTokens, costUsd) {
+  db.prepare('INSERT INTO admin_ai_usage (user_id, input_tokens, output_tokens, cost_usd) VALUES (?, ?, ?, ?)').run(userId, inputTokens, outputTokens, costUsd);
+}
+
+function getAdminAiUsageTotal() {
+  const row = db.prepare('SELECT COALESCE(SUM(cost_usd), 0) AS costUsd, COALESCE(SUM(input_tokens + output_tokens), 0) AS tokens FROM admin_ai_usage').get();
+  return { costUsd: row.costUsd, tokens: row.tokens };
+}
+
 module.exports = {
   db, getOrCreateProject, listProjects, saveSnapshot,
   getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio, getActivityFeed,
@@ -809,5 +831,6 @@ module.exports = {
   listBlogPosts, getBlogPostBySlug, createBlogPost,
   searchUsersForAdmin, listFeatureFlags, isFeatureEnabled, setFeatureFlag,
   logAdvisoryClick, getAdvisoryClickCount, getAdminSetting, setAdminSetting,
-  listFeedbackForAdmin, setFeedbackReviewed, getUserCountsByTier, getFileIngestionStats, getAiSpendTotal
+  listFeedbackForAdmin, setFeedbackReviewed, getUserCountsByTier, getFileIngestionStats, getAiSpendTotal,
+  logAdminAiUsage, getAdminAiUsageTotal
 };
