@@ -213,6 +213,11 @@ ensureColumn(
 ensureColumn('users', 'referral_code', 'TEXT');
 ensureColumn('users', 'referred_by', 'INTEGER REFERENCES users(id)');
 ensureColumn('users', 'team_owner_id', 'INTEGER REFERENCES users(id)');
+// Null means this account has never completed the first-login welcome hero + tour — checked
+// server-side (not localStorage) so it's tied to the account, not the browser: switching devices
+// or clearing storage must not re-trigger onboarding, and a second person logging into a shared
+// browser must not silently skip it because a previous user already dismissed it there.
+ensureColumn('users', 'onboarded_at', 'TEXT');
 
 // Backfill referral codes for any pre-existing users (fresh databases already get one via
 // createUser at signup; this only runs once, for accounts created before this feature existed).
@@ -284,6 +289,11 @@ function getReferralStats(userId) {
 
 function setEmailVerified(userId) {
   db.prepare('UPDATE users SET email_verified = 1 WHERE id = ?').run(userId);
+  return getUserById(userId);
+}
+
+function markOnboarded(userId) {
+  db.prepare("UPDATE users SET onboarded_at = datetime('now') WHERE onboarded_at IS NULL AND id = ?").run(userId);
   return getUserById(userId);
 }
 
@@ -586,7 +596,7 @@ module.exports = {
   getIssueOwnerUserId, createFeedback,
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
   getOrCreateShareToken, getPublicSnapshotByShareToken,
-  createUser, getUserByEmail, getUserById, setEmailVerified,
+  createUser, getUserByEmail, getUserById, setEmailVerified, markOnboarded,
   getUserByOAuthAccount, linkOAuthAccount, createOAuthUser,
   createPendingOAuthSignup, consumePendingOAuthSignup,
   getUserByReferralCode, getReferralStats,
