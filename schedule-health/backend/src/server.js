@@ -109,6 +109,14 @@ function route(method, pattern, handler) {
   routes.push({ method, pattern, handler });
 }
 
+// Unauthenticated, no secrets in the response — just booleans for whether the env vars that gate
+// AI narrative/chat and Stripe billing are actually present in this deployment. Exists so
+// "is production configured correctly" is a single URL to check instead of digging through the
+// hosting dashboard's env var list.
+route('GET', '/api/health', async (req, res) => {
+  sendJSON(res, 200, { ok: true, aiConfigured: ai.aiConfigured(), billingConfigured: billing.stripeConfigured() });
+});
+
 function matchRoute(method, pathname) {
   for (const r of routes) {
     if (r.method !== method) continue;
@@ -913,7 +921,7 @@ const server = http.createServer(async (req, res) => {
     const match = matchRoute(req.method, pathname);
     if (!match) return sendJSON(res, 404, { error: 'No such route' });
 
-    const isPublicRoute = pathname.startsWith('/api/auth/') || pathname === '/api/billing/webhook' || pathname.startsWith('/api/public/');
+    const isPublicRoute = pathname.startsWith('/api/auth/') || pathname === '/api/billing/webhook' || pathname.startsWith('/api/public/') || pathname === '/api/health';
     const cookies = auth.parseCookies(req);
     const user = auth.getUserForToken(cookies.session);
     if (!isPublicRoute && !user) return sendJSON(res, 401, { error: 'Not authenticated' });
