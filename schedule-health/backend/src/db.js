@@ -150,6 +150,18 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Server-rendered marketing content, deliberately separate from the app's other tables — posts
+  -- are public, unauthenticated, and exist purely to be crawled/indexed, unlike everything else
+  -- in this schema which is gated behind a user_id.
+  CREATE TABLE IF NOT EXISTS blog_posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    content_html TEXT NOT NULL,
+    published_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_snapshots_project ON snapshots(project_id);
   CREATE INDEX IF NOT EXISTS idx_issues_snapshot ON issues(snapshot_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
@@ -590,6 +602,20 @@ function getPortfolio(userId) {
   }).filter(row => row.latest);
 }
 
+function listBlogPosts() {
+  return db.prepare('SELECT * FROM blog_posts ORDER BY published_at DESC').all();
+}
+
+function getBlogPostBySlug(slug) {
+  return db.prepare('SELECT * FROM blog_posts WHERE slug = ?').get(slug);
+}
+
+function createBlogPost(slug, title, description, contentHtml) {
+  db.prepare('INSERT INTO blog_posts (slug, title, description, content_html) VALUES (?, ?, ?, ?)')
+    .run(slug, title, description, contentHtml);
+  return getBlogPostBySlug(slug);
+}
+
 module.exports = {
   db, getOrCreateProject, listProjects, saveSnapshot,
   getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio, getActivityFeed,
@@ -606,5 +632,6 @@ module.exports = {
   getCreditPurchaseBySessionId, recordCreditPurchase,
   getChatMessages, addChatMessage,
   createSession, getSession, deleteSession, deleteExpiredSessions,
-  createVerificationToken, getVerificationToken, deleteVerificationToken, deleteExpiredVerificationTokens
+  createVerificationToken, getVerificationToken, deleteVerificationToken, deleteExpiredVerificationTokens,
+  listBlogPosts, getBlogPostBySlug, createBlogPost
 };
