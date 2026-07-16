@@ -56,6 +56,11 @@ const TIERS = {
   }
 };
 
+// Seats beyond the owner's own account. Not tied to the $149 price point by any real cost model
+// yet — it's a reasonable cap to launch with (prevents one Teams subscription from silently
+// becoming unlimited-seat) and can move once real usage shows what's right.
+const MAX_TEAM_MEMBERS = 9;
+
 // One-time credit top-ups (no subscription required, stacks with any plan's monthly refill).
 // Priced higher per credit than what a subscription implies (Pro: $50/500cr = $0.10/credit) —
 // pay-as-you-go should cost more per unit than subscribing, or there'd be no reason to subscribe.
@@ -91,7 +96,7 @@ function isValidTopupAmount(usd) {
 }
 
 module.exports = {
-  TIERS, FREE_SIGNUP_CREDITS, REFERRAL_BONUS_CREDITS, MARGIN_MULTIPLIER, CREDIT_VALUE_USD,
+  TIERS, FREE_SIGNUP_CREDITS, REFERRAL_BONUS_CREDITS, MARGIN_MULTIPLIER, CREDIT_VALUE_USD, MAX_TEAM_MEMBERS,
   TOPUP_CREDIT_PRICE_USD, TOPUP_MIN_USD, TOPUP_INCREMENT_USD,
   costUsd, creditsForUsage, tierForPriceId, creditsForTopupAmount, isValidTopupAmount
 };

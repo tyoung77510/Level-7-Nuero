@@ -131,12 +131,12 @@ narrative generation** (see below), spent as credits:
 - **Starter — $19.99/month** — 150 credits/month, refilled each billing cycle.
 - **Pro — $49/month** — 500 credits/month, refilled each billing cycle.
 - **Teams — $149/month** — 2,500 pooled credits/month (see `getEffectiveTierUser()` below),
-  unwatermarked report exports. Wired up the same way as Starter/Pro — `pricing.TIERS.teams` is
-  just another entry, so checkout/webhook/credit-refill all work with no tier-specific code.
-  Launched with an honest feature list: multi-seat invites and live review rooms are **not**
-  included, because neither is built yet (there's no route that actually adds a team member —
-  `addTeamMember()` exists in `db.js` but nothing calls it) — advertising them would mean selling
-  access to something that doesn't work. Add real multi-seat support first, then extend this tier.
+  unwatermarked report exports, and up to 9 invited team members sharing the owner's plan and
+  credit pool (`src/server.js`'s `/api/team*` routes, `MAX_TEAM_MEMBERS` in `pricing.js`). Wired
+  up the same way as Starter/Pro — `pricing.TIERS.teams` is just another entry, so
+  checkout/webhook/credit-refill all work with no tier-specific code. Live review rooms are
+  **not** included — still not built, so still left off the pricing card rather than sold as
+  something that doesn't work.
 - **Enterprise** — still a "Contact us" lead-gen card (mailing `admin@level7data.com`), no
   checkout wired up.
 - **One-time credit top-ups** — any account, on any plan, can also buy AI credits directly (no
@@ -310,14 +310,14 @@ manual migration step needed.
 
 ## What this does NOT yet include
 
-- **Role-based access / orgs** — every user only sees their own projects; there's no team/workspace concept yet where multiple people share the same project (see the roadmap's "Authentication and multi-tenancy" section).
+- **Role-based access / orgs** — every user only sees their own projects; there's no team/workspace concept yet where multiple people share the same project. This is separate from Teams multi-seat billing (see below), which shares a plan and credit pool across invited members — it does not share project visibility (see the roadmap's "Authentication and multi-tenancy" section).
 - **Password reset / email verification** — signup and login only. No email sending is wired up.
 - **File upload size limits / virus scanning** — the multipart parser here is intentionally minimal; swap in a real library (e.g., `busboy`) before accepting uploads from untrusted users.
 - **Raw binary .mpp parsing** — MS Project's XML export is supported (see below); the proprietary binary `.mpp` format itself needs a real library like `mpxj`, deliberately not added to keep this zero-dependency.
 - **Failed-payment / dunning handling** — a `past_due` or `unpaid` Stripe status isn't specially handled; there's no dedicated "your payment failed, update your card" screen yet, and credits aren't clawed back if a renewal fails.
 - **Webhook-driven subscription updates** — written and ready, but inert until this is deployed with a public URL and registered in the Stripe Dashboard (see Billing section above). Until then, cancellations/renewals (and the credit refill on renewal) won't reflect here automatically — only the post-checkout verify call keeps things in sync.
 - **No in-app feedback review screen** — submissions land in the `feedback` table and (once configured) trigger a Knock notification, but there's no admin view in the app itself yet; reviewing them today means querying the database directly or reading the Knock notification.
-- **Multi-seat Teams support** — the Teams tier is live and billed, but with an honest feature set that excludes seat invites (still no route calling `addTeamMember()`) and live review rooms (no real-time infra); Enterprise remains a "Contact us" card (see Pricing and AI credits above).
+- **Live review rooms** — still not built (no real-time infra); left off the Teams pricing card for the same reason multi-seat invites used to be. Enterprise remains a "Contact us" card (see Pricing and AI credits above).
 
 ## Frontend
 

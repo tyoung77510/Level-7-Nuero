@@ -151,6 +151,9 @@ function publicUser(user) {
     planTier: user.plan_tier,
     effectiveTier: billingUser.plan_tier,
     isTeamMember: !!user.team_owner_id,
+    isTeamOwner: user.plan_tier === 'teams' && !user.team_owner_id,
+    teamOwnerName: user.team_owner_id ? billingUser.name : null,
+    teamOwnerEmail: user.team_owner_id ? billingUser.email : null,
     creditBalance: billingUser.credit_balance,
     emailVerified: !!user.email_verified,
     referralCode: user.referral_code,
@@ -210,6 +213,108 @@ route('GET', '/api/referral', async (req, res, params, user) => {
     creditsEarned: stats.referredCount * pricing.REFERRAL_BONUS_CREDITS,
     bonusPerReferral: pricing.REFERRAL_BONUS_CREDITS
   });
+});
+
+// --- Teams (multi-seat) routes ---
+//
+// Only the actual Teams subscriber (plan_tier === 'teams' AND not themselves riding on someone
+// else's team) can invite/remove — a member's own plan_tier is irrelevant to their access (see
+// getEffectiveTierUser) but must stay irrelevant to *managing* the team too, or a member could
+// invite people onto an owner's team the owner never approved.
+function isTeamOwner(user) {
+  return user.plan_tier === 'teams' && !user.team_owner_id;
+}
+
+route('GET', '/api/team', async (req, res, params, user) => {
+  if (user.team_owner_id) {
+    const owner = store.getUserById(user.team_owner_id);
+    return sendJSON(res, 200, { isOwner: false, ownerName: owner ? owner.name : null, ownerEmail: owner ? owner.email : null });
+  }
+  if (!isTeamOwner(user)) return sendJSON(res, 403, { error: 'Teams multi-seat is only available on the Teams plan' });
+  const members = store.getTeamMembers(user.id).map(m => ({ id: m.id, name: m.name, email: m.email }));
+  // token included so the owner's UI can cancel a specific invite — safe to expose to the owner
+  // since accept still requires logging in as the invited email; the owner already has equivalent
+  // control via cancel/resend.
+  const pendingInvites = store.listPendingInvitesForOwner(user.id).map(i => ({ email: i.email, token: i.token, createdAt: i.created_at, expiresAt: i.expires_at }));
+  sendJSON(res, 200, { isOwner: true, members, pendingInvites, seatsUsed: members.length + pendingInvites.length, maxSeats: pricing.MAX_TEAM_MEMBERS });
+});
+
+route('POST', '/api/team/invite', async (req, res, params, user) => {
+  if (!isTeamOwner(user)) return sendJSON(res, 403, { error: 'Only the Teams plan owner can invite members' });
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const email = String(payload.email || '').trim().toLowerCase();
+  if (!auth.EMAIL_RE.test(email)) return sendJSON(res, 400, { error: 'Enter a valid email address' });
+  if (email === user.email.toLowerCase()) return sendJSON(res, 400, { error: "You can't invite yourself" });
+
+  const existingUser = store.getUserByEmail(email);
+  if (existingUser && existingUser.team_owner_id === user.id) return sendJSON(res, 400, { error: 'Already on your team' });
+  if (existingUser && existingUser.team_owner_id) return sendJSON(res, 400, { error: 'This person is already on another team' });
+
+  const members = store.getTeamMembers(user.id);
+  const pendingInvites = store.listPendingInvitesForOwner(user.id);
+  if (members.length + pendingInvites.length >= pricing.MAX_TEAM_MEMBERS) {
+    return sendJSON(res, 400, { error: `Your team is full (max ${pricing.MAX_TEAM_MEMBERS} seats)` });
+  }
+  // Re-inviting the same email replaces the old invite (fresh token/expiry) rather than erroring.
+  for (const invite of pendingInvites) if (invite.email === email) store.deleteTeamInvite(invite.token);
+
+  const token = auth.createTeamInviteToken(user.id, email);
+  const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
+  const inviteUrl = `${origin}/?team_invite=${token}`;
+  knock.sendTeamInviteEmail(user, email, inviteUrl).catch(() => {});
+  sendJSON(res, 200, { ok: true, email, inviteUrl });
+});
+
+route('POST', '/api/team/invite/:token/cancel', async (req, res, params, user) => {
+  const invite = store.getTeamInviteByToken(params.token);
+  if (!invite || invite.owner_id !== user.id) return sendJSON(res, 404, { error: 'Invite not found' });
+  store.deleteTeamInvite(params.token);
+  sendJSON(res, 200, { ok: true });
+});
+
+route('GET', '/api/team/invite/:token', async (req, res, params) => {
+  const invite = store.getTeamInviteByToken(params.token);
+  if (!invite || invite.expires_at < new Date().toISOString()) return sendJSON(res, 404, { error: 'This invite is invalid or has expired' });
+  const owner = store.getUserById(invite.owner_id);
+  sendJSON(res, 200, { email: invite.email, ownerName: owner ? owner.name : 'A Level 7 team' });
+});
+
+route('POST', '/api/team/invite/:token/accept', async (req, res, params, user) => {
+  const invite = store.getTeamInviteByToken(params.token);
+  if (!invite || invite.expires_at < new Date().toISOString()) return sendJSON(res, 404, { error: 'This invite is invalid or has expired' });
+  if (invite.email !== user.email.toLowerCase()) {
+    return sendJSON(res, 403, { error: `This invite was sent to ${invite.email} — log in with that account to accept it` });
+  }
+  if (user.team_owner_id && user.team_owner_id !== invite.owner_id) {
+    return sendJSON(res, 400, { error: "You're already on a different team — leave it first" });
+  }
+  if (!user.team_owner_id) {
+    const members = store.getTeamMembers(invite.owner_id);
+    if (members.length >= pricing.MAX_TEAM_MEMBERS) {
+      store.deleteTeamInvite(params.token);
+      return sendJSON(res, 400, { error: 'This team is full' });
+    }
+    store.addTeamMember(invite.owner_id, user.id);
+  }
+  store.deleteTeamInvite(params.token);
+  sendJSON(res, 200, { user: publicUser(store.getUserById(user.id)) });
+});
+
+route('POST', '/api/team/member/:id/remove', async (req, res, params, user) => {
+  if (!isTeamOwner(user)) return sendJSON(res, 403, { error: 'Only the Teams plan owner can remove members' });
+  const memberId = Number(params.id);
+  const member = store.getUserById(memberId);
+  if (!member || member.team_owner_id !== user.id) return sendJSON(res, 404, { error: 'Team member not found' });
+  store.removeTeamMember(memberId);
+  sendJSON(res, 200, { ok: true });
+});
+
+route('POST', '/api/team/leave', async (req, res, params, user) => {
+  if (!user.team_owner_id) return sendJSON(res, 400, { error: "You're not on a team" });
+  store.removeTeamMember(user.id);
+  sendJSON(res, 200, { user: publicUser(store.getUserById(user.id)) });
 });
 
 route('GET', '/api/auth/oauth-providers', async (req, res) => {
@@ -921,7 +1026,10 @@ const server = http.createServer(async (req, res) => {
     const match = matchRoute(req.method, pathname);
     if (!match) return sendJSON(res, 404, { error: 'No such route' });
 
-    const isPublicRoute = pathname.startsWith('/api/auth/') || pathname === '/api/billing/webhook' || pathname.startsWith('/api/public/') || pathname === '/api/health';
+    // GET /api/team/invite/:token is deliberately public — an invitee needs to see who invited
+    // them before they've logged in or even have an account yet (see the accept flow's UI).
+    const isPublicRoute = pathname.startsWith('/api/auth/') || pathname === '/api/billing/webhook' || pathname.startsWith('/api/public/') || pathname === '/api/health' ||
+      (req.method === 'GET' && /^\/api\/team\/invite\/[^/]+$/.test(pathname));
     const cookies = auth.parseCookies(req);
     const user = auth.getUserForToken(cookies.session);
     if (!isPublicRoute && !user) return sendJSON(res, 401, { error: 'Not authenticated' });

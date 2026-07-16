@@ -150,6 +150,17 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Pending Teams seat invitations. Single-use like verification_tokens (deleted on accept or
+  -- cancel), scoped to one owner + one email — a real team membership row only exists once
+  -- accepted (users.team_owner_id), so this table only ever holds the "not yet accepted" state.
+  CREATE TABLE IF NOT EXISTS team_invites (
+    token TEXT PRIMARY KEY,
+    owner_id INTEGER NOT NULL REFERENCES users(id),
+    email TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at TEXT NOT NULL
+  );
+
   -- Server-rendered marketing content, deliberately separate from the app's other tables — posts
   -- are public, unauthenticated, and exist purely to be crawled/indexed, unlike everything else
   -- in this schema which is gated behind a user_id.
@@ -171,6 +182,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_ai_usage_user ON ai_usage(user_id);
   CREATE INDEX IF NOT EXISTS idx_credit_purchases_user ON credit_purchases(user_id);
   CREATE INDEX IF NOT EXISTS idx_verification_tokens_user ON verification_tokens(user_id);
+  CREATE INDEX IF NOT EXISTS idx_team_invites_owner ON team_invites(owner_id);
 `);
 
 // Lightweight migration: CREATE TABLE IF NOT EXISTS doesn't add columns to a table that already
@@ -366,6 +378,26 @@ function removeTeamMember(memberUserId) {
 
 function getTeamMembers(ownerId) {
   return db.prepare('SELECT * FROM users WHERE team_owner_id = ?').all(ownerId);
+}
+
+function createTeamInvite(token, ownerId, email, expiresAt) {
+  db.prepare('INSERT INTO team_invites (token, owner_id, email, expires_at) VALUES (?, ?, ?, ?)').run(token, ownerId, email, expiresAt);
+}
+
+function getTeamInviteByToken(token) {
+  return db.prepare('SELECT * FROM team_invites WHERE token = ?').get(token);
+}
+
+function deleteTeamInvite(token) {
+  db.prepare('DELETE FROM team_invites WHERE token = ?').run(token);
+}
+
+function listPendingInvitesForOwner(ownerId) {
+  return db.prepare("SELECT * FROM team_invites WHERE owner_id = ? AND expires_at >= datetime('now') ORDER BY created_at DESC").all(ownerId);
+}
+
+function deleteExpiredTeamInvites() {
+  db.prepare("DELETE FROM team_invites WHERE expires_at < datetime('now')").run();
 }
 
 function deductCredits(userId, amount) {
@@ -629,6 +661,7 @@ module.exports = {
   getUserByStripeCustomerId, getUserByStripeSubscriptionId, setStripeCustomerId, setSubscriptionStatus,
   setUserTier, deductCredits, addCredits, logAiUsage,
   getEffectiveTierUser, addTeamMember, removeTeamMember, getTeamMembers,
+  createTeamInvite, getTeamInviteByToken, deleteTeamInvite, listPendingInvitesForOwner, deleteExpiredTeamInvites,
   getCreditPurchaseBySessionId, recordCreditPurchase,
   getChatMessages, addChatMessage,
   createSession, getSession, deleteSession, deleteExpiredSessions,

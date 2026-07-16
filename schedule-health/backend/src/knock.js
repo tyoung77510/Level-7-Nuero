@@ -112,4 +112,45 @@ async function sendVerificationEmail(user, verifyUrl) {
   }
 }
 
-module.exports = { knockConfigured, identifyUser, notifyFeedback, verificationConfigured, sendVerificationEmail };
+// Sends a Teams seat invite by triggering a Knock workflow (same pattern as verification email).
+// Gated on its own workflow key rather than just knockConfigured() since, like verification, it's
+// an opt-in email type — inviteUrl is also returned directly from the /api/team/invite response
+// regardless of whether this succeeds, so an owner can still copy/share the link by hand if Knock
+// isn't set up yet.
+function teamInviteConfigured() {
+  return knockConfigured() && Boolean(process.env.KNOCK_TEAM_INVITE_WORKFLOW_KEY);
+}
+
+async function sendTeamInviteEmail(ownerUser, inviteeEmail, inviteUrl) {
+  const workflowKey = process.env.KNOCK_TEAM_INVITE_WORKFLOW_KEY;
+  if (!teamInviteConfigured()) {
+    console.warn(`[knock] Team invite email skipped (KNOCK_API_KEY or KNOCK_TEAM_INVITE_WORKFLOW_KEY not set) for ${inviteeEmail}`);
+    return null;
+  }
+  try {
+    const res = await fetch(`${KNOCK_API}/workflows/${encodeURIComponent(workflowKey)}/trigger`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.KNOCK_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        recipients: [{ id: inviteeEmail, email: inviteeEmail }],
+        data: { inviter_name: ownerUser.name, invite_url: inviteUrl }
+      })
+    });
+    if (!res.ok) {
+      console.error(`[knock] Failed to trigger team invite workflow: ${res.status} ${await res.text().catch(() => '')}`);
+      return null;
+    }
+    return res.json();
+  } catch (e) {
+    console.error('[knock] Failed to trigger team invite workflow:', e.message);
+    return null;
+  }
+}
+
+module.exports = {
+  knockConfigured, identifyUser, notifyFeedback, verificationConfigured, sendVerificationEmail,
+  teamInviteConfigured, sendTeamInviteEmail
+};
