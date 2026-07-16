@@ -6,6 +6,31 @@ function aiConfigured() {
   return !!process.env.ANTHROPIC_API_KEY;
 }
 
+// aiConfigured() only proves the env var is *set* — an expired or revoked key still passes it,
+// which is exactly what silently broke Ask Ordo in production for days before anyone noticed.
+// This makes one real, cheap call (GET /v1/models needs a valid key but returns no generated
+// tokens, so it's free) and caches the result briefly so /api/health can call it on every hit
+// without hammering Anthropic if something like an uptime monitor pings it often.
+let keyCheckCache = null; // { ok: boolean, checkedAt: number }
+const KEY_CHECK_TTL_MS = 5 * 60 * 1000;
+
+async function verifyApiKeyWorks() {
+  if (!aiConfigured()) return false;
+  if (keyCheckCache && Date.now() - keyCheckCache.checkedAt < KEY_CHECK_TTL_MS) return keyCheckCache.ok;
+  let ok = false;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/models', {
+      headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' }
+    });
+    ok = res.ok;
+    if (!ok) console.error('[ai] API key check failed', res.status, await res.text().catch(() => ''));
+  } catch (err) {
+    console.error('[ai] API key check failed', err.message);
+  }
+  keyCheckCache = { ok, checkedAt: Date.now() };
+  return ok;
+}
+
 function buildScheduleContext(snapshot, issues) {
   const topIssues = issues
     .filter(i => i.status !== 'resolved')
@@ -123,4 +148,4 @@ ${buildScheduleContext(snapshot, issues)}`;
   }
 }
 
-module.exports = { aiConfigured, generateNarrative, generateChatReply };
+module.exports = { aiConfigured, verifyApiKeyWorks, generateNarrative, generateChatReply };
