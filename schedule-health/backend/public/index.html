@@ -48,7 +48,7 @@
      motion instead of inheriting it. Excluded on .active since that state already has its own
      solid-fill highlight; lifting it too reads as jittery rather than responsive. */
   .sidebar-nav button, .central-subnav button, .sidebar-footer button {
-    transition: transform 0.325s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.325s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.325s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.325s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.45s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .sidebar-nav button:hover:not(.active), .central-subnav button:hover:not(.active), .sidebar-footer button:hover {
     transform: translateY(-1px);
@@ -69,7 +69,7 @@
      would leave a dead gap even fully collapsed. */
   .central-subnav-wrap {
     display: grid; grid-template-rows: 1fr; margin-bottom: 18px;
-    transition: grid-template-rows 0.39s cubic-bezier(0.16, 1, 0.3, 1), margin-bottom 0.39s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: grid-template-rows 0.5s cubic-bezier(0.16, 1, 0.3, 1), margin-bottom 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .central-subnav-wrap.collapsed { grid-template-rows: 0fr; margin-bottom: 0; }
   .central-subnav { display: flex; flex-wrap: wrap; gap: 6px; overflow: hidden; min-height: 0; }
@@ -149,14 +149,14 @@
     0% { opacity: 0; transform: scale(0.995) translateY(6px); filter: blur(2px); }
     100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
   }
-  .view.active { display: block; animation: stripeMorphIn 390ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .view.active { display: block; animation: stripeMorphIn 600ms cubic-bezier(0.16, 1, 0.3, 1); }
   .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 40px 16px; text-align: center; background: var(--card); }
   .drop input[type=file] { margin-top: 12px; color: var(--ink); }
   .row { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
   button.btn, a.btn {
     padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
     cursor: pointer; font-size: 13px; color: var(--ink); text-decoration: none; display: inline-block;
-    transition: transform 0.325s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.325s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.325s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.325s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.45s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.45s cubic-bezier(0.16, 1, 0.3, 1);
   }
   button.btn:hover:not(:disabled), a.btn:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 4px 12px rgba(0,0,0,0.2); }
   button.btn:active:not(:disabled), a.btn:active { transform: scale(0.98) translateY(0); }
@@ -174,20 +174,22 @@
   button.btn.tiny { padding: 4px 10px; font-size: 11px; }
   button.btn:disabled { opacity: 0.6; cursor: default; }
   /* Ambient mouse-follow glow — --mouse-x/--mouse-y are set on these elements by the delegated
-     mousemove listener in the script below (see GLOW_SELECTOR). Scoped to the app's highest-value
-     conversion surfaces rather than every .card, so it reads as a deliberate accent rather than
-     visual noise everywhere. overflow:hidden clips the glow to each element's own rounded corners
-     without affecting the existing hover box-shadow (that's painted outside the box, unaffected by
-     the element's own overflow). */
-  button.btn.primary, a.btn.primary, button.btn.cta, .tier-card, .conversion-banner {
+     mousemove listener in the script below (see GLOW_SELECTOR). Carried over to every button and
+     nav tab in the app (not just the original conversion-surface set) per explicit request that
+     the spotlight should follow the cursor "whenever the mouse lands on a button or tab".
+     overflow:hidden clips the glow to each element's own rounded corners without affecting the
+     existing hover box-shadow (that's painted outside the box, unaffected by the element's own
+     overflow). */
+  button.btn, a.btn, .sidebar-nav button, .central-subnav button, .sidebar-footer button, .tier-card, .conversion-banner {
     position: relative;
     overflow: hidden;
   }
-  /* .btn.primary/.btn.cta are solid-filled (accent teal / orange) -- a teal-tinted glow painted on
-     top of an already-teal button has no contrast and is invisible, so solid buttons get a white
-     sheen instead. .tier-card/.conversion-banner sit on the dark --card background, where the teal
-     accent glow reads clearly, so they keep the colored version. */
-  button.btn.primary::before, a.btn.primary::before, button.btn.cta::before {
+  /* Solid-filled surfaces (.btn.primary/.btn.cta, and any nav button in its .active gradient-fill
+     state) get a white sheen -- a teal-tinted glow painted on top of an already-teal fill has no
+     contrast and is invisible (this exact bug shipped once already). Everything else here sits on
+     the dark --card/transparent background, where the teal accent glow reads clearly. */
+  button.btn.primary::before, a.btn.primary::before, button.btn.cta::before,
+  .sidebar-nav button.active::before, .central-subnav button.active::before {
     content: '';
     position: absolute; inset: 0;
     background: radial-gradient(80px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.35), transparent 80%);
@@ -195,6 +197,8 @@
     transition: opacity 0.39s ease;
     pointer-events: none;
   }
+  button.btn:not(.primary):not(.cta)::before, a.btn:not(.primary):not(.cta)::before,
+  .sidebar-nav button:not(.active)::before, .central-subnav button:not(.active)::before, .sidebar-footer button::before,
   .tier-card::before, .conversion-banner::before {
     content: '';
     position: absolute; inset: 0;
@@ -203,7 +207,20 @@
     transition: opacity 0.39s ease;
     pointer-events: none;
   }
-  button.btn.primary:hover::before, a.btn.primary:hover::before, button.btn.cta:hover::before, .tier-card:hover::before, .conversion-banner:hover::before { opacity: 1; }
+  /* Mirrors the exact :not(.primary):not(.cta) / :not(.active) compound structure of the base
+     rules above, not just the simpler button.btn:hover -- each :not(X) clause adds X's own
+     specificity to the selector, so a plainer button.btn:hover::before rule here would have
+     LOWER specificity than button.btn:not(.primary):not(.cta)::before and could never win the
+     cascade regardless of source order, permanently stuck at opacity:0 on hover. Confirmed via a
+     live hover test: :hover matched correctly (translateY/box-shadow applied), but ::before
+     opacity stayed 0 until this was fixed to match specificity. */
+  button.btn.primary:hover::before, a.btn.primary:hover::before, button.btn.cta:hover::before,
+  .sidebar-nav button.active:hover::before, .central-subnav button.active:hover::before,
+  button.btn:not(.primary):not(.cta):hover::before, a.btn:not(.primary):not(.cta):hover::before,
+  .sidebar-nav button:not(.active):hover::before, .central-subnav button:not(.active):hover::before, .sidebar-footer button:hover::before,
+  .tier-card:hover::before, .conversion-banner:hover::before {
+    opacity: 1;
+  }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 12px; }
   .score-line { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
   .score-num { font-size: 28px; font-weight: 600; }
@@ -824,10 +841,11 @@ navButtons.forEach(b => b.addEventListener('click', () => document.body.classLis
 // --- Ambient mouse-follow glow ---
 // Delegated on document rather than queried once at load, since most matching elements (pricing
 // tier cards, the report's Export-as-PDF button, the risk-detected banner, the tour's Next/Finish
-// button) don't exist in the DOM yet when this script runs — they're built later via innerHTML in
-// renderPricing/renderReport/conversionBanner/buildTourOverlay. A one-time querySelectorAll would
-// silently never attach to any of them.
-const GLOW_SELECTOR = '.btn.primary, .btn.cta, .tier-card, .conversion-banner';
+// button, every sidebar/sub-nav tab) don't exist in the DOM yet when this script runs, or are
+// built later via innerHTML in renderPricing/renderReport/conversionBanner/buildTourOverlay. A
+// one-time querySelectorAll would silently never attach to any of them. Covers every button and
+// nav tab in the app now, not just the original conversion-surface set.
+const GLOW_SELECTOR = '.btn, .sidebar-nav button, .central-subnav button, .sidebar-footer button, .tier-card, .conversion-banner';
 document.addEventListener('mousemove', (e) => {
   const el = e.target.closest(GLOW_SELECTOR);
   if (!el) return;
@@ -1521,7 +1539,7 @@ function gaugeSvg(score){
     '<circle cx="75" cy="75" r="' + r + '" fill="none" stroke="var(--line)" stroke-width="11"/>' +
     '<circle class="gauge-ring" cx="75" cy="75" r="' + r + '" fill="none" stroke="' + scoreColor(score) + '" stroke-width="11" ' +
       'stroke-linecap="round" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + offset.toFixed(1) + '" ' +
-      'style="--gauge-circumference:' + c.toFixed(1) + 'px; --gauge-offset:' + offset.toFixed(1) + 'px;" ' +
+      'style="--gauge-circumference:' + c.toFixed(1) + 'px; --gauge-offset:' + offset.toFixed(1) + 'px; animation-delay:150ms;" ' +
       'transform="rotate(-90 75 75)"/>' +
     '<text x="75" y="72" text-anchor="middle" font-size="34" font-weight="700" fill="var(--ink)">' + score + '</text>' +
     '<text x="75" y="94" text-anchor="middle" font-size="11" fill="var(--muted)">out of 100</text>' +
@@ -1532,7 +1550,7 @@ function subScoreRow(label, value){
   const v = value == null ? null : Math.max(0, Math.min(100, value));
   return '<div class="subscore-row">' +
     '<div class="subscore-label"><span class="name">' + label + '</span><span class="value">' + (v == null ? '—' : v) + '</span></div>' +
-    '<div class="subscore-track"><div class="subscore-fill grow-in" style="width:' + (v ?? 0) + '%; --target-width:' + (v ?? 0) + '%; background:' + (v == null ? 'var(--line)' : scoreColor(v)) + ';"></div></div>' +
+    '<div class="subscore-track"><div class="subscore-fill grow-in" style="width:' + (v ?? 0) + '%; --target-width:' + (v ?? 0) + '%; background:' + (v == null ? 'var(--line)' : scoreColor(v)) + '; animation-delay:150ms;"></div></div>' +
   '</div>';
 }
 
@@ -1564,7 +1582,7 @@ function conversionBanner(snapshot){
   const lowOverall = snapshot.score < 65;
   const lowMilestone = snapshot.milestone_health != null && snapshot.milestone_health < 65;
   if (!lowOverall && !lowMilestone) return '';
-  return '<div class="card conversion-banner" style="border-color:var(--warn); border-width:1.5px; margin-bottom:14px;">' +
+  return '<div class="card conversion-banner reveal-item revealed" style="border-color:var(--warn); border-width:1.5px; margin-bottom:14px; animation-delay:0ms;">' +
     '<p style="font-weight:600; margin:0 0 4px; color:var(--warn);">Schedule risk detected</p>' +
     '<p style="font-size:13px; margin:0 0 12px;">This schedule presents critical execution and milestone risks. Book a 15-Minute Schedule Strategy Session.</p>' +
     '<a class="btn primary" href="mailto:admin@level7data.com?subject=Schedule%20Strategy%20Session%20request">Book Strategy Session</a>' +
@@ -1581,7 +1599,7 @@ function renderHealth(snapshot){
       '<div class="metric reveal-item revealed" style="animation-delay:120ms;"><div class="lab">Activities</div><div class="val">' + snapshot.total_activities + '</div></div>' +
     '</div>' +
     '<div class="dash-grid">' +
-      '<div class="card gauge-card">' +
+      '<div class="card gauge-card reveal-item revealed" style="animation-delay:150ms;">' +
         gaugeSvg(snapshot.score) +
         '<div id="gaugeDelta" class="gauge-delta flat"></div>' +
         '<button class="btn no-print" id="shareAuditBtn" style="margin-top:10px;" onclick="shareRiskAudit(' + snapshot.id + ')">🔗 Share Private Risk Audit</button>' +
@@ -1592,7 +1610,7 @@ function renderHealth(snapshot){
           subScoreRow('Milestone hygiene', snapshot.milestone_health) +
         '</div>' +
       '</div>' +
-      '<div class="card">' +
+      '<div class="card reveal-item revealed" style="animation-delay:220ms;">' +
         '<p class="section-title"><span class="live-dot"></span>Live activity feed</p>' +
         '<ul id="activityFeed" class="activity-feed"><li class="msg" style="color:var(--muted);">Loading…</li></ul>' +
       '</div>' +
