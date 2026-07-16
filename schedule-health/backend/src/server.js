@@ -34,8 +34,17 @@ const knock = require('./knock');
 const ai = require('./ai');
 const pricing = require('./pricing');
 const oauth = require('./oauth');
+const blogContent = require('./blog-content');
 
 store.deleteExpiredSessions();
+
+// Blog posts are authored in blog-content.js (reviewed like any other code change) and seeded
+// into the DB idempotently on boot — adding a post is a normal code change, not a manual DB write.
+for (const post of blogContent) {
+  if (!store.getBlogPostBySlug(post.slug)) {
+    store.createBlogPost(post.slug, post.title, post.description, post.contentHtml);
+  }
+}
 
 const PORT = process.env.PORT || 3000;
 
@@ -766,6 +775,114 @@ const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 // expect at a plain path rather than a .html extension.
 const STATIC_ALIASES = { '/privacy': '/privacy.html', '/terms': '/terms.html' };
 
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// Shared dark-theme chrome, reusing the same palette/typography as shared-snapshot.html so the
+// blog reads as the same product rather than a bolted-on marketing microsite.
+function renderBlogLayout({ title, description, canonicalPath, bodyHtml }) {
+  const canonical = `https://ordo7.pro${canonicalPath}`;
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(title)}</title>
+<meta name="description" content="${escapeHtml(description)}">
+<link rel="canonical" href="${canonical}">
+<meta property="og:type" content="article">
+<meta property="og:url" content="${canonical}">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:site_name" content="Ordo7">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${escapeHtml(title)}">
+<meta name="twitter:description" content="${escapeHtml(description)}">
+<style>
+  :root {
+    --ink: #e7ecf2; --paper: #0a0e14; --line: #232b36; --muted: #8b96a5;
+    --card: #121821; --teal: #2dd6c4; --accent: var(--teal);
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--paper); color: var(--ink); margin: 0; padding: 32px 20px 80px; line-height: 1.65; }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  a { color: var(--accent); }
+  .back { display: inline-block; margin-bottom: 24px; font-size: 13px; color: var(--muted); text-decoration: none; }
+  .brand { font-weight: 800; font-size: 22px; margin: 0 0 28px; }
+  .brand span { color: #f37443; }
+  h1 { font-size: 28px; line-height: 1.25; margin: 0 0 10px; }
+  .post-meta { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+  .post-list-item { border-bottom: 1px solid var(--line); padding: 20px 0; }
+  .post-list-item:first-child { padding-top: 0; }
+  .post-list-item h2 { font-size: 19px; margin: 0 0 6px; }
+  .post-list-item h2 a { color: var(--ink); text-decoration: none; }
+  .post-list-item h2 a:hover { color: var(--accent); }
+  .post-list-item p { color: var(--muted); font-size: 14px; margin: 0; }
+  .post-body { font-size: 15.5px; }
+  .post-body h2 { font-size: 20px; margin: 32px 0 12px; }
+  .post-body p { margin: 0 0 16px; }
+  .post-body ul, .post-body ol { margin: 0 0 16px; padding-left: 22px; }
+  .post-body li { margin-bottom: 8px; }
+  .empty { color: var(--muted); font-size: 13px; }
+  .cta { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 13px; color: var(--muted); }
+  .cta a { font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">&larr; ordo7.pro</a>
+  <p class="brand">Ordo<span>7</span></p>
+  ${bodyHtml}
+  <p class="cta">Want to check your own schedule? <a href="/">Try Ordo7 free →</a></p>
+</div>
+</body>
+</html>
+`;
+}
+
+function serveBlogIndex(req, res) {
+  const posts = store.listBlogPosts();
+  const listHtml = posts.length
+    ? posts.map(p => `<div class="post-list-item">
+      <h2><a href="/blog/${escapeHtml(p.slug)}">${escapeHtml(p.title)}</a></h2>
+      <p>${escapeHtml(p.description)}</p>
+    </div>`).join('')
+    : '<p class="empty">No posts yet — check back soon.</p>';
+  const html = renderBlogLayout({
+    title: 'Blog — Ordo7',
+    description: 'Practical guidance on construction schedule health, DCMA checks, and spotting a bad baseline before it costs you.',
+    canonicalPath: '/blog',
+    bodyHtml: `<h1>The Ordo7 Blog</h1><p class="post-meta">Schedule health, explained without the jargon.</p>${listHtml}`
+  });
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end(html);
+}
+
+function serveBlogPost(req, res, slug) {
+  const post = store.getBlogPostBySlug(slug);
+  if (!post) {
+    res.writeHead(404, { 'Content-Type': 'text/html' });
+    return res.end(renderBlogLayout({
+      title: 'Post not found — Ordo7 Blog',
+      description: 'This post could not be found.',
+      canonicalPath: `/blog/${slug}`,
+      bodyHtml: '<h1>Post not found</h1><p class="empty">This post may have been moved or removed. <a href="/blog">Back to the blog</a>.</p>'
+    }));
+  }
+  const publishedDate = new Date(post.published_at.includes('T') ? post.published_at : post.published_at + 'Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const html = renderBlogLayout({
+    title: `${post.title} — Ordo7 Blog`,
+    description: post.description,
+    canonicalPath: `/blog/${post.slug}`,
+    // content_html is authored server-side by us (seeded content or the reviewed output of the
+    // marketing Routine's draft PR flow), never user-submitted, so it's trusted to render as-is.
+    bodyHtml: `<h1>${escapeHtml(post.title)}</h1><p class="post-meta">${publishedDate} · Ordo7, powered by Level 7</p><div class="post-body">${post.content_html}</div>`
+  });
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end(html);
+}
+
 function serveStatic(req, res, pathname) {
   pathname = STATIC_ALIASES[pathname] || pathname;
   let filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname);
@@ -826,6 +943,12 @@ const server = http.createServer(async (req, res) => {
   // the browser and resolved via GET /api/public/snapshot/:token, so any path under /shared/
   // serves the same static file regardless of the token segment.
   if (pathname.startsWith('/shared/')) return serveStatic(req, res, '/shared-snapshot.html');
+
+  // The blog is rendered server-side (unlike the rest of this app, which is a static shell that
+  // fetches from /api/) because its entire purpose is search-engine indexing — a client-only
+  // render would leave non-JS crawlers with an empty page.
+  if (pathname === '/blog' || pathname === '/blog/') return serveBlogIndex(req, res);
+  if (pathname.startsWith('/blog/')) return serveBlogPost(req, res, pathname.slice('/blog/'.length));
 
   serveStatic(req, res, pathname);
 });
