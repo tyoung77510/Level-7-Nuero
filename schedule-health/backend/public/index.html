@@ -118,6 +118,17 @@
   @keyframes revealItem { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .reveal-item { opacity: 0; }
   .reveal-item.revealed { opacity: 1; transform: translateY(0); animation: revealItem 0.52s cubic-bezier(0.16, 1, 0.3, 1); }
+  /* Dashboard-specific entrance -- the plain 8px/520ms revealItem above is correct and working
+     (confirmed via frame-by-frame pixel sampling) but reads as too subtle on the dashboard
+     specifically, where several other animations (gauge draw-in, bar growth, counters) are also
+     competing for attention at the same moment. A visibly larger rise + a slight scale "pop"
+     reads unambiguously as motion even alongside all of that. */
+  @keyframes dashCardIn {
+    from { opacity: 0; transform: translateY(22px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .dash-card-reveal { opacity: 0; }
+  .dash-card-reveal.revealed { opacity: 1; transform: translateY(0) scale(1); animation: dashCardIn 0.65s cubic-bezier(0.16, 1, 0.3, 1); }
   /* Health-score ring draws in from empty rather than appearing pre-filled -- both the full
      circumference and the real target offset are passed in per-instance via inline custom
      properties (see gaugeSvg()), since a @keyframes rule itself can't reference JS values. */
@@ -1539,7 +1550,7 @@ function gaugeSvg(score){
     '<circle cx="75" cy="75" r="' + r + '" fill="none" stroke="var(--line)" stroke-width="11"/>' +
     '<circle class="gauge-ring" cx="75" cy="75" r="' + r + '" fill="none" stroke="' + scoreColor(score) + '" stroke-width="11" ' +
       'stroke-linecap="round" stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + offset.toFixed(1) + '" ' +
-      'style="--gauge-circumference:' + c.toFixed(1) + 'px; --gauge-offset:' + offset.toFixed(1) + 'px; animation-delay:150ms;" ' +
+      'style="--gauge-circumference:' + c.toFixed(1) + 'px; --gauge-offset:' + offset.toFixed(1) + 'px; animation-delay:280ms;" ' +
       'transform="rotate(-90 75 75)"/>' +
     '<text x="75" y="72" text-anchor="middle" font-size="34" font-weight="700" fill="var(--ink)">' + score + '</text>' +
     '<text x="75" y="94" text-anchor="middle" font-size="11" fill="var(--muted)">out of 100</text>' +
@@ -1550,7 +1561,7 @@ function subScoreRow(label, value){
   const v = value == null ? null : Math.max(0, Math.min(100, value));
   return '<div class="subscore-row">' +
     '<div class="subscore-label"><span class="name">' + label + '</span><span class="value">' + (v == null ? '—' : v) + '</span></div>' +
-    '<div class="subscore-track"><div class="subscore-fill grow-in" style="width:' + (v ?? 0) + '%; --target-width:' + (v ?? 0) + '%; background:' + (v == null ? 'var(--line)' : scoreColor(v)) + '; animation-delay:150ms;"></div></div>' +
+    '<div class="subscore-track"><div class="subscore-fill grow-in" style="width:' + (v ?? 0) + '%; --target-width:' + (v ?? 0) + '%; background:' + (v == null ? 'var(--line)' : scoreColor(v)) + '; animation-delay:280ms;"></div></div>' +
   '</div>';
 }
 
@@ -1582,7 +1593,7 @@ function conversionBanner(snapshot){
   const lowOverall = snapshot.score < 65;
   const lowMilestone = snapshot.milestone_health != null && snapshot.milestone_health < 65;
   if (!lowOverall && !lowMilestone) return '';
-  return '<div class="card conversion-banner reveal-item revealed" style="border-color:var(--warn); border-width:1.5px; margin-bottom:14px; animation-delay:0ms;">' +
+  return '<div class="card conversion-banner dash-card-reveal revealed" style="border-color:var(--warn); border-width:1.5px; margin-bottom:14px; animation-delay:0ms;">' +
     '<p style="font-weight:600; margin:0 0 4px; color:var(--warn);">Schedule risk detected</p>' +
     '<p style="font-size:13px; margin:0 0 12px;">This schedule presents critical execution and milestone risks. Book a 15-Minute Schedule Strategy Session.</p>' +
     '<a class="btn primary" href="mailto:admin@level7data.com?subject=Schedule%20Strategy%20Session%20request">Book Strategy Session</a>' +
@@ -1594,12 +1605,12 @@ function renderHealth(snapshot){
   el.innerHTML =
     conversionBanner(snapshot) +
     '<div class="metric-grid">' +
-      '<div class="metric reveal-item revealed" style="animation-delay:0ms;"><div class="lab">Critical</div><div class="val" style="color:var(--bad);">' + snapshot.crit_count + '</div></div>' +
-      '<div class="metric reveal-item revealed" style="animation-delay:60ms;"><div class="lab">At risk</div><div class="val" style="color:var(--warn);">' + snapshot.risk_count + '</div></div>' +
-      '<div class="metric reveal-item revealed" style="animation-delay:120ms;"><div class="lab">Activities</div><div class="val">' + snapshot.total_activities + '</div></div>' +
+      '<div class="metric dash-card-reveal revealed" style="animation-delay:40ms;"><div class="lab">Critical</div><div class="val" style="color:var(--bad);">' + snapshot.crit_count + '</div></div>' +
+      '<div class="metric dash-card-reveal revealed" style="animation-delay:120ms;"><div class="lab">At risk</div><div class="val" style="color:var(--warn);">' + snapshot.risk_count + '</div></div>' +
+      '<div class="metric dash-card-reveal revealed" style="animation-delay:200ms;"><div class="lab">Activities</div><div class="val">' + snapshot.total_activities + '</div></div>' +
     '</div>' +
     '<div class="dash-grid">' +
-      '<div class="card gauge-card reveal-item revealed" style="animation-delay:150ms;">' +
+      '<div class="card gauge-card dash-card-reveal revealed" style="animation-delay:280ms;">' +
         gaugeSvg(snapshot.score) +
         '<div id="gaugeDelta" class="gauge-delta flat"></div>' +
         '<button class="btn no-print" id="shareAuditBtn" style="margin-top:10px;" onclick="shareRiskAudit(' + snapshot.id + ')">🔗 Share Private Risk Audit</button>' +
@@ -1610,7 +1621,7 @@ function renderHealth(snapshot){
           subScoreRow('Milestone hygiene', snapshot.milestone_health) +
         '</div>' +
       '</div>' +
-      '<div class="card reveal-item revealed" style="animation-delay:220ms;">' +
+      '<div class="card dash-card-reveal revealed" style="animation-delay:380ms;">' +
         '<p class="section-title"><span class="live-dot"></span>Live activity feed</p>' +
         '<ul id="activityFeed" class="activity-feed"><li class="msg" style="color:var(--muted);">Loading…</li></ul>' +
       '</div>' +
