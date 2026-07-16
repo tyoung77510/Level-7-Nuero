@@ -9,6 +9,9 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/brand/musk/icon-32.png">
 <link rel="icon" type="image/png" sizes="64x64" href="/brand/musk/icon-64.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/brand/musk/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="canonical" href="https://ordo7.pro/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://ordo7.pro/">
@@ -22,15 +25,23 @@
 <meta name="twitter:image" content="https://ordo7.pro/brand/musk/icon-512.png">
 <style>
   :root {
-    --ink: #e7ecf2; --paper: #0a0e14; --line: #232b36;
-    --muted: #8b96a5; --good: #34d399; --warn: #fbbf24; --bad: #f87171;
-    --card: #121821;
+    /* Re-themed palette (Ordo7 mono-mark rebrand) — same token NAMES as before, updated VALUES,
+       so every existing rule and every already-shipped animation keeps working unchanged; they
+       all reference these variables, never hardcoded old hex values. New supplementary tokens
+       (--accent-2, --on-accent, --secondary, --faint, --line-faint) exist for new components only
+       (Upload redesign, Ask Ordo restyle) — nothing pre-existing needs them. */
+    --ink: #f4f8fc; --paper: #06090f; --line: #1d222a; --line-faint: #171b23;
+    --muted: #8695a8; --secondary: #aab6c6; --faint: #6b7a8d;
+    --good: #46d19e; --warn: #f4b955; --bad: #f2716a;
+    --card: #0e1626;
     --navy: #476ab0; --orange: #f37443; --sky: #2da2d8; --gold: #f5bc3d;
-    --teal: #2dd6c4;
+    --teal: #5eead4; --accent-2: #22d3b0; --on-accent: #06231f;
     --accent: var(--teal);
   }
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--paper); color: var(--ink); margin: 0; padding: 24px; }
+  body { font-family: 'Manrope', -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--paper); background-image: radial-gradient(1400px 700px at 22% -8%, #0f1c2d 0%, #06090f 58%); background-attachment: fixed; color: var(--ink); margin: 0; padding: 24px; }
+  h1, h2, h3, .brand-wordmark { font-family: 'Space Grotesk', 'Manrope', -apple-system, sans-serif; }
+  .mono-label { font-family: 'JetBrains Mono', ui-monospace, monospace; }
   input, select, textarea { background: var(--card); color: var(--ink); }
   input::placeholder, textarea::placeholder { color: var(--muted); }
   .wrap { max-width: 760px; margin: 0 auto; }
@@ -180,6 +191,61 @@
   .view.active { display: block; animation: stripeMorphIn 600ms cubic-bezier(0.16, 1, 0.3, 1); }
   .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 40px 16px; text-align: center; background: var(--card); }
   .drop input[type=file] { margin-top: 12px; color: var(--ink); }
+
+  /* --- Upload screen redesign --- */
+  @keyframes popIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+  @keyframes dzFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+  @keyframes dzSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .upload-hero { max-width: 720px; margin-bottom: 22px; animation: heroFadeIn 500ms cubic-bezier(0.16,1,0.3,1) both; }
+  .upload-kicker { font-size: 11px; letter-spacing: 0.16em; color: var(--accent); margin: 0 0 8px; }
+  .upload-h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 10px; color: var(--ink); }
+  .upload-sub { font-size: 14.5px; color: var(--secondary); line-height: 1.6; margin: 0; }
+  .upload-grid { display: grid; grid-template-columns: 1.35fr 1fr; gap: 20px; align-items: stretch; max-width: 1040px; }
+  @media (max-width: 900px) { .upload-grid { grid-template-columns: 1fr; } }
+  .dropzone {
+    border: 1.5px dashed var(--line); border-radius: 16px; background: var(--card);
+    padding: 38px 32px; display: flex; flex-direction: column; align-items: center; text-align: center;
+    transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+    animation: popIn 500ms cubic-bezier(0.16,1,0.3,1) 50ms both;
+  }
+  .dropzone:hover { border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 3%, var(--card)); }
+  .dropzone.dz-drag { border-color: var(--accent); border-style: solid; background: color-mix(in srgb, var(--accent) 8%, var(--card)); transform: scale(1.006); }
+  .dz-icon {
+    width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, transparent), color-mix(in srgb, var(--accent) 4%, transparent));
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent); font-size: 26px; margin-bottom: 14px;
+    animation: dzFloat 2.6s ease-in-out infinite;
+  }
+  .dropzone.dz-drag .dz-icon { transform: scale(1.15); box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 14%, transparent); animation: none; }
+  .dz-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 18px; color: var(--ink); margin: 0 0 4px; }
+  .dz-sub { font-size: 13px; color: var(--muted); margin: 0 0 16px; }
+  .dz-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 16px; }
+  .dz-chip { font-size: 11px; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  .dz-footer { font-size: 12.5px; color: var(--faint); margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--line-faint); width: 100%; min-height: 1em; }
+  .dz-spinner { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); animation: dzSpin 0.8s linear infinite; margin-bottom: 14px; }
+  .wygp {
+    border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column;
+    background: linear-gradient(180deg, #0c1524, #0a111d);
+    animation: popIn 500ms cubic-bezier(0.16,1,0.3,1) 120ms both;
+  }
+  .wygp-label { font-size: 10px; letter-spacing: 0.14em; color: var(--faint); margin: 0 0 16px; }
+  .wygp-ring-row { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+  .health-ring {
+    width: 76px; height: 76px; border-radius: 50%; flex-shrink: 0;
+    background: conic-gradient(var(--ring-color, var(--line)) 0 var(--ring-pct, 0%), var(--line) var(--ring-pct, 0%) 100%);
+    display: flex; align-items: center; justify-content: center; transition: background 0.3s ease;
+  }
+  .health-ring-inner { width: 58px; height: 58px; border-radius: 50%; background: #0b1220; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .health-ring-num { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 21px; color: var(--ring-color, var(--muted)); }
+  .health-ring-label { font-size: 8px; color: var(--muted); letter-spacing: 0.06em; }
+  .wygp-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px; margin: 0 0 4px; color: var(--ink); }
+  .wygp-sub { font-size: 12.5px; color: var(--secondary); margin: 0; line-height: 1.5; }
+  .wygp-feature { display: flex; align-items: flex-start; gap: 10px; background: var(--paper); border: 1px solid var(--line-faint); border-radius: 11px; padding: 12px 13px; font-size: 12.5px; color: var(--secondary); margin-bottom: 10px; }
+  .wygp-feature-icon { width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12px; font-weight: 700; }
+  .wygp-feature-icon.bad { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad); }
+  .wygp-feature-icon.accent { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+  .wygp-feature-icon.warn { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+  .wygp-footer { font-size: 11.5px; color: var(--faint); text-align: center; margin: 4px 0 0; }
   .row { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
   button.btn, a.btn {
     padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
@@ -284,6 +350,40 @@
      overlays. Reuses the same dot-grid background as the auth screens for brand consistency rather
      than inventing a new background treatment. */
   @keyframes heroFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideL { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes slideR { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+  /* Desktop-only shell entrance cascade — scoped above the mobile breakpoint (980px) so it never
+     interacts with the mobile sidebar drawer's own transform-based open/close transition just
+     above; that's a separate, already-working mechanism this must not touch. */
+  @media (min-width: 981px) {
+    #panel-left-sidebar { animation: slideL 500ms cubic-bezier(0.22,1,0.36,1) both; }
+    #panel-right-command-bar { animation: slideR 500ms cubic-bezier(0.22,1,0.36,1) both; }
+    /* fill-mode: backwards (NOT both) on purpose — these buttons already have their own hover
+       transform (translateY(-1px), see line ~82). "both" would hold this entrance animation's
+       final transform as a standing override that silently blocks :hover's transform from ever
+       applying again after the entrance finishes — caught via an actual hover test, not assumed.
+       "backwards" only holds the *starting* keyframe during the animation-delay (so nothing
+       flashes visible before its turn in the cascade) and cleanly hands control of `transform`
+       back to the normal cascade — i.e. back to :hover/:active — the instant the entrance ends. */
+    .sidebar-nav button:nth-child(1) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 60ms backwards; }
+    .sidebar-nav button:nth-child(2) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 100ms backwards; }
+    .sidebar-nav button:nth-child(3) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 140ms backwards; }
+    .sidebar-nav button:nth-child(4) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 180ms backwards; }
+    .sidebar-nav button:nth-child(5) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 220ms backwards; }
+    .sidebar-nav button:nth-child(6) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 260ms backwards; }
+    .central-subnav button:nth-child(1) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 40ms backwards; }
+    .central-subnav button:nth-child(2) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 80ms backwards; }
+    .central-subnav button:nth-child(3) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 120ms backwards; }
+    .central-subnav button:nth-child(4) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 160ms backwards; }
+    .central-subnav button:nth-child(5) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 200ms backwards; }
+    .central-subnav button:nth-child(6) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 240ms backwards; }
+    .central-subnav button:nth-child(7) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 280ms backwards; }
+    .central-subnav button:nth-child(8) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 320ms backwards; }
+    .central-subnav button:nth-child(9) { animation: heroFadeIn 400ms cubic-bezier(0.22,1,0.36,1) 360ms backwards; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #panel-left-sidebar, #panel-right-command-bar, .sidebar-nav button, .central-subnav button { animation-duration: 1ms !important; animation-delay: 0ms !important; }
+  }
   #welcomeHero {
     position: fixed; inset: 0; z-index: 250; display: flex; flex-direction: column;
     align-items: center; justify-content: center; text-align: center; padding: 40px 24px;
@@ -822,16 +922,55 @@
     </div>
 
     <div id="v-upload" class="view active">
-      <div class="drop">
-        <div style="font-size:28px;">&#8593;</div>
-        <p style="font-weight:500; margin:10px 0 4px;">Drop your schedule file here</p>
-        <p style="font-size:13px; color:var(--muted); margin:0 0 10px;">Supports Primavera P6 (.xer), CSV, or Microsoft Project XML exports</p>
-        <input type="file" id="fileInput" accept=".xer,.csv,.txt,.xml">
-        <div class="row">
-          <input type="text" id="projName" placeholder="Project name" value="Untitled project">
-          <button class="btn primary" id="loadSample">Load sample data instead</button>
+      <div class="upload-hero">
+        <p class="mono-label upload-kicker">NEW ANALYSIS</p>
+        <h1 class="upload-h1">Add a schedule to score its health</h1>
+        <p class="upload-sub">Ordo parses every activity, float value and milestone, then ranks exactly what to fix first.</p>
+      </div>
+      <div class="upload-grid">
+        <div class="dropzone" id="dz">
+          <div id="dzIdle">
+            <div class="dz-icon">&#8593;</div>
+            <p class="dz-title">Drop your schedule file here</p>
+            <p class="dz-sub">or browse from your computer</p>
+            <input type="file" id="fileInput" accept=".xer,.csv,.txt,.xml" style="display:none;">
+            <div class="row" style="margin-top:0;">
+              <button class="btn primary" id="browseBtn">Browse files</button>
+              <button class="btn" id="loadSample">Load sample data</button>
+            </div>
+            <input type="text" id="projName" placeholder="Project name" value="Untitled project" style="margin-top:14px; max-width:220px; text-align:center; padding:8px 10px; border:1px solid var(--line); border-radius:8px; font-size:13px;">
+            <div class="dz-chips">
+              <span class="mono-label dz-chip">Primavera P6 · .xer</span>
+              <span class="mono-label dz-chip">MS Project · .xml</span>
+              <span class="mono-label dz-chip">.csv</span>
+              <span class="mono-label dz-chip">up to 200MB</span>
+            </div>
+          </div>
+          <div id="dzAnalyzing" style="display:none; flex-direction:column; align-items:center;">
+            <div class="dz-spinner"></div>
+            <p class="dz-title">Analyzing your schedule…</p>
+          </div>
+          <p id="uploadStatus" class="dz-footer"></p>
         </div>
-        <p id="uploadStatus" style="font-size:12px; color:var(--muted); margin-top:10px;"></p>
+        <div class="wygp">
+          <p class="mono-label wygp-label">WHAT YOU'LL GET</p>
+          <div class="wygp-ring-row">
+            <div class="health-ring" id="uploadRing">
+              <div class="health-ring-inner">
+                <span class="health-ring-num" id="uploadRingNum">—</span>
+                <span class="mono-label health-ring-label">HEALTH</span>
+              </div>
+            </div>
+            <div>
+              <p class="wygp-title">A single health score</p>
+              <p class="wygp-sub" id="uploadRingSub">Benchmarked against your baseline &amp; the DCMA 14-point check.</p>
+            </div>
+          </div>
+          <div class="wygp-feature"><span class="wygp-feature-icon bad">!</span><span>Ranked <strong>fix-first</strong> actions — each with what's driving the risk.</span></div>
+          <div class="wygp-feature"><span class="wygp-feature-icon accent">&#10547;</span><span>Critical-path &amp; float analysis across every activity.</span></div>
+          <div class="wygp-feature"><span class="wygp-feature-icon warn">&#9638;</span><span>An executive-ready report you can export in one click.</span></div>
+          <p class="wygp-footer">&#8593; Upload to unlock all of the above</p>
+        </div>
       </div>
     </div>
 
@@ -994,6 +1133,7 @@ function setView(step, sourceBtn){
   const subnavWrap = document.querySelector('.central-subnav-wrap');
   if (subnavWrap) subnavWrap.classList.toggle('collapsed', !PROJECT_SCOPED_STEPS.includes(step));
   document.getElementById('panel-central-workspace').scrollTop = 0;
+  if (step === 'upload') renderUploadRing();
   if (step === 'trends') renderTrends();
   if (step === 'portfolio') renderPortfolio();
   if (step === 'milestones') renderMilestones();
@@ -2866,7 +3006,16 @@ function shareBeforeAfter(originalScore, newScore){
 }
 
 async function submitAnalysis(projectName, filename, content){
-  document.getElementById('uploadStatus').textContent = 'Analyzing…';
+  const dzIdle = document.getElementById('dzIdle');
+  const dzAnalyzing = document.getElementById('dzAnalyzing');
+  const statusEl = document.getElementById('uploadStatus');
+  // Single honest "analyzing" state, not a fabricated multi-step progress sequence — the real
+  // backend parses and scores in one pass with no distinguishable stages to report, so showing
+  // scripted "Parsing… / Checking… / Scoring…" text would be describing work that isn't actually
+  // happening in that order (or at all, as separate steps).
+  dzIdle.style.display = 'none';
+  dzAnalyzing.style.display = 'flex';
+  statusEl.textContent = '';
   try {
     const result = await api('/api/analyze', {
       method: 'POST',
@@ -2879,7 +3028,6 @@ async function submitAnalysis(projectName, filename, content){
     currentActivities = result.activities || [];
     currentHasDates = !!result.hasDates;
     sandboxState = {};
-    document.getElementById('uploadStatus').textContent = 'Analyzed ' + result.snapshot.total_activities + ' activities — saved to server.';
     renderHealth(currentSnapshot);
     renderIssues(currentIssues);
     renderReport(currentProject, currentSnapshot);
@@ -2887,8 +3035,79 @@ async function submitAnalysis(projectName, filename, content){
     renderChat();
     setView('health');
   } catch (e) {
-    document.getElementById('uploadStatus').textContent = 'Error: ' + e.message;
+    dzIdle.style.display = '';
+    dzAnalyzing.style.display = 'none';
+    statusEl.textContent = 'Error: ' + e.message;
   }
+}
+
+function handleUploadedFile(file){
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    const projectName = document.getElementById('projName').value || file.name;
+    submitAnalysis(projectName, file.name, evt.target.result);
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('browseBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+
+// Real drag-and-drop (previously just a bare native file input) — the dropzone highlights on
+// dragenter/dragover and reverts on dragleave/drop, matching the hover/active states already
+// established elsewhere in this app rather than inventing a new interaction language.
+const dzEl = document.getElementById('dz');
+['dragenter', 'dragover'].forEach(evt => {
+  dzEl.addEventListener(evt, (e) => { e.preventDefault(); dzEl.classList.add('dz-drag'); });
+});
+['dragleave', 'dragend'].forEach(evt => {
+  dzEl.addEventListener(evt, () => dzEl.classList.remove('dz-drag'));
+});
+dzEl.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dzEl.classList.remove('dz-drag');
+  const file = e.dataTransfer.files[0];
+  if (file) handleUploadedFile(file);
+});
+
+// Real "what you'll get" preview — the most recent score across this account's projects, if one
+// exists. Deliberately shows an honest empty state (—, unfilled ring) for a brand-new account
+// with no prior analysis, rather than a placeholder number that could be mistaken for real data.
+async function renderUploadRing(){
+  // Every visit to the Upload tab starts from the idle dropzone — a prior successful analysis
+  // navigates straight to the dashboard without resetting dzAnalyzing back to hidden (there's
+  // nothing to reset it *to* at that moment, since the view is being left), so this is the one
+  // place that's guaranteed to run every time the Upload view becomes visible again.
+  document.getElementById('dzIdle').style.display = '';
+  document.getElementById('dzAnalyzing').style.display = 'none';
+  document.getElementById('uploadStatus').textContent = '';
+  const ring = document.getElementById('uploadRing');
+  const numEl = document.getElementById('uploadRingNum');
+  const subEl = document.getElementById('uploadRingSub');
+  let rows;
+  try { rows = await api('/api/portfolio'); } catch (e) { return; }
+  if (!rows.length) {
+    ring.style.setProperty('--ring-pct', '0%');
+    ring.style.setProperty('--ring-color', 'var(--line)');
+    numEl.textContent = '—';
+    subEl.textContent = 'Your score appears here once you upload a schedule.';
+    return;
+  }
+  const mostRecent = rows.reduce((a, b) => (new Date(a.lastAnalyzed) > new Date(b.lastAnalyzed) ? a : b));
+  const score = mostRecent.score;
+  const color = scoreColor(score);
+  ring.style.setProperty('--ring-color', color);
+  subEl.textContent = 'Last analysis: ' + mostRecent.name + ' — benchmarked against the DCMA 14-point check.';
+  const start = performance.now();
+  const duration = 900;
+  function tick(now){
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic, matches this app's other count-up animations
+    const current = Math.round(score * eased);
+    numEl.textContent = current;
+    ring.style.setProperty('--ring-pct', (score * eased) + '%');
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
 }
 
 document.getElementById('loadSample').addEventListener('click', () => {
@@ -2909,13 +3128,7 @@ document.getElementById('loadSample').addEventListener('click', () => {
 
 document.getElementById('fileInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (evt) => {
-    const projectName = document.getElementById('projName').value || file.name;
-    submitAnalysis(projectName, file.name, evt.target.result);
-  };
-  reader.readAsText(file);
+  if (file) handleUploadedFile(file);
 });
 </script>
 </body>
