@@ -35,13 +35,20 @@
   .sidebar-footer a:hover { color: var(--accent); }
   .sidebar-nav { display: flex; flex-direction: column; gap: 4px; }
   .sidebar-nav button { display: flex; align-items: center; gap: 9px; text-align: left; padding: 10px 12px; font-size: 13px; border: 1px solid transparent; background: transparent; border-radius: 8px; cursor: pointer; color: var(--ink); }
-  .sidebar-nav button.active { background: var(--accent); color: #06231f; font-weight: 600; }
+  /* A flat solid fill on the active tab is exactly what reads as a plain webform control -- a
+     subtle gradient + glow + inner highlight gives it real depth instead, like a lit surface
+     rather than a painted rectangle. */
+  .sidebar-nav button.active {
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, white));
+    color: #06231f; font-weight: 600;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
   /* Nav-family buttons (sidebar items, sub-nav tabs, sidebar footer) aren't .btn elements — they
      have their own layout rules above — so they need their own copy of the same Linear-style
      motion instead of inheriting it. Excluded on .active since that state already has its own
      solid-fill highlight; lifting it too reads as jittery rather than responsive. */
   .sidebar-nav button, .central-subnav button, .sidebar-footer button {
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.325s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.325s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.325s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.325s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .sidebar-nav button:hover:not(.active), .central-subnav button:hover:not(.active), .sidebar-footer button:hover {
     transform: translateY(-1px);
@@ -62,16 +69,20 @@
      would leave a dead gap even fully collapsed. */
   .central-subnav-wrap {
     display: grid; grid-template-rows: 1fr; margin-bottom: 18px;
-    transition: grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1), margin-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: grid-template-rows 0.39s cubic-bezier(0.16, 1, 0.3, 1), margin-bottom 0.39s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .central-subnav-wrap.collapsed { grid-template-rows: 0fr; margin-bottom: 0; }
   .central-subnav { display: flex; flex-wrap: wrap; gap: 6px; overflow: hidden; min-height: 0; }
   .central-subnav button { display: flex; align-items: center; gap: 7px; padding: 8px 12px; font-size: 12.5px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; cursor: pointer; color: var(--ink); }
-  .central-subnav button.active { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
+  .central-subnav button.active {
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, white));
+    color: #06231f; border-color: var(--accent); font-weight: 600;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
   /* Icons inherit color from their button via currentColor, so they automatically match whatever
      text color is already correct for that state (dark on the light active fill, muted ink
      otherwise) — no separate active-state icon color rule needed. */
-  .nav-icon { flex-shrink: 0; transition: color 0.2s ease; }
+  .nav-icon { flex-shrink: 0; transition: color 0.26s ease; }
   #mobileSidebarToggle { display: none; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; margin-right: 8px; }
   #sidebarBackdrop { display: none; }
   @media (max-width: 980px) {
@@ -82,7 +93,7 @@
        column, toggled by #mobileSidebarToggle. Central workspace gets the full width back. */
     #panel-left-sidebar {
       position: fixed; top: 0; left: 0; bottom: 0; width: 260px; max-width: 80vw; flex: none;
-      transform: translateX(-100%); transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateX(-100%); transition: transform 0.325s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 210; background: var(--paper);
     }
     body.sidebar-open #panel-left-sidebar { transform: translateX(0); box-shadow: 8px 0 24px rgba(0,0,0,0.4); }
@@ -106,7 +117,7 @@
      and transition are separate CSS properties and never fight over which wins. */
   @keyframes revealItem { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .reveal-item { opacity: 0; }
-  .reveal-item.revealed { opacity: 1; transform: translateY(0); animation: revealItem 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+  .reveal-item.revealed { opacity: 1; transform: translateY(0); animation: revealItem 0.52s cubic-bezier(0.16, 1, 0.3, 1); }
   .view { display: none; }
   /* display:none -> block can't be interpolated by a CSS transition (no prior painted frame to
      animate from), so the fade-in uses a keyframe animation instead, which runs correctly the
@@ -115,20 +126,28 @@
     0% { opacity: 0; transform: scale(0.995) translateY(6px); filter: blur(2px); }
     100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px); }
   }
-  .view.active { display: block; animation: stripeMorphIn 300ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .view.active { display: block; animation: stripeMorphIn 390ms cubic-bezier(0.16, 1, 0.3, 1); }
   .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 40px 16px; text-align: center; background: var(--card); }
   .drop input[type=file] { margin-top: 12px; color: var(--ink); }
   .row { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
   button.btn, a.btn {
     padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
     cursor: pointer; font-size: 13px; color: var(--ink); text-decoration: none; display: inline-block;
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.325s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.325s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.325s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.325s cubic-bezier(0.16, 1, 0.3, 1);
   }
   button.btn:hover:not(:disabled), a.btn:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 4px 12px rgba(0,0,0,0.2); }
   button.btn:active:not(:disabled), a.btn:active { transform: scale(0.98) translateY(0); }
   button.btn:disabled { cursor: default; }
-  button.btn.primary, a.btn.primary { background: var(--accent); color: #06231f; border-color: var(--accent); font-weight: 600; }
-  button.btn.cta { background: var(--orange); color: #fff; border-color: var(--orange); font-weight: 600; }
+  button.btn.primary, a.btn.primary {
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 65%, white));
+    color: #06231f; border-color: var(--accent); font-weight: 600;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  button.btn.cta {
+    background: linear-gradient(135deg, var(--orange), color-mix(in srgb, var(--orange) 65%, white));
+    color: #fff; border-color: var(--orange); font-weight: 600;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--orange) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
   button.btn.tiny { padding: 4px 10px; font-size: 11px; }
   button.btn:disabled { opacity: 0.6; cursor: default; }
   /* Ambient mouse-follow glow — --mouse-x/--mouse-y are set on these elements by the delegated
@@ -150,7 +169,7 @@
     position: absolute; inset: 0;
     background: radial-gradient(80px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.35), transparent 80%);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.39s ease;
     pointer-events: none;
   }
   .tier-card::before, .conversion-banner::before {
@@ -158,7 +177,7 @@
     position: absolute; inset: 0;
     background: radial-gradient(120px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), color-mix(in srgb, var(--accent) 16%, transparent), transparent 80%);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.39s ease;
     pointer-events: none;
   }
   button.btn.primary:hover::before, a.btn.primary:hover::before, button.btn.cta:hover::before, .tier-card:hover::before, .conversion-banner:hover::before { opacity: 1; }
@@ -172,9 +191,10 @@
   .issue {
     display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--line);
     border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; background: var(--card);
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.325s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.325s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.325s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .issue:hover { transform: translateY(-1px); border-color: var(--accent); }
+  .issue:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: 0 4px 10px rgba(0,0,0,0.28); }
   .gantt-scroll { max-height: 520px; overflow-y: auto; }
   .gantt-row { display: flex; align-items: center; gap: 12px; padding: 5px 0; }
   .gantt-label { width: 160px; flex: 0 0 auto; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -198,7 +218,7 @@
     background-color: var(--paper);
     background-image: radial-gradient(var(--line) 1px, transparent 1px);
     background-size: 22px 22px;
-    animation: heroFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: heroFadeIn 0.52s cubic-bezier(0.16, 1, 0.3, 1);
   }
   #welcomeHero h1 { font-size: clamp(30px, 5.5vw, 54px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; margin: 0 0 18px; max-width: 780px; }
   #welcomeHero h1 .seven { color: var(--orange); }
@@ -247,8 +267,19 @@
   .subscore-track { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
   .subscore-fill { height: 100%; border-radius: 3px; }
   .activity-feed { list-style: none; margin: 0; padding: 0; }
-  .activity-feed li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
-  .activity-feed li:last-child { border-bottom: none; }
+  /* Plain text rows separated only by a bottom border is exactly the "table row" look that reads
+     as a webform rather than an app -- a faint background tint + rounded corners + resting shadow
+     turns each entry into its own small card instead, consistent with .issue's treatment. */
+  .activity-feed li {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 8px 12px; margin-bottom: 6px; border-radius: 6px; font-size: 12.5px;
+    background: color-mix(in srgb, var(--card), white 6%);
+    border: 1px solid var(--line);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    transition: transform 0.325s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.325s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.325s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .activity-feed li:last-child { margin-bottom: 0; }
+  .activity-feed li:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: 0 3px 8px rgba(0,0,0,0.2); }
   .activity-feed .dot-lead { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 8px; flex-shrink: 0; }
   .activity-feed .msg { display: flex; align-items: center; color: var(--ink); }
   .activity-feed .when { color: var(--muted); white-space: nowrap; }
@@ -478,12 +509,12 @@
     <div class="telemetry-shell">
       <nav id="panel-left-sidebar" class="no-print">
         <div class="sidebar-nav">
-          <button data-step="health">Dashboard</button>
+          <button data-step="health"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 8 12 10 6 14 18 16 12 20 12"/></svg> Dashboard</button>
           <button data-step="portfolio"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Portfolio Overview</button>
-          <button data-step="projects">Active Projects</button>
-          <button data-step="issues">Issue Punch List</button>
+          <button data-step="projects"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z"/></svg> Active Projects</button>
+          <button data-step="issues"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4"/><path d="M4 4h13l-2.5 4L17 12H4"/></svg> Issue Punch List</button>
           <button data-step="portfolio"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Multi-Project Leaderboard</button>
-          <button data-step="pricing">Billing / Plan</button>
+          <button data-step="pricing"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Billing / Plan</button>
         </div>
         <div class="sidebar-footer">
           <button data-step="guide"><span class="sidebar-footer-icon">?</span> App Guide / Capabilities</button>
@@ -495,14 +526,14 @@
         <div id="breadcrumb" class="breadcrumb no-print"><span class="crumb-link" onclick="setView('portfolio')">Portfolios</span></div>
         <div class="central-subnav-wrap no-print">
           <div class="central-subnav">
-            <button data-step="upload">Upload</button>
-            <button data-step="health">Dashboard</button>
+            <button data-step="upload"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 8 12 3 17 8"/><path d="M5 21h14"/></svg> Upload</button>
+            <button data-step="health"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 8 12 10 6 14 18 16 12 20 12"/></svg> Dashboard</button>
             <button data-step="milestones"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg> Milestones</button>
             <button data-step="gantt"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg> Gantt Timeline</button>
             <button data-step="sandbox"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="currentColor" stroke="none"/></svg> Sandbox</button>
-            <button data-step="activity">Activity Feed</button>
-            <button data-step="trends">Trends</button>
-            <button data-step="report">Executive Reports</button>
+            <button data-step="activity"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none"/><line x1="8" y1="6" x2="20" y2="6"/><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/><line x1="8" y1="12" x2="20" y2="12"/><circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none"/><line x1="8" y1="18" x2="20" y2="18"/></svg> Activity Feed</button>
+            <button data-step="trends"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg> Trends</button>
+            <button data-step="report"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6z"/><line x1="9" y1="12" x2="16" y2="12"/><line x1="9" y1="16" x2="16" y2="16"/></svg> Executive Reports</button>
           </div>
         </div>
 
@@ -710,16 +741,37 @@
 const API = ''; // same-origin: server.js serves this file and the API together
 
 const navButtons = document.querySelectorAll('.sidebar-nav button, .central-subnav button, .sidebar-footer button[data-step]');
+// Active-highlight scoping is per nav GROUP, not global: the sidebar's "Dashboard" and the
+// sub-nav's "Dashboard" intentionally share data-step="health" across two different, always
+// simultaneously visible lists, and both should light up together as "you are here" indicators
+// at two levels. Portfolio Overview and Multi-Project Leaderboard share data-step="portfolio"
+// WITHIN the same list though, which is the actually-confusing case (see setView below).
+const NAV_GROUPS = [
+  document.querySelector('.sidebar-nav'),
+  document.querySelector('.central-subnav'),
+  document.querySelector('.sidebar-footer')
+].filter(Boolean);
 // Views that live inside an active project's context — the central sub-tab row only makes sense
 // for these; sidebar-only destinations (issues/portfolio/pricing/projects/guide) take the full
 // central panel instead. Ask Ordo isn't here — it's permanently docked in the right panel now,
 // not part of the .view toggle system at all.
 const PROJECT_SCOPED_STEPS = ['upload', 'health', 'milestones', 'gantt', 'sandbox', 'activity', 'trends', 'report'];
 
-function setView(step){
+function setView(step, sourceBtn){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('v-' + step).classList.add('active');
-  navButtons.forEach(b => b.classList.toggle('active', b.dataset.step === step));
+  // Within the sidebar-nav group specifically, Portfolio Overview and Multi-Project Leaderboard
+  // share data-step="portfolio" (both route to the same v-portfolio view) -- naively matching on
+  // data-step alone highlighted both simultaneously whichever one was actually clicked. When
+  // setView is invoked directly by a button click, sourceBtn pins the highlight to that exact
+  // button within its own group; every other caller (the breadcrumb link, the tour, "Replay tour")
+  // has no specific button in mind, so each group falls back to its own first matching button.
+  NAV_GROUPS.forEach(group => {
+    const groupButtons = [...group.querySelectorAll('button[data-step]')];
+    const matches = groupButtons.filter(b => b.dataset.step === step);
+    const toHighlight = (sourceBtn && matches.includes(sourceBtn)) ? sourceBtn : matches[0];
+    groupButtons.forEach(b => b.classList.toggle('active', b === toHighlight));
+  });
   const subnavWrap = document.querySelector('.central-subnav-wrap');
   if (subnavWrap) subnavWrap.classList.toggle('collapsed', !PROJECT_SCOPED_STEPS.includes(step));
   document.getElementById('panel-central-workspace').scrollTop = 0;
@@ -733,7 +785,7 @@ function setView(step){
   if (step === 'pricing') renderPricing();
   if (step === 'health' && currentSnapshot) renderHealth(currentSnapshot);
 }
-navButtons.forEach(b => b.addEventListener('click', () => setView(b.dataset.step)));
+navButtons.forEach(b => b.addEventListener('click', () => setView(b.dataset.step, b)));
 
 // --- Mobile sidebar drawer ---
 
@@ -788,7 +840,7 @@ function animateMetricCounters(container){
   container.querySelectorAll('.metric .val').forEach(el => {
     const target = parseInt(el.textContent, 10);
     if (isNaN(target)) return; // defensive — no non-numeric .metric .val exists today, but this guards against text if one's ever added
-    const duration = 600;
+    const duration = 780;
     const startTime = performance.now();
     function frame(now){
       const t = Math.min(1, (now - startTime) / duration);
@@ -1546,7 +1598,7 @@ async function loadHealthExtras(snapshot){
     if (!feedEl) return;
     if (!events.length) { feedEl.innerHTML = '<li class="msg" style="color:var(--muted);">No activity yet.</li>'; return; }
     feedEl.innerHTML = events.map((e, i) =>
-      '<li class="reveal-item" style="animation-delay:' + (i * 40) + 'ms;"><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
+      '<li class="reveal-item" style="animation-delay:' + (i * 52) + 'ms;"><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
       '<span class="when">' + formatRelativeTime(e.timestamp) + '</span></li>'
     ).join('');
     observeReveal(feedEl);
@@ -1566,7 +1618,7 @@ function renderIssues(issues){
     const shareBtn = (!resolved && i.severity === 'crit')
       ? '<button class="btn tiny no-print" onclick="shareCatch(\'' + escapeHtml(jsStringEscape(i.name)) + '\', \'' + escapeHtml(jsStringEscape(i.sub)) + '\')">🏆 Share This Catch</button>'
       : '';
-    return '<div class="issue reveal-item' + (resolved ? ' resolved' : '') + '" style="animation-delay:' + (idx * 40) + 'ms;"><div><p class="issue-name">' + name + '</p><p class="issue-sub">' + sub + '</p></div>' +
+    return '<div class="issue reveal-item' + (resolved ? ' resolved' : '') + '" style="animation-delay:' + (idx * 52) + 'ms;"><div><p class="issue-name">' + name + '</p><p class="issue-sub">' + sub + '</p></div>' +
     '<div class="issue-right">' +
       (resolved
         ? '<span class="badge resolved-badge">resolved</span>'
@@ -1843,7 +1895,7 @@ async function renderActivityFeedTab(){
     const events = await api('/api/projects/' + encodeURIComponent(currentProject) + '/activity');
     if (!events.length) { listEl.innerHTML = '<li class="msg" style="color:var(--muted);">No activity yet.</li>'; return; }
     listEl.innerHTML = events.map((e, i) =>
-      '<li class="reveal-item" style="animation-delay:' + (i * 40) + 'ms;"><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
+      '<li class="reveal-item" style="animation-delay:' + (i * 52) + 'ms;"><span class="msg"><span class="dot-lead" style="background:' + activityDotColor(e.message) + ';"></span>' + escapeHtml(e.message) + '</span>' +
       '<span class="when">' + formatRelativeTime(e.timestamp) + '</span></li>'
     ).join('');
     observeReveal(listEl);
