@@ -497,7 +497,20 @@
   .chat-panel-inputrow button:disabled { opacity: 0.5; cursor: default; }
   .chat-msg { max-width: 88%; font-size: 13.5px; line-height: 1.6; white-space: pre-line; }
   .chat-msg.user { align-self: flex-end; background: var(--accent); color: #06231f; padding: 9px 14px; border-radius: 16px 16px 4px 16px; }
-  .chat-msg.assistant { align-self: flex-start; max-width: 100%; color: var(--ink); }
+  .chat-msg.assistant { align-self: flex-start; max-width: 100%; color: var(--ink); white-space: normal; }
+  .chat-msg.assistant p { margin: 0 0 8px; }
+  .chat-msg.assistant p:last-child { margin-bottom: 0; }
+  .chat-msg.assistant ul, .chat-msg.assistant ol { margin: 2px 0 8px; padding-left: 20px; }
+  .chat-msg.assistant li { margin-bottom: 4px; }
+  .chat-msg.assistant strong { font-weight: 700; }
+  /* Thinking indicator — same brand-mark used in the header, spinning, with an elapsed-seconds
+     counter, mirroring the "icon + Ns" pattern Claude Code's own UI uses while working. */
+  .chat-thinking { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); align-self: flex-start; padding: 4px 0; }
+  .chat-thinking .brand-mark { animation: chatThinkSpin 1.1s linear infinite; }
+  @keyframes chatThinkSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .chat-suggestions { display: flex; flex-direction: column; gap: 6px; padding: 4px 16px 12px; }
+  .chat-suggest-chip { text-align: left; font-size: 12.5px; padding: 8px 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 10px; cursor: pointer; }
+  .chat-suggest-chip:hover { border-color: var(--accent); color: var(--accent); }
   @media print {
     .nav, .sidebar-nav, .central-subnav, .no-print, #panel-left-sidebar, #panel-right-command-bar, .breadcrumb { display: none !important; }
     /* Un-collapse the fixed-height workspace shell back into normal flow so a multi-page report
@@ -2089,13 +2102,58 @@ async function loadNarrative(snapshot){
   });
 }
 
+// Minimal markdown -> HTML for assistant replies only: escape everything first, then allow just
+// **bold** and bullet/numbered lists. Never renders raw HTML from the model — every tag inserted
+// below wraps content that's already been through escapeHtml, so there's nothing to inject.
+function formatAssistantMarkdown(raw){
+  const lines = escapeHtml(raw).split('\n');
+  const inline = (s) => s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  let html = '', listType = null;
+  const closeList = () => { if (listType) { html += '</' + listType + '>'; listType = null; } };
+  for (const line of lines) {
+    const bullet = line.match(/^\s*[-*]\s+(.*)$/);
+    const numbered = line.match(/^\s*\d+\.\s+(.*)$/);
+    if (bullet) {
+      if (listType !== 'ul') { closeList(); html += '<ul>'; listType = 'ul'; }
+      html += '<li>' + inline(bullet[1]) + '</li>';
+    } else if (numbered) {
+      if (listType !== 'ol') { closeList(); html += '<ol>'; listType = 'ol'; }
+      html += '<li>' + inline(numbered[1]) + '</li>';
+    } else {
+      closeList();
+      if (line.trim() !== '') html += '<p>' + inline(line) + '</p>';
+    }
+  }
+  closeList();
+  return html;
+}
+
 function appendChatBubble(role, text){
   const box = document.getElementById('chatMessages');
   const div = document.createElement('div');
   div.className = 'chat-msg ' + role;
-  div.textContent = text;
+  if (role === 'assistant') div.innerHTML = formatAssistantMarkdown(text);
+  else div.textContent = text;
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
+  return div;
+}
+
+// Spinning brand-mark + elapsed-seconds counter shown while waiting on a reply — same "icon + Ns"
+// pattern as Claude Code's own working indicator, so the panel never sits silent mid-request.
+function appendThinkingIndicator(){
+  const box = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'chat-thinking';
+  div.innerHTML = '<span class="brand-mark"></span><span class="chat-thinking-label">Thinking…</span>';
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  const label = div.querySelector('.chat-thinking-label');
+  const start = Date.now();
+  const timer = setInterval(() => {
+    label.textContent = 'Thinking… ' + Math.round((Date.now() - start) / 1000) + 's';
+  }, 1000);
+  return { el: div, stop: () => { clearInterval(timer); div.remove(); } };
 }
 
 async function renderChat(){
@@ -2114,7 +2172,20 @@ async function renderChat(){
   try {
     const result = await api('/api/snapshots/' + currentSnapshot.id + '/chat');
     if (!result.messages.length) {
-      box.innerHTML = '<p class="empty" style="padding:10px 0;">Ask anything about this schedule — what\'s driving the score, what to fix first, whatever you need.</p>';
+      const suggestions = [
+        "What's driving my health score?",
+        'What should I fix first?',
+        'Explain my critical path in plain terms',
+        "What's the DCMA 14-point check?"
+      ];
+      box.innerHTML = '<p class="empty" style="padding:10px 0 4px;">Ask anything about this schedule — what\'s driving the score, what to fix first, whatever you need. Or ask about project controls in general.</p>' +
+        '<div class="chat-suggestions">' + suggestions.map(q => '<button class="chat-suggest-chip" data-q="' + escapeHtml(q) + '">' + escapeHtml(q) + '</button>').join('') + '</div>';
+      box.querySelectorAll('.chat-suggest-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.getElementById('chatInput').value = btn.dataset.q;
+          sendChatMessage();
+        });
+      });
     } else {
       result.messages.forEach(m => appendChatBubble(m.role, m.content));
     }
@@ -2175,7 +2246,10 @@ async function sendChatMessage(){
   const box = document.getElementById('chatMessages');
   const emptyHint = box.querySelector('.empty');
   if (emptyHint) emptyHint.remove();
+  const suggestions = box.querySelector('.chat-suggestions');
+  if (suggestions) suggestions.remove();
   appendChatBubble('user', message);
+  const thinking = appendThinkingIndicator();
 
   try {
     const result = await api('/api/snapshots/' + currentSnapshot.id + '/chat', {
@@ -2183,9 +2257,11 @@ async function sendChatMessage(){
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message })
     });
+    thinking.stop();
     appendChatBubble('assistant', result.reply);
     if (result.creditBalance != null && currentUser) { currentUser.creditBalance = result.creditBalance; updateCreditPill(currentUser); }
   } catch (e) {
+    thinking.stop();
     errEl.textContent = e.message;
     errEl.style.display = 'block';
   } finally {

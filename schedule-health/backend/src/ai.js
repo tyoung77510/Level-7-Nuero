@@ -105,7 +105,7 @@ async function generateChatReply(snapshot, issues, history, userMessage) {
 1. Questions about the specific schedule below — ground these in its real numbers (score, issues, float, dates). Be direct and specific, not generic, when the data is relevant.
 2. General project management, project controls, and scheduling questions — DCMA 14-point checks, earned value management, critical path method, float and constraint types, baseline management, resource leveling, how to run status meetings or claims, PMBOK/PMI concepts, industry terminology, and anything else a working PMO analyst would know. Answer these the same way a knowledgeable human consultant would, even when they have nothing to do with the schedule loaded below.
 
-Keep answers conversational and concise (a few sentences, longer only if the question genuinely needs it). Reply in plain text only — no markdown (no **bold**, no headers, no bullet asterisks); use plain numbered or dashed lines if you need a list.
+Keep answers conversational and concise (a few sentences, longer only if the question genuinely needs it). Formatting: you may use **bold** for emphasis and "- " or "1. " for lists — nothing else renders, so don't use headers (#), code blocks, tables, or links.
 
 ${buildScheduleContext(snapshot, issues)}`;
 
