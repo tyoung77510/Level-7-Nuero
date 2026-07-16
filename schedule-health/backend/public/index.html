@@ -1394,6 +1394,12 @@ function showApp(user){
   setView('upload');
   updateBreadcrumb();
   renderChat();
+  // Fire-and-forget: flags default to enabled (see checkFlagEnabled) so nothing blocks on this,
+  // but re-render the current view once real state lands in case it disables something just shown.
+  loadFeatureFlags().then(() => {
+    const activeView = document.querySelector('.view.active');
+    if (activeView) setView(activeView.id.replace(/^v-/, ''));
+  });
   // Server-side flag (see markOnboarded in db.js) rather than localStorage — tied to the
   // account, not the browser, so it survives device switches and doesn't misfire when a
   // different person logs into a shared browser. The tour itself starts once the hero is
@@ -1476,6 +1482,24 @@ const FEATURE_TIERS = {
 function checkFeatureAccess(feature){
   const tier = ((currentUser && currentUser.effectiveTier) || 'free').toLowerCase();
   return (FEATURE_TIERS[feature] || []).includes(tier);
+}
+
+// Admin kill-switches (see /api/admin/flags) — independent of the tier gates above. Fails open
+// (defaults to enabled) before the first fetch resolves or if a flag id is unrecognized, matching
+// db.js's isFeatureEnabled() so a missing/slow flag never looks like an outage. Only 2 of these 5
+// flags also have real backend enforcement (dcma-14-check on /api/analyze, ask-ordo-ai on chat);
+// the other 3 checked here have no dedicated backend route to gate, so this client-side check is
+// their only enforcement point — same depth as the pre-existing FEATURE_TIERS gates above.
+let serverFeatureFlags = {};
+async function loadFeatureFlags(){
+  try {
+    const res = await api('/api/feature-flags');
+    serverFeatureFlags = {};
+    res.flags.forEach(f => { serverFeatureFlags[f.id] = f.enabled; });
+  } catch (e) { /* leave serverFeatureFlags empty — every check below fails open */ }
+}
+function checkFlagEnabled(id){
+  return !(id in serverFeatureFlags) || serverFeatureFlags[id] !== false;
 }
 
 // Every account — including the free tier — gets straight into the app once verified. There's
@@ -2077,6 +2101,12 @@ function activityDotColor(message){
 // Free/Starter accounts only — a Pro/Teams subscriber is already a customer, not a lead. Fires
 // on either a low overall score or a low milestone score (a project can look fine in aggregate
 // while its milestones are quietly slipping, which is exactly the kind of risk this should surface).
+// Fire-and-forget — never blocks or delays the mailto: link it's attached to. Failure here just
+// means one click doesn't get counted, not that the user's actual "book a session" action fails.
+function logAdvisoryClick(){
+  api('/api/advisory/click', { method: 'POST' }).catch(() => {});
+}
+
 function conversionBanner(snapshot){
   const tier = ((currentUser && currentUser.effectiveTier) || 'free').toLowerCase();
   if (tier !== 'free' && tier !== 'starter') return '';
@@ -2086,7 +2116,7 @@ function conversionBanner(snapshot){
   return '<div class="card conversion-banner dash-card-reveal revealed" style="border-color:var(--warn); border-width:1.5px; margin-bottom:14px; animation-delay:0ms;">' +
     '<p style="font-weight:600; margin:0 0 4px; color:var(--warn);">Schedule risk detected</p>' +
     '<p style="font-size:13px; margin:0 0 12px;">This schedule presents critical execution and milestone risks. Book a 15-Minute Schedule Strategy Session.</p>' +
-    '<a class="btn primary" href="mailto:admin@level7data.com?subject=Schedule%20Strategy%20Session%20request">Book Strategy Session</a>' +
+    '<a class="btn primary" href="mailto:admin@level7data.com?subject=Schedule%20Strategy%20Session%20request" onclick="logAdvisoryClick()">Book Strategy Session</a>' +
   '</div>';
 }
 
@@ -2689,6 +2719,10 @@ function renderMilestones(){
     el.innerHTML = '<p class="empty">No schedule analyzed yet.</p>';
     return;
   }
+  if (!checkFlagEnabled('milestone-hygiene')){
+    el.innerHTML = '<p class="empty">Milestone hygiene checks are temporarily unavailable — check back shortly.</p>';
+    return;
+  }
   const milestones = currentActivities.filter(a => a.milestone);
   if (!milestones.length){
     el.innerHTML = '<p class="empty">No milestones found in this schedule.</p>';
@@ -2810,6 +2844,10 @@ function renderCriticalPath(){
       '<p style="font-size:13px; margin:0 0 10px;">The critical path view is a Pro feature — see exactly which activities are driving your finish date, at a glance.</p>' +
       '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to unlock the critical path view</button>' +
       '</div>';
+    return;
+  }
+  if (!checkFlagEnabled('critical-path-engine')){
+    el.innerHTML = '<p class="empty">The critical path view is temporarily unavailable — check back shortly.</p>';
     return;
   }
 
@@ -2949,6 +2987,10 @@ function renderSandbox(){
       '<p style="font-size:13px; margin:0 0 10px;">The What-If sandbox is a Pro feature — tweak float and duration on any activity and watch the health score recalculate instantly, without touching your saved analysis.</p>' +
       '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to unlock the sandbox</button>' +
       '</div>';
+    return;
+  }
+  if (!checkFlagEnabled('sandbox-simulator')){
+    el.innerHTML = '<p class="empty">The What-If sandbox is temporarily unavailable — check back shortly.</p>';
     return;
   }
 
