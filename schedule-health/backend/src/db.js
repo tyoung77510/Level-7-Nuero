@@ -650,8 +650,19 @@ function saveSnapshot(userId, projectName, result, sourceFilename) {
   const insertIssue = db.prepare(`
     INSERT INTO issues (snapshot_id, name, sub, severity, updated_at) VALUES (?, ?, ?, ?, datetime('now'))
   `);
-  for (const issue of result.issues) {
-    insertIssue.run(snapshot.id, issue.name, issue.sub, issue.sev);
+  // Each insertIssue.run() is its own auto-committed transaction unless wrapped — on a large
+  // schedule (thousands of issues) that's thousands of individual disk-synced commits, which
+  // dominated the total request time far more than any in-memory analysis cost. Wrapping the
+  // whole loop in one transaction was the actual fix for the 8,000-activity benchmark.
+  db.exec('BEGIN');
+  try {
+    for (const issue of result.issues) {
+      insertIssue.run(snapshot.id, issue.name, issue.sub, issue.sev);
+    }
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
   }
   return { project, snapshot };
 }
