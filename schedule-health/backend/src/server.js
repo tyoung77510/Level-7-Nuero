@@ -1229,7 +1229,7 @@ function escapeHtml(s) {
 // Shared dark-theme chrome, reusing the same palette/typography as shared-snapshot.html so the
 // blog reads as the same product rather than a bolted-on marketing microsite.
 function renderBlogLayout({ title, description, canonicalPath, bodyHtml }) {
-  const canonical = `https://ordo7.pro${canonicalPath}`;
+  const canonical = `https://www.ordo7.pro${canonicalPath}`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -1278,7 +1278,7 @@ function renderBlogLayout({ title, description, canonicalPath, bodyHtml }) {
 </head>
 <body>
 <div class="wrap">
-  <a class="back" href="/">&larr; ordo7.pro</a>
+  <a class="back" href="/">&larr; www.ordo7.pro</a>
   <p class="brand">Ordo<span>7</span></p>
   ${bodyHtml}
   <p class="cta">Want to check your own schedule? <a href="/">Try Ordo7 free →</a></p>
