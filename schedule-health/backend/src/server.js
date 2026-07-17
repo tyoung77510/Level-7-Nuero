@@ -35,6 +35,7 @@ const ai = require('./ai');
 const pricing = require('./pricing');
 const oauth = require('./oauth');
 const blogContent = require('./blog-content');
+const rateLimit = require('./rate-limit');
 
 store.deleteExpiredSessions();
 
@@ -67,6 +68,22 @@ function sendJSON(res, status, data) {
     'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS'
   });
   res.end(body);
+}
+
+// Checks and, on a miss, immediately sends the 429 response — so a route just does
+// `if (rateLimited(...)) return;` at the top rather than handling the result itself. Bucketed by
+// name + IP (see rate-limit.js): auth routes get a tight window (brute-force/enumeration/spam
+// protection with no other mitigation), AI routes get a looser one (defense-in-depth on top of
+// the credit-balance gate that already caps real cost per account).
+function rateLimited(res, name, req, maxRequests, windowMs) {
+  const ip = rateLimit.clientIp(req);
+  const result = rateLimit.checkRateLimit(name, ip, maxRequests, windowMs);
+  if (!result.allowed) {
+    res.setHeader('Retry-After', String(result.retryAfterSeconds));
+    sendJSON(res, 429, { error: 'Too many requests — try again shortly' });
+    return true;
+  }
+  return false;
 }
 
 function sendRedirect(res, location, cookies) {
@@ -187,6 +204,7 @@ function passwordResetUrl(req, token) {
 }
 
 route('POST', '/api/auth/signup', async (req, res) => {
+  if (rateLimited(res, 'signup', req, 5, 60 * 60 * 1000)) return; // 5/hour per IP — mass fake-account prevention
   const body = await readBody(req);
   let payload;
   try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
@@ -470,6 +488,7 @@ route('POST', '/api/auth/resend-verification', async (req, res, params, user) =>
 });
 
 route('POST', '/api/auth/forgot-password', async (req, res) => {
+  if (rateLimited(res, 'forgot-password', req, 5, 60 * 60 * 1000)) return; // 5/hour per IP — prevents email-bombing a victim's inbox
   if (!knock.passwordResetConfigured()) return sendJSON(res, 503, { error: 'Password reset is not configured yet' });
   const body = await readBody(req);
   let payload;
@@ -511,6 +530,7 @@ route('POST', '/api/auth/reset-password', async (req, res) => {
 });
 
 route('POST', '/api/auth/login', async (req, res) => {
+  if (rateLimited(res, 'login', req, 10, 15 * 60 * 1000)) return; // 10/15min per IP — brute-force protection
   const body = await readBody(req);
   let payload;
   try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
@@ -973,6 +993,10 @@ route('GET', '/api/snapshots/:id/chat', async (req, res, params, user) => {
 });
 
 route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
+  // Defense-in-depth on top of the credit-balance gate below, which already caps total real cost
+  // per account — this just stops a burst of rapid-fire requests (buggy client retry loop, or a
+  // user with credits to burn hammering the endpoint) rather than budget abuse.
+  if (rateLimited(res, 'ai-chat', req, 30, 10 * 60 * 1000)) return;
   if (!ai.aiConfigured()) return sendJSON(res, 503, { error: 'AI chat is not configured yet' });
   if (!store.isFeatureEnabled('ask-ordo-ai')) return sendJSON(res, 503, { error: 'Ask Ordo is temporarily unavailable' });
   const snapshotId = Number(params.id);
@@ -1212,6 +1236,9 @@ ${openFeedbackLines}`;
 
 route('POST', '/api/admin/advisor/chat', async (req, res, params, user) => {
   if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  // No credit-balance gate on this route (staff-only, no billing model here) — the rate limit is
+  // the only cost guard, same reasoning as the customer-facing chat route above.
+  if (rateLimited(res, 'admin-advisor-chat', req, 30, 10 * 60 * 1000)) return;
   if (!ai.aiConfigured()) return sendJSON(res, 503, { error: 'AI is not configured yet' });
 
   const body = await readBody(req);
