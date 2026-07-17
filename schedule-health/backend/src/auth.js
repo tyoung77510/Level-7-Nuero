@@ -8,6 +8,9 @@ const store = require('./db');
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const TEAM_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// Shorter than verification's 24h — a password reset link is more sensitive (whoever holds it
+// can take over the account outright), so it gets a tighter window.
+const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
 const SCRYPT_KEYLEN = 64;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -66,6 +69,22 @@ function verifyEmailToken(token) {
   return row.user_id;
 }
 
+function createPasswordResetToken(userId) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS).toISOString();
+  store.createPasswordResetToken(token, userId, expiresAt);
+  return token;
+}
+
+// Same single-use consumption pattern as verifyEmailToken — see comment there.
+function verifyPasswordResetToken(token) {
+  const row = store.getPasswordResetToken(token);
+  if (!row) return null;
+  store.deletePasswordResetToken(token);
+  if (new Date(row.expires_at).getTime() < Date.now()) return null;
+  return row.user_id;
+}
+
 function parseCookies(req) {
   const header = req.headers.cookie;
   const cookies = {};
@@ -116,7 +135,8 @@ function clearOAuthStateCookie(req) {
 module.exports = {
   hashPassword, verifyPassword, createSession, getUserForToken,
   createVerificationToken, verifyEmailToken, createTeamInviteToken,
+  createPasswordResetToken, verifyPasswordResetToken,
   parseCookies, sessionCookie, clearCookie,
   oauthStateCookie, clearOAuthStateCookie,
-  EMAIL_RE, SESSION_TTL_MS, VERIFICATION_TTL_MS
+  EMAIL_RE, SESSION_TTL_MS, VERIFICATION_TTL_MS, PASSWORD_RESET_TTL_MS
 };

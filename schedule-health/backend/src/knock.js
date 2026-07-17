@@ -150,7 +150,43 @@ async function sendTeamInviteEmail(ownerUser, inviteeEmail, inviteUrl) {
   }
 }
 
+// Password reset uses its own opt-in flag, same reasoning as verificationConfigured/
+// teamInviteConfigured above — /api/auth/forgot-password treats "not configured" as a disclosed
+// 503 rather than silently pretending to send an email nobody gets.
+function passwordResetConfigured() {
+  return knockConfigured() && Boolean(process.env.KNOCK_PASSWORD_RESET_WORKFLOW_KEY);
+}
+
+async function sendPasswordResetEmail(user, resetUrl) {
+  const workflowKey = process.env.KNOCK_PASSWORD_RESET_WORKFLOW_KEY;
+  if (!passwordResetConfigured()) {
+    console.warn(`[knock] Password reset email skipped (KNOCK_API_KEY or KNOCK_PASSWORD_RESET_WORKFLOW_KEY not set) for ${user.email}`);
+    return null;
+  }
+  try {
+    const res = await fetch(`${KNOCK_API}/workflows/${encodeURIComponent(workflowKey)}/trigger`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.KNOCK_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        recipients: [{ id: String(user.id), email: user.email, name: user.name }],
+        data: { reset_url: resetUrl }
+      })
+    });
+    if (!res.ok) {
+      console.error(`[knock] Failed to trigger password reset workflow: ${res.status} ${await res.text().catch(() => '')}`);
+      return null;
+    }
+    return res.json();
+  } catch (e) {
+    console.error('[knock] Failed to trigger password reset workflow:', e.message);
+    return null;
+  }
+}
+
 module.exports = {
   knockConfigured, identifyUser, notifyFeedback, verificationConfigured, sendVerificationEmail,
-  teamInviteConfigured, sendTeamInviteEmail
+  teamInviteConfigured, sendTeamInviteEmail, passwordResetConfigured, sendPasswordResetEmail
 };

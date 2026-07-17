@@ -181,6 +181,11 @@ function verificationUrl(req, token) {
   return `${origin}/?verify=${token}`;
 }
 
+function passwordResetUrl(req, token) {
+  const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
+  return `${origin}/?resetPassword=${token}`;
+}
+
 route('POST', '/api/auth/signup', async (req, res) => {
   const body = await readBody(req);
   let payload;
@@ -462,6 +467,47 @@ route('POST', '/api/auth/resend-verification', async (req, res, params, user) =>
   const sent = await knock.sendVerificationEmail(user, verificationUrl(req, verifyToken));
   if (!sent) return sendJSON(res, 502, { error: 'Could not send verification email right now — try again in a moment' });
   sendJSON(res, 200, { ok: true });
+});
+
+route('POST', '/api/auth/forgot-password', async (req, res) => {
+  if (!knock.passwordResetConfigured()) return sendJSON(res, 503, { error: 'Password reset is not configured yet' });
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const email = String(payload.email || '').trim().toLowerCase();
+
+  // Always respond identically whether or not the email matches an account — confirming/denying
+  // an email's existence here would let this endpoint be used to enumerate registered users.
+  const user = auth.EMAIL_RE.test(email) ? store.getUserByEmail(email) : null;
+  if (user) {
+    const resetToken = auth.createPasswordResetToken(user.id);
+    knock.sendPasswordResetEmail(user, passwordResetUrl(req, resetToken)).catch(() => {});
+  }
+  sendJSON(res, 200, { ok: true });
+});
+
+route('POST', '/api/auth/reset-password', async (req, res) => {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const token = String(payload.token || '');
+  const password = String(payload.password || '');
+  if (!token) return sendJSON(res, 400, { error: 'Missing reset token' });
+  if (password.length < 8) return sendJSON(res, 400, { error: 'Password must be at least 8 characters' });
+
+  const userId = auth.verifyPasswordResetToken(token);
+  if (!userId) return sendJSON(res, 400, { error: 'This reset link is invalid or has expired' });
+
+  const { salt, hash } = auth.hashPassword(password);
+  store.setUserPassword(userId, hash, salt);
+  // A password reset means any existing session (including one an attacker holds) should be
+  // invalidated, not just left alive — so this signs the account out everywhere, this device
+  // included, and issues one fresh session below rather than reusing whatever came in.
+  store.deleteSessionsForUser(userId);
+
+  const { token: sessionToken } = auth.createSession(userId);
+  res.setHeader('Set-Cookie', auth.sessionCookie(sessionToken, req, auth.SESSION_TTL_MS / 1000));
+  sendJSON(res, 200, { user: publicUser(store.getUserById(userId)) });
 });
 
 route('POST', '/api/auth/login', async (req, res) => {

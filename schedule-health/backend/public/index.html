@@ -739,7 +739,30 @@
       <button class="btn primary" id="authSubmit">Log in</button>
       <p id="authError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
       <p id="authNotice" style="display:none; padding:6px 0 0; font-size:12px; color:var(--good); text-align:center;"></p>
+      <p id="forgotPasswordRow" class="auth-toggle" style="margin-top:-4px;"><a id="forgotPasswordLink">Forgot password?</a></p>
       <p class="auth-toggle"><span id="authToggleText">Don't have an account?</span> <a id="authToggleLink">Sign up</a></p>
+    </div>
+  </div>
+
+  <div id="forgotPasswordScreen" class="auth-box" style="display:none;">
+    <div class="card">
+      <h2 style="margin:0 0 2px; font-size:16px;">Reset your password</h2>
+      <p style="font-size:13px; color:var(--muted); margin:0;">Enter your account email and we'll send you a link to set a new password.</p>
+      <input type="email" id="forgotPasswordEmail" placeholder="Email" autocomplete="email">
+      <button class="btn primary" id="forgotPasswordSubmit">Send reset link</button>
+      <p id="forgotPasswordError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
+      <p id="forgotPasswordNotice" style="display:none; padding:6px 0 0; font-size:12px; color:var(--good); text-align:center;"></p>
+      <p class="auth-toggle"><a id="forgotPasswordBackLink">Back to log in</a></p>
+    </div>
+  </div>
+
+  <div id="resetPasswordScreen" class="auth-box" style="display:none;">
+    <div class="card">
+      <h2 style="margin:0 0 2px; font-size:16px;">Set a new password</h2>
+      <p style="font-size:13px; color:var(--muted); margin:0;">Choose a new password for your account.</p>
+      <input type="password" id="resetPasswordNew" placeholder="New password" autocomplete="new-password">
+      <button class="btn primary" id="resetPasswordSubmit">Set new password</button>
+      <p id="resetPasswordError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
     </div>
   </div>
 
@@ -1375,40 +1398,66 @@ async function api(path, options){
 
 let authMode = 'login';
 
+// Shared by every show*() screen function below — hides all auth-flow screens (plain login/signup,
+// OAuth completion, email verification, forgot-password, reset-password) so each show*() only has
+// to turn its own screen back on rather than repeat this whole list.
+function hideAllAuthScreens(){
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('completeOAuthScreen').style.display = 'none';
+  document.getElementById('verifyScreen').style.display = 'none';
+  document.getElementById('forgotPasswordScreen').style.display = 'none';
+  document.getElementById('resetPasswordScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'none';
+}
+
 function showAuth(){
   currentUser = null;
   document.body.classList.add('auth-mode');
+  hideAllAuthScreens();
   document.getElementById('authScreen').style.display = '';
-  document.getElementById('completeOAuthScreen').style.display = 'none';
-  document.getElementById('verifyScreen').style.display = 'none';
-  document.getElementById('appScreen').style.display = 'none';
 }
 
 function showCompleteOAuth(token){
   pendingOAuthToken = token;
   document.body.classList.add('auth-mode');
-  document.getElementById('authScreen').style.display = 'none';
+  hideAllAuthScreens();
   document.getElementById('completeOAuthScreen').style.display = '';
-  document.getElementById('verifyScreen').style.display = 'none';
-  document.getElementById('appScreen').style.display = 'none';
 }
 
 function showVerify(user){
   currentUser = user;
   document.body.classList.add('auth-mode');
-  document.getElementById('authScreen').style.display = 'none';
-  document.getElementById('completeOAuthScreen').style.display = 'none';
+  hideAllAuthScreens();
   document.getElementById('verifyScreen').style.display = '';
-  document.getElementById('appScreen').style.display = 'none';
   document.getElementById('verifyEmailAddr').textContent = user.email;
+}
+
+function showForgotPassword(){
+  document.body.classList.add('auth-mode');
+  hideAllAuthScreens();
+  document.getElementById('forgotPasswordScreen').style.display = '';
+  document.getElementById('forgotPasswordError').style.display = 'none';
+  document.getElementById('forgotPasswordNotice').style.display = 'none';
+}
+
+// pendingResetToken is set by handleResetPasswordRedirect() when the page loads with a
+// ?resetPassword= link — held in memory only, like pendingTeamInviteToken, since the whole flow
+// (open link, type new password, submit) happens within one page load.
+let pendingResetToken = null;
+
+function showResetPasswordForm(token){
+  pendingResetToken = token;
+  document.body.classList.add('auth-mode');
+  hideAllAuthScreens();
+  document.getElementById('resetPasswordScreen').style.display = '';
+  document.getElementById('resetPasswordError').style.display = 'none';
+  document.getElementById('resetPasswordNew').value = '';
 }
 
 function showApp(user){
   currentUser = user;
   document.body.classList.remove('auth-mode');
-  document.getElementById('authScreen').style.display = 'none';
-  document.getElementById('completeOAuthScreen').style.display = 'none';
-  document.getElementById('verifyScreen').style.display = 'none';
+  hideAllAuthScreens();
   document.getElementById('appScreen').style.display = '';
   document.getElementById('userEmail').textContent = user.email;
   updateCreditPill(user);
@@ -1541,6 +1590,7 @@ function setAuthMode(mode){
   document.getElementById('authToggleLink').textContent = isSignup ? 'Log in' : 'Sign up';
   document.getElementById('authName').style.display = isSignup ? '' : 'none';
   document.getElementById('authPhone').style.display = isSignup ? '' : 'none';
+  document.getElementById('forgotPasswordRow').style.display = isSignup ? 'none' : '';
   document.getElementById('authError').style.display = 'none';
   document.getElementById('authNotice').style.display = 'none';
 }
@@ -1577,6 +1627,60 @@ async function doLogout(){
   showAuth();
 }
 document.getElementById('logoutBtn').addEventListener('click', doLogout);
+
+document.getElementById('forgotPasswordLink').addEventListener('click', showForgotPassword);
+document.getElementById('forgotPasswordBackLink').addEventListener('click', showAuth);
+
+document.getElementById('forgotPasswordSubmit').addEventListener('click', async () => {
+  const email = document.getElementById('forgotPasswordEmail').value.trim();
+  const errEl = document.getElementById('forgotPasswordError');
+  const noticeEl = document.getElementById('forgotPasswordNotice');
+  errEl.style.display = 'none';
+  noticeEl.style.display = 'none';
+  try {
+    await api('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    // Same message whether or not the email matched an account — the backend never reveals
+    // that either way (see /api/auth/forgot-password), so the UI can't either.
+    noticeEl.textContent = "If that email has an account, we've sent a link to reset your password.";
+    noticeEl.style.display = 'block';
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+});
+
+document.getElementById('resetPasswordSubmit').addEventListener('click', async () => {
+  const password = document.getElementById('resetPasswordNew').value;
+  const errEl = document.getElementById('resetPasswordError');
+  errEl.style.display = 'none';
+  try {
+    const result = await api('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: pendingResetToken, password })
+    });
+    pendingResetToken = null;
+    routeForUser(result.user);
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+});
+
+// Mirrors captureTeamInvite()'s pattern: a ?resetPassword= link can land regardless of current
+// login state (a stale session on a public computer shouldn't block resetting the password), so
+// this doesn't compare against any "logged in as" identity the way handleVerifyRedirect does.
+async function handleResetPasswordRedirect(){
+  const token = new URLSearchParams(window.location.search).get('resetPassword');
+  if (!token) return false;
+  history.replaceState({}, '', window.location.pathname);
+  showResetPasswordForm(token);
+  return true;
+}
 document.getElementById('verifyLogout').addEventListener('click', doLogout);
 
 document.getElementById('resendVerification').addEventListener('click', async () => {
@@ -2059,6 +2163,8 @@ async function handleVerifyRedirect(loggedInUser){
     // pendingTeamInviteToken has to be set before that happens for tryAcceptPendingTeamInvite() to
     // see it.
     await captureTeamInvite();
+    const handledReset = await handleResetPasswordRedirect();
+    if (handledReset) return;
     const { user } = await api('/api/auth/me');
     if (!user) {
       const handledOAuth = await handleOAuthRedirect();

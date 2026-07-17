@@ -112,6 +112,17 @@ access, no email step at all (good for local dev). Once configured:
   out real users who signed up before it existed — only new signups after `KNOCK_VERIFICATION_WORKFLOW_KEY`
   is set are required to verify.
 
+### Password reset
+
+Same graceful-degradation pattern as email verification, gated on its own `KNOCK_PASSWORD_RESET_WORKFLOW_KEY`
+(see `.env.example`) — without it, `POST /api/auth/forgot-password` returns a disclosed `503`
+rather than silently pretending to send an email nobody gets.
+
+| Method | Path | What it does |
+|---|---|---|
+| `POST` | `/api/auth/forgot-password` | `{email}` — always responds `{ok: true}` regardless of whether the email matches an account, so the endpoint can't be used to enumerate registered users. If it does match, sends a reset link (`https://yourdomain/?resetPassword=TOKEN`) via Knock |
+| `POST` | `/api/auth/reset-password` | `{token, password}` — single-use token, 1-hour expiry (tighter than verification's 24h, since whoever holds this link can take over the account outright), stored in a `password_reset_tokens` table. On success, **every existing session for that account is invalidated** (not just the one making the request) and a fresh session is issued — a password reset should sign out an attacker's session too, not just confirm the new password to whoever's already logged in |
+
 The frontend (`public/index.html`) gates the whole app behind a login/signup
 screen: on load it calls `/api/auth/me`; if there's no valid session it shows
 a small login/signup form (toggle between the two — signup additionally asks

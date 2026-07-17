@@ -50,6 +50,14 @@ db.exec(`
     expires_at TEXT NOT NULL
   );
 
+  -- Single-use, short-expiry like verification_tokens — see createPasswordResetToken.
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    token TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at TEXT NOT NULL
+  );
+
   -- One row per linked social account. A user can link more than one provider to the same
   -- account (matched by email at link time), so this is a separate table rather than columns
   -- bolted onto users — avoids a users table with google_id/linkedin_id/facebook_id/x_id all
@@ -221,6 +229,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_ai_usage_user ON ai_usage(user_id);
   CREATE INDEX IF NOT EXISTS idx_credit_purchases_user ON credit_purchases(user_id);
   CREATE INDEX IF NOT EXISTS idx_verification_tokens_user ON verification_tokens(user_id);
+  CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(user_id);
   CREATE INDEX IF NOT EXISTS idx_team_invites_owner ON team_invites(owner_id);
   CREATE INDEX IF NOT EXISTS idx_advisory_clicks_user ON advisory_clicks(user_id);
 `);
@@ -539,6 +548,33 @@ function deleteExpiredVerificationTokens() {
   db.prepare("DELETE FROM verification_tokens WHERE expires_at < datetime('now')").run();
 }
 
+function createPasswordResetToken(token, userId, expiresAt) {
+  db.prepare('INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)').run(token, userId, expiresAt);
+}
+
+function getPasswordResetToken(token) {
+  return db.prepare('SELECT * FROM password_reset_tokens WHERE token = ?').get(token);
+}
+
+function deletePasswordResetToken(token) {
+  db.prepare('DELETE FROM password_reset_tokens WHERE token = ?').run(token);
+}
+
+function deleteExpiredPasswordResetTokens() {
+  db.prepare("DELETE FROM password_reset_tokens WHERE expires_at < datetime('now')").run();
+}
+
+// Called on a successful password reset — a leaked/compromised password means any existing
+// session (including an attacker's) should be invalidated, not just the one making this request.
+function deleteSessionsForUser(userId) {
+  db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
+}
+
+function setUserPassword(userId, passwordHash, passwordSalt) {
+  db.prepare('UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?').run(passwordHash, passwordSalt, userId);
+  return getUserById(userId);
+}
+
 function getOrCreateProject(userId, name) {
   let row = db.prepare('SELECT * FROM projects WHERE user_id = ? AND name = ?').get(userId, name);
   if (!row) {
@@ -852,6 +888,8 @@ module.exports = {
   getChatMessages, addChatMessage,
   createSession, getSession, deleteSession, deleteExpiredSessions,
   createVerificationToken, getVerificationToken, deleteVerificationToken, deleteExpiredVerificationTokens,
+  createPasswordResetToken, getPasswordResetToken, deletePasswordResetToken, deleteExpiredPasswordResetTokens,
+  deleteSessionsForUser, setUserPassword,
   listBlogPosts, getBlogPostBySlug, createBlogPost,
   searchUsersForAdmin, listFeatureFlags, isFeatureEnabled, setFeatureFlag,
   logAdvisoryClick, getAdvisoryClickCount, getAdminSetting, setAdminSetting,
