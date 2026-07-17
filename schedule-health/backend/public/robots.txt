@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://ordo7.pro/sitemap.xml
+Sitemap: https://www.ordo7.pro/sitemap.xml

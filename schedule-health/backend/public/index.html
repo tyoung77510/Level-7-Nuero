@@ -12,17 +12,24 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="canonical" href="https://ordo7.pro/">
+<link rel="canonical" href="https://www.ordo7.pro/">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://ordo7.pro/">
+<meta property="og:url" content="https://www.ordo7.pro/">
 <meta property="og:title" content="Ordo7 — Know what's slipping before your client does">
 <meta property="og:description" content="Upload a schedule export, see what's wrong, track it over time. DCMA-style issue detection, a what-if sandbox, and AI-powered insights, in seconds.">
-<meta property="og:image" content="https://ordo7.pro/brand/musk/icon-512.png">
+<meta property="og:image" content="https://www.ordo7.pro/brand/musk/icon-512.png">
+<!-- Explicit width/height/type/alt removes any ambiguity for link-preview crawlers (Facebook,
+     iMessage, Slack, etc.) about the image's shape and format — some crawlers skip an image
+     entirely if they can't quickly confirm its dimensions rather than fetching and measuring it. -->
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="Ordo7 logo">
 <meta property="og:site_name" content="Ordo7">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Ordo7 — Know what's slipping before your client does">
 <meta name="twitter:description" content="Upload a schedule export, see what's wrong, track it over time. DCMA-style issue detection, a what-if sandbox, and AI-powered insights, in seconds.">
-<meta name="twitter:image" content="https://ordo7.pro/brand/musk/icon-512.png">
+<meta name="twitter:image" content="https://www.ordo7.pro/brand/musk/icon-512.png">
 <style>
   :root {
     /* Re-themed palette (Ordo7 mono-mark rebrand) — same token NAMES as before, updated VALUES,
@@ -1666,7 +1673,7 @@ function showToast(message){
 
 // --- Refer & earn (credit pill -> modal) ---
 
-const shareUrl = 'https://ordo7.pro';
+const shareUrl = 'https://www.ordo7.pro';
 let referralStatsCache = null;
 
 document.getElementById('creditPill').addEventListener('click', openReferralModal);
@@ -2022,7 +2029,7 @@ async function handleVerifyRedirect(loggedInUser){
   return true;
 }
 
-// Capture a referral code from the URL (e.g. ordo7.pro/?ref=ABC1234) on any page load and hold
+// Capture a referral code from the URL (e.g. www.ordo7.pro/?ref=ABC1234) on any page load and hold
 // onto it until signup, since a visitor may browse before creating an account. Never overwrites
 // an existing stored code — first-touch attribution, not last-touch.
 (function captureReferralCode(){
@@ -2206,7 +2213,7 @@ function renderIssues(issues){
 function shareCatch(name, sub){
   const text = 'Ordo7 just scanned our project schedule and isolated a critical logic breach dragging our target milestone completion dates down. Solved the bottleneck in 3 seconds before our executive review.\n\n' +
     '"' + name + '" — ' + sub + '\n\n' +
-    'Audit your schedule health at https://ordo7.pro';
+    'Audit your schedule health at https://www.ordo7.pro';
   navigator.clipboard.writeText(text).then(() => showToast('Professional catch copied to clipboard! Ready for LinkedIn/Slack.'));
 }
 
@@ -3043,7 +3050,7 @@ function shareBeforeAfter(originalScore, newScore){
   const text = 'Project Schedule Health Optimization Complete via Ordo7:\n' +
     '• Initial Baseline Health: ' + originalScore + ' (Logic Risks Flagged)\n' +
     '• Current Optimized Health: ' + newScore + ' (DCMA Compliant)\n\n' +
-    'Tested our re-sequencing scenarios inside the sandbox before committing. Streamline your project controls at https://ordo7.pro';
+    'Tested our re-sequencing scenarios inside the sandbox before committing. Streamline your project controls at https://www.ordo7.pro';
   navigator.clipboard.writeText(text).then(() => showToast('Victory summary copied to clipboard! Ready to post.'));
 }
 
