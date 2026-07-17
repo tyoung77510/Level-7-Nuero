@@ -1528,7 +1528,43 @@ function serveStatic(req, res, pathname) {
   });
 }
 
+// Every browser resource this app actually loads is same-origin except Google Fonts (the
+// stylesheet from fonts.googleapis.com, the font files themselves from fonts.gstatic.com) — every
+// Stripe/Knock/Anthropic/OAuth-provider call happens server-side (see billing.js/knock.js/ai.js/
+// oauth.js), never from browser JS, so none of those need a connect-src entry. 'unsafe-inline' on
+// script-src/style-src is a real trade-off, not an oversight: this app has no build step (see the
+// many "no build step to share code" comments elsewhere in this codebase) — every page is a
+// single inline <script>/<style> block, so a nonce-based CSP would need a genuine refactor. This
+// still blocks the more common attack shapes (loading a remote script, exfiltrating via an
+// unexpected fetch target, framing the site) without breaking the app that exists today.
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data:",
+  "connect-src 'self'",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'"
+].join('; ');
+
+function isSecureRequest(req) {
+  return Boolean(req.socket.encrypted) || req.headers['x-forwarded-proto'] === 'https';
+}
+
 const server = http.createServer(async (req, res) => {
+  // Set once per response via setHeader (not writeHead) specifically so every route's own
+  // writeHead(status, {...}) call further down — and there are ~20 of them, for JSON, redirects,
+  // streamed chat, static files, the blog — merges with these instead of needing to repeat them
+  // at every call site. Node merges setHeader() values with a later writeHead()'s header object;
+  // it only overrides a header if writeHead's own object names that exact header.
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy', CSP);
+  if (isSecureRequest(req)) res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
+
   const parsed = url.parse(req.url, true);
   const pathname = parsed.pathname;
 
