@@ -129,6 +129,20 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Server-side errors (unhandled route exceptions, uncaught exceptions, unhandled rejections) —
+  -- so "something threw in production" is visible in the admin console without needing to watch
+  -- Railway logs live. Unlike feedback, this is debugging history, not a permanent record — see
+  -- pruneOldErrors, called on boot alongside the other startup cleanup.
+  CREATE TABLE IF NOT EXISTS error_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message TEXT NOT NULL,
+    stack TEXT,
+    method TEXT,
+    path TEXT,
+    user_email TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE TABLE IF NOT EXISTS ai_usage (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id),
@@ -225,6 +239,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);
   CREATE INDEX IF NOT EXISTS idx_feedback_user ON feedback(user_id);
+  CREATE INDEX IF NOT EXISTS idx_error_log_created ON error_log(created_at);
   CREATE INDEX IF NOT EXISTS idx_chat_messages_snapshot ON chat_messages(snapshot_id);
   CREATE INDEX IF NOT EXISTS idx_ai_usage_user ON ai_usage(user_id);
   CREATE INDEX IF NOT EXISTS idx_credit_purchases_user ON credit_purchases(user_id);
@@ -746,6 +761,21 @@ function createFeedback(userId, message) {
   return db.prepare('SELECT * FROM feedback WHERE user_id = ? ORDER BY id DESC LIMIT 1').get(userId);
 }
 
+function logError({ message, stack, method, path, userEmail }) {
+  db.prepare('INSERT INTO error_log (message, stack, method, path, user_email) VALUES (?, ?, ?, ?, ?)')
+    .run(String(message || 'Unknown error').slice(0, 2000), stack ? String(stack).slice(0, 8000) : null, method || null, path || null, userEmail || null);
+}
+
+function listErrorsForAdmin(limit) {
+  return db.prepare('SELECT * FROM error_log ORDER BY created_at DESC LIMIT ?').all(limit || 100);
+}
+
+// Debugging history, not a permanent audit record like feedback — called once on boot alongside
+// the other startup cleanup (deleteExpiredSessions) rather than kept indefinitely.
+function pruneOldErrors() {
+  db.prepare("DELETE FROM error_log WHERE created_at < datetime('now', '-30 days')").run();
+}
+
 function getPortfolio(userId) {
   const projects = listProjects(userId);
   return projects.map(p => {
@@ -874,6 +904,7 @@ module.exports = {
   db, getOrCreateProject, listProjects, saveSnapshot,
   getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio, getActivityFeed,
   getIssueOwnerUserId, createFeedback,
+  logError, listErrorsForAdmin, pruneOldErrors,
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
   getOrCreateShareToken, getPublicSnapshotByShareToken,
   createUser, getUserByEmail, getUserById, setEmailVerified, markOnboarded,

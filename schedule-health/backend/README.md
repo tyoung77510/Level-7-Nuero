@@ -232,6 +232,25 @@ configured to do) as soon as it comes in. Like the other Knock integration, this
 |---|---|---|
 | `POST` | `/api/feedback` | `{message}` (3–2000 chars) — saves the feedback under the current user and (if configured) notifies the team via Knock |
 
+## Error monitoring
+
+No external service (Sentry, etc.) — errors are recorded to a `error_log` table and surfaced in
+the admin console's "Server Errors" panel, so "something threw in production" is visible without
+watching Railway logs live. Every unhandled route exception, `unhandledRejection`, and
+`uncaughtException` is captured; the last one also exits the process deliberately (Node's own
+guidance: don't try to keep serving after an uncaught exception, since state may be inconsistent
+— Railway restarts the container). Records older than 30 days are pruned on boot.
+
+Optionally, set `KNOCK_ERROR_ALERT_WORKFLOW_KEY` and `KNOCK_ERROR_ALERT_RECIPIENT_EMAIL` (see
+`.env.example`) to also get a live notification via Knock — deduped to at most one alert per
+distinct error message per hour so a repeating error doesn't spam the inbox. Same
+graceful-degradation pattern as the rest of this app: errors are always recorded regardless of
+whether this is configured.
+
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/api/admin/errors` | Admin-only. Returns the 100 most recent server errors |
+
 ## AI narrative
 
 The Report view has a "Generate AI summary" button that calls Claude (Haiku 4.5 by default) to

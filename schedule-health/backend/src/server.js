@@ -38,6 +38,47 @@ const blogContent = require('./blog-content');
 const rateLimit = require('./rate-limit');
 
 store.deleteExpiredSessions();
+store.pruneOldErrors();
+
+// Logs a server-side error to the admin-visible error_log table and, if configured, alerts the
+// team via Knock — deduped to at most one alert per distinct error message per hour (via
+// rate-limit.js's bucket mechanism, repurposed here for dedup rather than per-client throttling)
+// so a repeating error doesn't spam the inbox. Errors are always recorded regardless of whether
+// the alert is configured — see errorAlertConfigured() in knock.js.
+function recordError(err, req, userEmail) {
+  try {
+    store.logError({
+      message: err && err.message,
+      stack: err && err.stack,
+      method: req && req.method,
+      path: req && req.url,
+      userEmail: userEmail || null
+    });
+  } catch (e) {
+    console.error('[error-log] failed to persist error record:', e.message);
+  }
+  const signature = String((err && err.message) || 'Unknown error').slice(0, 100);
+  if (rateLimit.checkRateLimit('error-alert', signature, 1, 60 * 60 * 1000).allowed) {
+    knock.notifyError(signature, req && req.url).catch(() => {});
+  }
+}
+
+// Backstop for anything that slips past the dispatcher's own try/catch below (e.g. a
+// fire-and-forget `.catch(() => {})` callback that itself throws, or a truly unawaited promise).
+// unhandledRejection is logged without crashing — extremely common in a long-running Node HTTP
+// server and rarely indicates corrupted process state. uncaughtException is logged and then
+// rethrown deliberately: Node's own advice is not to resume normal operation after one, since
+// state may be inconsistent — better to let Railway restart the container than keep serving from
+// a possibly-broken process.
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+  recordError(reason instanceof Error ? reason : new Error(String(reason)), null);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+  recordError(err, null);
+  process.exit(1);
+});
 
 // Blog posts are authored in blog-content.js (reviewed like any other code change) and seeded
 // into the DB idempotently on boot — adding a post is a normal code change, not a manual DB write.
@@ -1121,6 +1162,11 @@ route('GET', '/api/admin/feedback', async (req, res, params, user) => {
   sendJSON(res, 200, { feedback: store.listFeedbackForAdmin() });
 });
 
+route('GET', '/api/admin/errors', async (req, res, params, user) => {
+  if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  sendJSON(res, 200, { errors: store.listErrorsForAdmin(100) });
+});
+
 route('POST', '/api/admin/feedback/:id/reviewed', async (req, res, params, user) => {
   if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
   const body = await readBody(req);
@@ -1526,6 +1572,7 @@ const server = http.createServer(async (req, res) => {
       // its real status/message here rather than falling into the generic 500 below.
       if (e.statusCode) return sendJSON(res, e.statusCode, { error: e.message });
       console.error(e);
+      recordError(e, req, user && user.email);
       sendJSON(res, 500, { error: 'Internal server error', detail: e.message });
     }
     return;
