@@ -1413,7 +1413,7 @@ function escapeHtml(s) {
 
 // Shared dark-theme chrome, reusing the same palette/typography as shared-snapshot.html so the
 // blog reads as the same product rather than a bolted-on marketing microsite.
-function renderBlogLayout({ title, description, canonicalPath, bodyHtml }) {
+function renderBlogLayout({ title, description, canonicalPath, bodyHtml, jsonLd }) {
   const canonical = `https://www.ordo7.pro${canonicalPath}`;
   return `<!doctype html>
 <html lang="en">
@@ -1431,7 +1431,7 @@ function renderBlogLayout({ title, description, canonicalPath, bodyHtml }) {
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(description)}">
-<style>
+${jsonLd ? `<script type="application/ld+json">\n${JSON.stringify(jsonLd)}\n</script>\n` : ''}<style>
   :root {
     --ink: #e7ecf2; --paper: #0a0e14; --line: #232b36; --muted: #8b96a5;
     --card: #121821; --teal: #2dd6c4; --accent: var(--teal);
@@ -1502,14 +1502,31 @@ function serveBlogPost(req, res, slug) {
       bodyHtml: '<h1>Post not found</h1><p class="empty">This post may have been moved or removed. <a href="/blog">Back to the blog</a>.</p>'
     }));
   }
-  const publishedDate = new Date(post.published_at.includes('T') ? post.published_at : post.published_at + 'Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const isoPublished = post.published_at.includes('T') ? post.published_at : post.published_at.replace(' ', 'T') + 'Z';
+  const publishedDate = new Date(isoPublished).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const canonical = `https://www.ordo7.pro/blog/${post.slug}`;
   const html = renderBlogLayout({
     title: `${post.title} — Ordo7 Blog`,
     description: post.description,
     canonicalPath: `/blog/${post.slug}`,
     // content_html is authored server-side by us (seeded content or the reviewed output of the
     // marketing Routine's draft PR flow), never user-submitted, so it's trusted to render as-is.
-    bodyHtml: `<h1>${escapeHtml(post.title)}</h1><p class="post-meta">${publishedDate} · Ordo7, powered by Level 7</p><div class="post-body">${post.content_html}</div>`
+    bodyHtml: `<h1>${escapeHtml(post.title)}</h1><p class="post-meta">${publishedDate} · Ordo7, powered by Level 7</p><div class="post-body">${post.content_html}</div>`,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: post.title,
+      description: post.description,
+      datePublished: isoPublished,
+      mainEntityOfPage: canonical,
+      url: canonical,
+      publisher: {
+        '@type': 'Organization',
+        name: 'Ordo7',
+        url: 'https://www.ordo7.pro/',
+        logo: 'https://www.ordo7.pro/brand/musk/icon-512.png'
+      }
+    }
   });
   res.writeHead(200, { 'Content-Type': 'text/html' });
   res.end(html);
