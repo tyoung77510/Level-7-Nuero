@@ -150,7 +150,80 @@ async function sendTeamInviteEmail(ownerUser, inviteeEmail, inviteUrl) {
   }
 }
 
+// Password reset uses its own opt-in flag, same reasoning as verificationConfigured/
+// teamInviteConfigured above — /api/auth/forgot-password treats "not configured" as a disclosed
+// 503 rather than silently pretending to send an email nobody gets.
+function passwordResetConfigured() {
+  return knockConfigured() && Boolean(process.env.KNOCK_PASSWORD_RESET_WORKFLOW_KEY);
+}
+
+async function sendPasswordResetEmail(user, resetUrl) {
+  const workflowKey = process.env.KNOCK_PASSWORD_RESET_WORKFLOW_KEY;
+  if (!passwordResetConfigured()) {
+    console.warn(`[knock] Password reset email skipped (KNOCK_API_KEY or KNOCK_PASSWORD_RESET_WORKFLOW_KEY not set) for ${user.email}`);
+    return null;
+  }
+  try {
+    const res = await fetch(`${KNOCK_API}/workflows/${encodeURIComponent(workflowKey)}/trigger`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.KNOCK_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        recipients: [{ id: String(user.id), email: user.email, name: user.name }],
+        data: { reset_url: resetUrl }
+      })
+    });
+    if (!res.ok) {
+      console.error(`[knock] Failed to trigger password reset workflow: ${res.status} ${await res.text().catch(() => '')}`);
+      return null;
+    }
+    return res.json();
+  } catch (e) {
+    console.error('[knock] Failed to trigger password reset workflow:', e.message);
+    return null;
+  }
+}
+
+// Alerts the team when a server-side error is logged (see db.js's error_log table / logError).
+// Same opt-in pattern as notifyFeedback — errors are always recorded to the database regardless
+// of whether this is configured, so nothing is lost while it gets set up; this only adds a live
+// notification on top. The caller (server.js) is responsible for deduping repeat alerts for the
+// same error, since this function itself sends unconditionally whenever it's called.
+function errorAlertConfigured() {
+  return knockConfigured() && Boolean(process.env.KNOCK_ERROR_ALERT_WORKFLOW_KEY) && Boolean(process.env.KNOCK_ERROR_ALERT_RECIPIENT_EMAIL);
+}
+
+async function notifyError(message, path) {
+  const workflowKey = process.env.KNOCK_ERROR_ALERT_WORKFLOW_KEY;
+  const recipientEmail = process.env.KNOCK_ERROR_ALERT_RECIPIENT_EMAIL;
+  if (!errorAlertConfigured()) return null;
+  try {
+    const res = await fetch(`${KNOCK_API}/workflows/${encodeURIComponent(workflowKey)}/trigger`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.KNOCK_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        recipients: [{ id: 'ordo7-team', email: recipientEmail }],
+        data: { message, path: path || '(none)' }
+      })
+    });
+    if (!res.ok) {
+      console.error(`[knock] Failed to trigger error alert workflow: ${res.status} ${await res.text().catch(() => '')}`);
+      return null;
+    }
+    return res.json();
+  } catch (e) {
+    console.error('[knock] Failed to trigger error alert workflow:', e.message);
+    return null;
+  }
+}
+
 module.exports = {
   knockConfigured, identifyUser, notifyFeedback, verificationConfigured, sendVerificationEmail,
-  teamInviteConfigured, sendTeamInviteEmail
+  teamInviteConfigured, sendTeamInviteEmail, passwordResetConfigured, sendPasswordResetEmail,
+  errorAlertConfigured, notifyError
 };

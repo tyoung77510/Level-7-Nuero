@@ -50,6 +50,14 @@ db.exec(`
     expires_at TEXT NOT NULL
   );
 
+  -- Single-use, short-expiry like verification_tokens — see createPasswordResetToken.
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    token TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at TEXT NOT NULL
+  );
+
   -- One row per linked social account. A user can link more than one provider to the same
   -- account (matched by email at link time), so this is a separate table rather than columns
   -- bolted onto users — avoids a users table with google_id/linkedin_id/facebook_id/x_id all
@@ -118,6 +126,20 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id),
     message TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Server-side errors (unhandled route exceptions, uncaught exceptions, unhandled rejections) —
+  -- so "something threw in production" is visible in the admin console without needing to watch
+  -- Railway logs live. Unlike feedback, this is debugging history, not a permanent record — see
+  -- pruneOldErrors, called on boot alongside the other startup cleanup.
+  CREATE TABLE IF NOT EXISTS error_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message TEXT NOT NULL,
+    stack TEXT,
+    method TEXT,
+    path TEXT,
+    user_email TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -217,10 +239,12 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);
   CREATE INDEX IF NOT EXISTS idx_feedback_user ON feedback(user_id);
+  CREATE INDEX IF NOT EXISTS idx_error_log_created ON error_log(created_at);
   CREATE INDEX IF NOT EXISTS idx_chat_messages_snapshot ON chat_messages(snapshot_id);
   CREATE INDEX IF NOT EXISTS idx_ai_usage_user ON ai_usage(user_id);
   CREATE INDEX IF NOT EXISTS idx_credit_purchases_user ON credit_purchases(user_id);
   CREATE INDEX IF NOT EXISTS idx_verification_tokens_user ON verification_tokens(user_id);
+  CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(user_id);
   CREATE INDEX IF NOT EXISTS idx_team_invites_owner ON team_invites(owner_id);
   CREATE INDEX IF NOT EXISTS idx_advisory_clicks_user ON advisory_clicks(user_id);
 `);
@@ -539,6 +563,33 @@ function deleteExpiredVerificationTokens() {
   db.prepare("DELETE FROM verification_tokens WHERE expires_at < datetime('now')").run();
 }
 
+function createPasswordResetToken(token, userId, expiresAt) {
+  db.prepare('INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)').run(token, userId, expiresAt);
+}
+
+function getPasswordResetToken(token) {
+  return db.prepare('SELECT * FROM password_reset_tokens WHERE token = ?').get(token);
+}
+
+function deletePasswordResetToken(token) {
+  db.prepare('DELETE FROM password_reset_tokens WHERE token = ?').run(token);
+}
+
+function deleteExpiredPasswordResetTokens() {
+  db.prepare("DELETE FROM password_reset_tokens WHERE expires_at < datetime('now')").run();
+}
+
+// Called on a successful password reset — a leaked/compromised password means any existing
+// session (including an attacker's) should be invalidated, not just the one making this request.
+function deleteSessionsForUser(userId) {
+  db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
+}
+
+function setUserPassword(userId, passwordHash, passwordSalt) {
+  db.prepare('UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?').run(passwordHash, passwordSalt, userId);
+  return getUserById(userId);
+}
+
 function getOrCreateProject(userId, name) {
   let row = db.prepare('SELECT * FROM projects WHERE user_id = ? AND name = ?').get(userId, name);
   if (!row) {
@@ -710,6 +761,21 @@ function createFeedback(userId, message) {
   return db.prepare('SELECT * FROM feedback WHERE user_id = ? ORDER BY id DESC LIMIT 1').get(userId);
 }
 
+function logError({ message, stack, method, path, userEmail }) {
+  db.prepare('INSERT INTO error_log (message, stack, method, path, user_email) VALUES (?, ?, ?, ?, ?)')
+    .run(String(message || 'Unknown error').slice(0, 2000), stack ? String(stack).slice(0, 8000) : null, method || null, path || null, userEmail || null);
+}
+
+function listErrorsForAdmin(limit) {
+  return db.prepare('SELECT * FROM error_log ORDER BY created_at DESC LIMIT ?').all(limit || 100);
+}
+
+// Debugging history, not a permanent audit record like feedback — called once on boot alongside
+// the other startup cleanup (deleteExpiredSessions) rather than kept indefinitely.
+function pruneOldErrors() {
+  db.prepare("DELETE FROM error_log WHERE created_at < datetime('now', '-30 days')").run();
+}
+
 function getPortfolio(userId) {
   const projects = listProjects(userId);
   return projects.map(p => {
@@ -838,6 +904,7 @@ module.exports = {
   db, getOrCreateProject, listProjects, saveSnapshot,
   getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio, getActivityFeed,
   getIssueOwnerUserId, createFeedback,
+  logError, listErrorsForAdmin, pruneOldErrors,
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
   getOrCreateShareToken, getPublicSnapshotByShareToken,
   createUser, getUserByEmail, getUserById, setEmailVerified, markOnboarded,
@@ -852,6 +919,8 @@ module.exports = {
   getChatMessages, addChatMessage,
   createSession, getSession, deleteSession, deleteExpiredSessions,
   createVerificationToken, getVerificationToken, deleteVerificationToken, deleteExpiredVerificationTokens,
+  createPasswordResetToken, getPasswordResetToken, deletePasswordResetToken, deleteExpiredPasswordResetTokens,
+  deleteSessionsForUser, setUserPassword,
   listBlogPosts, getBlogPostBySlug, createBlogPost,
   searchUsersForAdmin, listFeatureFlags, isFeatureEnabled, setFeatureFlag,
   logAdvisoryClick, getAdvisoryClickCount, getAdminSetting, setAdminSetting,

@@ -116,7 +116,7 @@
   .kpi-sub { font-size: 12px; color: var(--muted); }
 
   /* --- 3-column workspace --- */
-  .split { flex: 1; min-height: 0; display: grid; grid-template-columns: 40fr 30fr 30fr; gap: 16px; }
+  .split { flex: 1; min-height: 0; display: grid; grid-template-columns: 32fr 22fr 23fr 23fr; gap: 16px; }
   .col { display: flex; flex-direction: column; min-height: 0; background: var(--card); border: 1px solid rgba(148,163,184,0.1); border-radius: 14px; overflow: hidden; }
   .col-header { flex-shrink: 0; padding: 14px 16px; border-bottom: 1px solid rgba(148,163,184,.08); display: flex; align-items: center; justify-content: space-between; }
   .col-header h2 { font-size: 15px; font-weight: 600; }
@@ -327,6 +327,14 @@
 
       <section class="col">
         <div class="col-header">
+          <h2>Server Errors</h2>
+          <span class="tag mono">LAST 100</span>
+        </div>
+        <div class="col-body" id="errorList"></div>
+      </section>
+
+      <section class="col">
+        <div class="col-header">
           <h2>Feature Flags &amp; Kill Switches</h2>
           <span class="tag mono">SYSTEM OPS</span>
         </div>
@@ -458,7 +466,7 @@ function enterConsole(user) {
 // --- Data loading ---
 
 async function loadAll() {
-  await Promise.all([loadTelemetry(), loadUsers(), loadFlags(), loadFeedback()]);
+  await Promise.all([loadTelemetry(), loadUsers(), loadFlags(), loadFeedback(), loadErrors()]);
 }
 
 function fmtUsd(n) {
@@ -650,6 +658,34 @@ async function toggleFeedback(id, reviewed) {
   } catch (e) {
     showToast('Update failed: ' + e.message);
   }
+}
+
+async function loadErrors() {
+  try {
+    const { errors } = await api('/api/admin/errors');
+    renderErrors(errors);
+  } catch (e) {
+    showToast('Could not load errors: ' + e.message);
+  }
+}
+
+function renderErrors(items) {
+  const list = document.getElementById('errorList');
+  if (!items.length) {
+    list.innerHTML = '<div class="empty-note">No server errors logged. Clean run.</div>';
+    return;
+  }
+  list.innerHTML = items.map(item => {
+    const handle = (item.method || '') + ' ' + (item.path || '(no request context)');
+    return '<div class="feedback-card">' +
+      '<div class="feedback-top">' +
+        '<span class="feedback-handle mono" style="color:var(--bad);">' + escapeHtml(handle.trim()) + '</span>' +
+        '<span class="feedback-time mono">' + timeAgo(item.created_at) + '</span>' +
+      '</div>' +
+      '<div class="feedback-text">' + escapeHtml(item.message) + '</div>' +
+      (item.user_email ? '<div class="feedback-text" style="color:var(--faint); font-size:11px;">User: ' + escapeHtml(item.user_email) + '</div>' : '') +
+    '</div>';
+  }).join('');
 }
 
 document.getElementById('exportBtn').addEventListener('click', async () => {

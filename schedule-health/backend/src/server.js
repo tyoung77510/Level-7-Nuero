@@ -35,8 +35,50 @@ const ai = require('./ai');
 const pricing = require('./pricing');
 const oauth = require('./oauth');
 const blogContent = require('./blog-content');
+const rateLimit = require('./rate-limit');
 
 store.deleteExpiredSessions();
+store.pruneOldErrors();
+
+// Logs a server-side error to the admin-visible error_log table and, if configured, alerts the
+// team via Knock — deduped to at most one alert per distinct error message per hour (via
+// rate-limit.js's bucket mechanism, repurposed here for dedup rather than per-client throttling)
+// so a repeating error doesn't spam the inbox. Errors are always recorded regardless of whether
+// the alert is configured — see errorAlertConfigured() in knock.js.
+function recordError(err, req, userEmail) {
+  try {
+    store.logError({
+      message: err && err.message,
+      stack: err && err.stack,
+      method: req && req.method,
+      path: req && req.url,
+      userEmail: userEmail || null
+    });
+  } catch (e) {
+    console.error('[error-log] failed to persist error record:', e.message);
+  }
+  const signature = String((err && err.message) || 'Unknown error').slice(0, 100);
+  if (rateLimit.checkRateLimit('error-alert', signature, 1, 60 * 60 * 1000).allowed) {
+    knock.notifyError(signature, req && req.url).catch(() => {});
+  }
+}
+
+// Backstop for anything that slips past the dispatcher's own try/catch below (e.g. a
+// fire-and-forget `.catch(() => {})` callback that itself throws, or a truly unawaited promise).
+// unhandledRejection is logged without crashing — extremely common in a long-running Node HTTP
+// server and rarely indicates corrupted process state. uncaughtException is logged and then
+// rethrown deliberately: Node's own advice is not to resume normal operation after one, since
+// state may be inconsistent — better to let Railway restart the container than keep serving from
+// a possibly-broken process.
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+  recordError(reason instanceof Error ? reason : new Error(String(reason)), null);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+  recordError(err, null);
+  process.exit(1);
+});
 
 // Blog posts are authored in blog-content.js (reviewed like any other code change) and seeded
 // into the DB idempotently on boot — adding a post is a normal code change, not a manual DB write.
@@ -69,6 +111,22 @@ function sendJSON(res, status, data) {
   res.end(body);
 }
 
+// Checks and, on a miss, immediately sends the 429 response — so a route just does
+// `if (rateLimited(...)) return;` at the top rather than handling the result itself. Bucketed by
+// name + IP (see rate-limit.js): auth routes get a tight window (brute-force/enumeration/spam
+// protection with no other mitigation), AI routes get a looser one (defense-in-depth on top of
+// the credit-balance gate that already caps real cost per account).
+function rateLimited(res, name, req, maxRequests, windowMs) {
+  const ip = rateLimit.clientIp(req);
+  const result = rateLimit.checkRateLimit(name, ip, maxRequests, windowMs);
+  if (!result.allowed) {
+    res.setHeader('Retry-After', String(result.retryAfterSeconds));
+    sendJSON(res, 429, { error: 'Too many requests — try again shortly' });
+    return true;
+  }
+  return false;
+}
+
 function sendRedirect(res, location, cookies) {
   const headers = { Location: location };
   if (cookies && cookies.length) headers['Set-Cookie'] = cookies;
@@ -76,10 +134,35 @@ function sendRedirect(res, location, cookies) {
   res.end();
 }
 
+// Generous enough for a genuinely huge schedule export (tens of thousands of activities,
+// verbose MSPDI XML) while still bounding how much an unbounded/malicious upload can force this
+// single process to buffer into memory at once. Enforced here, not per-route, so every one of
+// this function's ~20 call sites gets the same protection without having to remember to add it.
+const MAX_BODY_BYTES = 25 * 1024 * 1024; // 25MB
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let chunks = [];
-    req.on('data', c => chunks.push(c));
+    let total = 0;
+    let rejected = false;
+    req.on('data', c => {
+      total += c.length;
+      if (total > MAX_BODY_BYTES) {
+        // Deliberately NOT req.destroy() here — that kills the underlying socket outright, which
+        // (tested) drops the connection before the 413 response below can ever reach the client.
+        // Instead: stop retaining further chunks (the actual memory-safety fix) and let the
+        // dispatcher's catch block write a real 413 response; the client's remaining upload gets
+        // reset once that response closes the connection, same as e.g. nginx's client_max_body_size.
+        if (!rejected) {
+          rejected = true;
+          const err = new Error('Request body too large (max 25MB)');
+          err.statusCode = 413;
+          reject(err);
+        }
+        return;
+      }
+      chunks.push(c);
+    });
     req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
@@ -181,7 +264,13 @@ function verificationUrl(req, token) {
   return `${origin}/?verify=${token}`;
 }
 
+function passwordResetUrl(req, token) {
+  const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
+  return `${origin}/?resetPassword=${token}`;
+}
+
 route('POST', '/api/auth/signup', async (req, res) => {
+  if (rateLimited(res, 'signup', req, 5, 60 * 60 * 1000)) return; // 5/hour per IP — mass fake-account prevention
   const body = await readBody(req);
   let payload;
   try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
@@ -464,7 +553,50 @@ route('POST', '/api/auth/resend-verification', async (req, res, params, user) =>
   sendJSON(res, 200, { ok: true });
 });
 
+route('POST', '/api/auth/forgot-password', async (req, res) => {
+  if (rateLimited(res, 'forgot-password', req, 5, 60 * 60 * 1000)) return; // 5/hour per IP — prevents email-bombing a victim's inbox
+  if (!knock.passwordResetConfigured()) return sendJSON(res, 503, { error: 'Password reset is not configured yet' });
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const email = String(payload.email || '').trim().toLowerCase();
+
+  // Always respond identically whether or not the email matches an account — confirming/denying
+  // an email's existence here would let this endpoint be used to enumerate registered users.
+  const user = auth.EMAIL_RE.test(email) ? store.getUserByEmail(email) : null;
+  if (user) {
+    const resetToken = auth.createPasswordResetToken(user.id);
+    knock.sendPasswordResetEmail(user, passwordResetUrl(req, resetToken)).catch(() => {});
+  }
+  sendJSON(res, 200, { ok: true });
+});
+
+route('POST', '/api/auth/reset-password', async (req, res) => {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const token = String(payload.token || '');
+  const password = String(payload.password || '');
+  if (!token) return sendJSON(res, 400, { error: 'Missing reset token' });
+  if (password.length < 8) return sendJSON(res, 400, { error: 'Password must be at least 8 characters' });
+
+  const userId = auth.verifyPasswordResetToken(token);
+  if (!userId) return sendJSON(res, 400, { error: 'This reset link is invalid or has expired' });
+
+  const { salt, hash } = auth.hashPassword(password);
+  store.setUserPassword(userId, hash, salt);
+  // A password reset means any existing session (including one an attacker holds) should be
+  // invalidated, not just left alive — so this signs the account out everywhere, this device
+  // included, and issues one fresh session below rather than reusing whatever came in.
+  store.deleteSessionsForUser(userId);
+
+  const { token: sessionToken } = auth.createSession(userId);
+  res.setHeader('Set-Cookie', auth.sessionCookie(sessionToken, req, auth.SESSION_TTL_MS / 1000));
+  sendJSON(res, 200, { user: publicUser(store.getUserById(userId)) });
+});
+
 route('POST', '/api/auth/login', async (req, res) => {
+  if (rateLimited(res, 'login', req, 10, 15 * 60 * 1000)) return; // 10/15min per IP — brute-force protection
   const body = await readBody(req);
   let payload;
   try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
@@ -927,6 +1059,10 @@ route('GET', '/api/snapshots/:id/chat', async (req, res, params, user) => {
 });
 
 route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
+  // Defense-in-depth on top of the credit-balance gate below, which already caps total real cost
+  // per account — this just stops a burst of rapid-fire requests (buggy client retry loop, or a
+  // user with credits to burn hammering the endpoint) rather than budget abuse.
+  if (rateLimited(res, 'ai-chat', req, 30, 10 * 60 * 1000)) return;
   if (!ai.aiConfigured()) return sendJSON(res, 503, { error: 'AI chat is not configured yet' });
   if (!store.isFeatureEnabled('ask-ordo-ai')) return sendJSON(res, 503, { error: 'Ask Ordo is temporarily unavailable' });
   const snapshotId = Number(params.id);
@@ -1024,6 +1160,11 @@ route('POST', '/api/admin/users/:id/override', async (req, res, params, user) =>
 route('GET', '/api/admin/feedback', async (req, res, params, user) => {
   if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
   sendJSON(res, 200, { feedback: store.listFeedbackForAdmin() });
+});
+
+route('GET', '/api/admin/errors', async (req, res, params, user) => {
+  if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  sendJSON(res, 200, { errors: store.listErrorsForAdmin(100) });
 });
 
 route('POST', '/api/admin/feedback/:id/reviewed', async (req, res, params, user) => {
@@ -1166,6 +1307,9 @@ ${openFeedbackLines}`;
 
 route('POST', '/api/admin/advisor/chat', async (req, res, params, user) => {
   if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  // No credit-balance gate on this route (staff-only, no billing model here) — the rate limit is
+  // the only cost guard, same reasoning as the customer-facing chat route above.
+  if (rateLimited(res, 'admin-advisor-chat', req, 30, 10 * 60 * 1000)) return;
   if (!ai.aiConfigured()) return sendJSON(res, 503, { error: 'AI is not configured yet' });
 
   const body = await readBody(req);
@@ -1384,7 +1528,43 @@ function serveStatic(req, res, pathname) {
   });
 }
 
+// Every browser resource this app actually loads is same-origin except Google Fonts (the
+// stylesheet from fonts.googleapis.com, the font files themselves from fonts.gstatic.com) — every
+// Stripe/Knock/Anthropic/OAuth-provider call happens server-side (see billing.js/knock.js/ai.js/
+// oauth.js), never from browser JS, so none of those need a connect-src entry. 'unsafe-inline' on
+// script-src/style-src is a real trade-off, not an oversight: this app has no build step (see the
+// many "no build step to share code" comments elsewhere in this codebase) — every page is a
+// single inline <script>/<style> block, so a nonce-based CSP would need a genuine refactor. This
+// still blocks the more common attack shapes (loading a remote script, exfiltrating via an
+// unexpected fetch target, framing the site) without breaking the app that exists today.
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data:",
+  "connect-src 'self'",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'"
+].join('; ');
+
+function isSecureRequest(req) {
+  return Boolean(req.socket.encrypted) || req.headers['x-forwarded-proto'] === 'https';
+}
+
 const server = http.createServer(async (req, res) => {
+  // Set once per response via setHeader (not writeHead) specifically so every route's own
+  // writeHead(status, {...}) call further down — and there are ~20 of them, for JSON, redirects,
+  // streamed chat, static files, the blog — merges with these instead of needing to repeat them
+  // at every call site. Node merges setHeader() values with a later writeHead()'s header object;
+  // it only overrides a header if writeHead's own object names that exact header.
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy', CSP);
+  if (isSecureRequest(req)) res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
+
   const parsed = url.parse(req.url, true);
   const pathname = parsed.pathname;
 
@@ -1424,7 +1604,11 @@ const server = http.createServer(async (req, res) => {
     try {
       await match.handler(req, res, match.params, user);
     } catch (e) {
+      // readBody() throws a tagged 413 when a request body exceeds MAX_BODY_BYTES — surfaced as
+      // its real status/message here rather than falling into the generic 500 below.
+      if (e.statusCode) return sendJSON(res, e.statusCode, { error: e.message });
       console.error(e);
+      recordError(e, req, user && user.email);
       sendJSON(res, 500, { error: 'Internal server error', detail: e.message });
     }
     return;

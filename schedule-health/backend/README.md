@@ -112,6 +112,17 @@ access, no email step at all (good for local dev). Once configured:
   out real users who signed up before it existed — only new signups after `KNOCK_VERIFICATION_WORKFLOW_KEY`
   is set are required to verify.
 
+### Password reset
+
+Same graceful-degradation pattern as email verification, gated on its own `KNOCK_PASSWORD_RESET_WORKFLOW_KEY`
+(see `.env.example`) — without it, `POST /api/auth/forgot-password` returns a disclosed `503`
+rather than silently pretending to send an email nobody gets.
+
+| Method | Path | What it does |
+|---|---|---|
+| `POST` | `/api/auth/forgot-password` | `{email}` — always responds `{ok: true}` regardless of whether the email matches an account, so the endpoint can't be used to enumerate registered users. If it does match, sends a reset link (`https://yourdomain/?resetPassword=TOKEN`) via Knock |
+| `POST` | `/api/auth/reset-password` | `{token, password}` — single-use token, 1-hour expiry (tighter than verification's 24h, since whoever holds this link can take over the account outright), stored in a `password_reset_tokens` table. On success, **every existing session for that account is invalidated** (not just the one making the request) and a fresh session is issued — a password reset should sign out an attacker's session too, not just confirm the new password to whoever's already logged in |
+
 The frontend (`public/index.html`) gates the whole app behind a login/signup
 screen: on load it calls `/api/auth/me`; if there's no valid session it shows
 a small login/signup form (toggle between the two — signup additionally asks
@@ -220,6 +231,25 @@ configured to do) as soon as it comes in. Like the other Knock integration, this
 | Method | Path | What it does |
 |---|---|---|
 | `POST` | `/api/feedback` | `{message}` (3–2000 chars) — saves the feedback under the current user and (if configured) notifies the team via Knock |
+
+## Error monitoring
+
+No external service (Sentry, etc.) — errors are recorded to a `error_log` table and surfaced in
+the admin console's "Server Errors" panel, so "something threw in production" is visible without
+watching Railway logs live. Every unhandled route exception, `unhandledRejection`, and
+`uncaughtException` is captured; the last one also exits the process deliberately (Node's own
+guidance: don't try to keep serving after an uncaught exception, since state may be inconsistent
+— Railway restarts the container). Records older than 30 days are pruned on boot.
+
+Optionally, set `KNOCK_ERROR_ALERT_WORKFLOW_KEY` and `KNOCK_ERROR_ALERT_RECIPIENT_EMAIL` (see
+`.env.example`) to also get a live notification via Knock — deduped to at most one alert per
+distinct error message per hour so a repeating error doesn't spam the inbox. Same
+graceful-degradation pattern as the rest of this app: errors are always recorded regardless of
+whether this is configured.
+
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/api/admin/errors` | Admin-only. Returns the 100 most recent server errors |
 
 ## AI narrative
 
