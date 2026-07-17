@@ -504,7 +504,7 @@
   .mkt-hero h1 .seven { color: var(--orange); }
   .mkt-hero p { font-size: 17px; color: var(--muted); max-width: 560px; margin: 0 auto 30px; line-height: 1.6; }
   .mkt-section-title { text-align: center; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 28px; }
-  .mkt-features { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 56px; }
+  .mkt-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 56px; }
   @media (max-width: 900px) { .mkt-features { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 560px) { .mkt-features { grid-template-columns: 1fr; } }
   .mkt-feature-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
@@ -688,6 +688,11 @@
       <div class="mkt-feature-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.4 1 1.2 1 2.3h6c0-1.1.4-1.9 1-2.3A7 7 0 0 0 12 2z"/></svg></div>
       <h3>AI-powered insights</h3>
       <p>Ask questions about your schedule in plain language and get answers grounded in your actual data, not generic advice.</p>
+    </div>
+    <div class="mkt-feature-card">
+      <div class="mkt-feature-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 5.66 13.66"/><path d="M12 12l4-2.5"/></svg></div>
+      <h3>Earned value tracking</h3>
+      <p>See real schedule progress against baseline with Earned Schedule analysis, plus optional cost variance (CPI, CV) once you enter your own budget — never estimated for you.</p>
     </div>
   </div>
 
