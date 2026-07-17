@@ -798,6 +798,12 @@ function createBlogPost(slug, title, description, contentHtml) {
   return getBlogPostBySlug(slug);
 }
 
+function updateBlogPost(slug, title, description, contentHtml) {
+  db.prepare('UPDATE blog_posts SET title = ?, description = ?, content_html = ? WHERE slug = ?')
+    .run(title, description, contentHtml, slug);
+  return getBlogPostBySlug(slug);
+}
+
 // --- Admin Command Center ---
 
 // Search is optional — an empty/undefined query returns every account, newest first, capped so
@@ -921,7 +927,7 @@ module.exports = {
   createVerificationToken, getVerificationToken, deleteVerificationToken, deleteExpiredVerificationTokens,
   createPasswordResetToken, getPasswordResetToken, deletePasswordResetToken, deleteExpiredPasswordResetTokens,
   deleteSessionsForUser, setUserPassword,
-  listBlogPosts, getBlogPostBySlug, createBlogPost,
+  listBlogPosts, getBlogPostBySlug, createBlogPost, updateBlogPost,
   searchUsersForAdmin, listFeatureFlags, isFeatureEnabled, setFeatureFlag,
   logAdvisoryClick, getAdvisoryClickCount, getAdminSetting, setAdminSetting,
   listFeedbackForAdmin, setFeedbackReviewed, getUserCountsByTier, getFileIngestionStats, getAiSpendTotal,
