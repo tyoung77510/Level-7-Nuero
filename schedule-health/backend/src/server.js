@@ -93,10 +93,35 @@ function sendRedirect(res, location, cookies) {
   res.end();
 }
 
+// Generous enough for a genuinely huge schedule export (tens of thousands of activities,
+// verbose MSPDI XML) while still bounding how much an unbounded/malicious upload can force this
+// single process to buffer into memory at once. Enforced here, not per-route, so every one of
+// this function's ~20 call sites gets the same protection without having to remember to add it.
+const MAX_BODY_BYTES = 25 * 1024 * 1024; // 25MB
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let chunks = [];
-    req.on('data', c => chunks.push(c));
+    let total = 0;
+    let rejected = false;
+    req.on('data', c => {
+      total += c.length;
+      if (total > MAX_BODY_BYTES) {
+        // Deliberately NOT req.destroy() here — that kills the underlying socket outright, which
+        // (tested) drops the connection before the 413 response below can ever reach the client.
+        // Instead: stop retaining further chunks (the actual memory-safety fix) and let the
+        // dispatcher's catch block write a real 413 response; the client's remaining upload gets
+        // reset once that response closes the connection, same as e.g. nginx's client_max_body_size.
+        if (!rejected) {
+          rejected = true;
+          const err = new Error('Request body too large (max 25MB)');
+          err.statusCode = 413;
+          reject(err);
+        }
+        return;
+      }
+      chunks.push(c);
+    });
     req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
@@ -1497,6 +1522,9 @@ const server = http.createServer(async (req, res) => {
     try {
       await match.handler(req, res, match.params, user);
     } catch (e) {
+      // readBody() throws a tagged 413 when a request body exceeds MAX_BODY_BYTES — surfaced as
+      // its real status/message here rather than falling into the generic 500 below.
+      if (e.statusCode) return sendJSON(res, e.statusCode, { error: e.message });
       console.error(e);
       sendJSON(res, 500, { error: 'Internal server error', detail: e.message });
     }
