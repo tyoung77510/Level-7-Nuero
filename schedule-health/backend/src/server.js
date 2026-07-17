@@ -693,7 +693,44 @@ route('GET', '/api/projects/:name/latest', async (req, res, params, user) => {
   const issues = store.getIssuesForSnapshot(snapshot.id);
   let activities = [];
   try { activities = JSON.parse(snapshot.activities_json || '[]'); } catch (e) { activities = []; }
-  sendJSON(res, 200, { snapshot, issues, activities });
+  const project = store.getProjectByName(user.id, params.name);
+  const earnedSchedule = analyzeMod.computeEarnedSchedule(activities);
+  sendJSON(res, 200, {
+    snapshot, issues, activities,
+    earnedSchedule, budgetAtCompletion: project?.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null
+  });
+});
+
+// Optional cost layer on top of the always-available Earned Schedule metrics — a manually-entered
+// Budget at Completion, honest because it's the user's own number, never derived or guessed.
+// Dedicated route (unlike the earned-schedule display data above, which rides on /latest and
+// /analyze), so this one gets real backend enforcement of the earned-value-metrics flag.
+route('POST', '/api/projects/:name/budget', async (req, res, params, user) => {
+  if (!store.isFeatureEnabled('earned-value-metrics')) return sendJSON(res, 503, { error: 'Earned value metrics are temporarily unavailable' });
+  const project = store.getProjectByName(user.id, params.name);
+  if (!project) return sendJSON(res, 404, { error: 'No such project' });
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const budget = payload.budgetAtCompletion === null ? null : Number(payload.budgetAtCompletion);
+  if (budget !== null && (!Number.isFinite(budget) || budget < 0)) return sendJSON(res, 400, { error: 'Budget must be a non-negative number' });
+  const updated = store.setProjectBudget(project.id, budget);
+  sendJSON(res, 200, { project: updated });
+});
+
+route('POST', '/api/snapshots/:id/actual-cost', async (req, res, params, user) => {
+  if (!store.isFeatureEnabled('earned-value-metrics')) return sendJSON(res, 503, { error: 'Earned value metrics are temporarily unavailable' });
+  const snapshotId = Number(params.id);
+  const ownerId = store.getSnapshotOwnerUserId(snapshotId);
+  if (ownerId === null) return sendJSON(res, 404, { error: 'No such snapshot' });
+  if (ownerId !== user.id) return sendJSON(res, 403, { error: 'Not your project' });
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const actualCost = payload.actualCostToDate === null ? null : Number(payload.actualCostToDate);
+  if (actualCost !== null && (!Number.isFinite(actualCost) || actualCost < 0)) return sendJSON(res, 400, { error: 'Actual cost must be a non-negative number' });
+  const updated = store.setSnapshotActualCost(snapshotId, actualCost);
+  sendJSON(res, 200, { snapshot: updated });
 });
 
 // Generates (or reuses) a public share link for one snapshot — a real, unauthenticated read-only
@@ -1213,7 +1250,11 @@ route('POST', '/api/analyze', async (req, res, params, user) => {
 
   const { project, snapshot } = store.saveSnapshot(user.id, projectName, result, filename);
   const issues = store.getIssuesForSnapshot(snapshot.id);
-  sendJSON(res, 200, { project, snapshot, issues, activities: result.activities || [], hasDates: !!result.hasDates });
+  const earnedSchedule = analyzeMod.computeEarnedSchedule(result.activities || []);
+  sendJSON(res, 200, {
+    project, snapshot, issues, activities: result.activities || [], hasDates: !!result.hasDates,
+    earnedSchedule, budgetAtCompletion: project.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null
+  });
 });
 
 // Static file serving for the frontend (public/index.html etc.)
