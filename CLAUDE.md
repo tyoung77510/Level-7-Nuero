@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Level 7 Consulting — AI Second Brain
 
 ## Identity
@@ -32,6 +36,18 @@ The Digital Brain is structured in 7 sections:
 5. Capability transfer to the client is a core value — document everything
 6. Follow the 5 non-negotiables: Integrity, Transparency, Accountability, Excellence, Service
 7. When building or changing any system, SOP, or tool: apply the Musk Algorithm — question the requirement, delete, simplify, accelerate, automate, in that order (see [[SOUL.md]])
+
+## Operating in This Repo
+This is a **Markdown knowledge base** (Obsidian-compatible), not a software project — there is no build, lint, or test step. The only script is `./brain-setup.sh`, which prints an orientation overview (file structure with line counts, CLAUDE.md head, most-recently-modified notes, MOC links). Run it to get your bearings after a context reset.
+
+**What's versioned here vs. not:** This repo holds the Digital Brain (the `.md` notes) only. The authoritative *source* content — the 15 SOPs, client work, and visual assets — lives on the team's shared filesystem under `/home/team/shared/` (see [[07-INFRASTRUCTURE/directory-structure.md]]). Notes here summarize or index those sources and cite them in a footer. When you change a note, keep it consistent with its cited source; edits made on the shared filesystem should be synced back here to keep this repo authoritative.
+
+**Note conventions (match these when creating or editing notes):**
+- Every note opens with a blockquote metadata line: `> **Status:** ✅ Active | **Purpose:** … | **Last Updated:** YYYY-MM-DD` (delivery notes use `> **Source:** SOP-… | **Last Updated:** …`). Update `Last Updated` whenever you meaningfully change a note.
+- Notes end with a source footer where applicable: `> **Source files:** /home/team/shared/…` or `> **Built by:** … Agent`.
+- Link related notes with `[[wikilinks]]` (path-style, e.g. `[[03-DELIVERY/pm-frameworks.md]]`, or MOC-style, e.g. `[[02-MOC-PRODUCT]]`).
+- Each of the 7 sections has a folder (`NN-SECTION/`) and a top-level MOC index (`NN-MOC-*.md`). When you add a note to a section, add it to that section's MOC table and, if it introduces a new cross-domain link, to the "Key Cross-References" table in `00-MOC-MASTER.md`.
+- Business facts (pricing, contacts, SLAs, ROI) appear in multiple places — `09-QUICK-REFERENCE.md`, the relevant MOC, and `CLAUDE.md`. If you change a fact, update all of them so they don't drift.
 
 ## Key Facts
 - **Website:** level7dc.ctonew.app (redirect from level7data.com)
