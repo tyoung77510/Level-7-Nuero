@@ -114,6 +114,28 @@ function analyzeXER(tables) {
     const isMilestone = t.task_type === 'TT_Mile' || durationDays === 0;
     const hasPredecessor = !!predCount[t.task_id];
     const hasSuccessor = !!succCount[t.task_id];
+
+    // Planned/actual dates kept distinct (unlike `start`/`end` above, which merge actual-over-
+    // target for display) — earned schedule needs to compare them separately, not blended.
+    const plannedStart = parseXerDate(t.target_start_date);
+    const plannedEnd = parseXerDate(t.target_end_date);
+    const actualStartDate = parseXerDate(t.act_start_date);
+    const actualEndDate = parseXerDate(t.act_end_date);
+    const status = t.status_code === 'TK_Complete' ? 'complete' : (t.status_code === 'TK_NotStart' ? 'not_started' : 'active');
+    // Best available progress signal, in order: a real physical-%-complete field if the export
+    // included one (not every .xer does), then discrete status, then — only for an in-progress
+    // activity with no % field — a proxy from how much of its own duration has elapsed since it
+    // actually started. Never invented for a task with no status signal at all.
+    const physPct = parseFloat(t.phys_complete_pct);
+    let percentComplete;
+    if (!isNaN(physPct)) percentComplete = Math.max(0, Math.min(100, physPct));
+    else if (status === 'complete') percentComplete = 100;
+    else if (status === 'not_started') percentComplete = 0;
+    else if (actualStartDate) {
+      const elapsedDays = Math.max(0, (Date.now() - actualStartDate.getTime()) / 86400000);
+      percentComplete = durationDays > 0 ? Math.max(0, Math.min(100, (elapsedDays / durationDays) * 100)) : 0;
+    } else percentComplete = 0;
+
     activities.push({
       code: t.task_code || t.task_id,
       name: activityName,
@@ -123,7 +145,13 @@ function analyzeXER(tables) {
       end: end ? end.toISOString().slice(0, 10) : (start ? new Date(start.getTime() + durationDays * 86400000).toISOString().slice(0, 10) : null),
       durationDays: Math.round(durationDays * 10) / 10,
       totalFloatDays: floatDays,
-      critical: floatDays !== null && floatDays <= 0
+      critical: floatDays !== null && floatDays <= 0,
+      plannedStart: plannedStart ? plannedStart.toISOString().slice(0, 10) : null,
+      plannedEnd: plannedEnd ? plannedEnd.toISOString().slice(0, 10) : null,
+      actualStart: actualStartDate ? actualStartDate.toISOString().slice(0, 10) : null,
+      actualEnd: actualEndDate ? actualEndDate.toISOString().slice(0, 10) : null,
+      status,
+      percentComplete: Math.round(percentComplete * 10) / 10
     });
 
     if (isMilestone) {
@@ -233,7 +261,12 @@ function analyzeCSVTasks(csvTasks) {
       dayOffset: Math.round(cumulativeDays * 10) / 10,
       durationDays: Math.round(durationDays * 10) / 10,
       totalFloatDays: isNaN(tf) ? null : tf,
-      critical: !isNaN(tf) && tf <= 0
+      critical: !isNaN(tf) && tf <= 0,
+      // This format carries no dates or status at all — earned schedule genuinely can't be
+      // computed from it, so these stay null rather than guessed. computeEarnedSchedule() reports
+      // that honestly instead of showing a number with no basis.
+      plannedStart: null, plannedEnd: null, actualStart: null, actualEnd: null,
+      status: null, percentComplete: null
     });
     cumulativeDays += durationDays;
 
@@ -314,6 +347,7 @@ function parseMspXml(text) {
     name: xmlTag(block, 'Name') || 'unnamed activity',
     start: xmlTag(block, 'Start'),
     finish: xmlTag(block, 'Finish'),
+    baselineStart: xmlTag(block, 'BaselineStart'),
     baselineFinish: xmlTag(block, 'BaselineFinish'),
     durationHours: parseMspDurationHours(xmlTag(block, 'Duration')),
     // MSPDI represents slack as a plain integer number of minutes, not a duration string.
@@ -349,6 +383,12 @@ function analyzeMspXml(tasks) {
     const hasPredecessor = !!predCount[t.uid];
     const hasSuccessor = !!succCount[t.uid];
 
+    // MSPDI's <Start>/<Finish> reflect the current schedule — for statused work that's the real
+    // actual date, for unstarted work it's the current forecast. <BaselineStart>/<BaselineFinish>
+    // are the planned dates as of when the baseline was set — the two are genuinely distinct
+    // fields in this format, not derived from each other.
+    const status = t.percentComplete >= 100 ? 'complete' : (t.percentComplete > 0 ? 'active' : 'not_started');
+
     activities.push({
       code: t.uid,
       name: t.name,
@@ -361,7 +401,13 @@ function analyzeMspXml(tasks) {
       // MSPDI already tells us whether a task is on the critical path (it accounts for
       // calendars/constraints this app can't recompute) — prefer that over deriving it from
       // float, falling back to the float-based rule only if <Critical> wasn't present.
-      critical: t.critical || (floatDays !== null && floatDays <= 0)
+      critical: t.critical || (floatDays !== null && floatDays <= 0),
+      plannedStart: t.baselineStart ? t.baselineStart.slice(0, 10) : null,
+      plannedEnd: t.baselineFinish ? t.baselineFinish.slice(0, 10) : null,
+      actualStart: start,
+      actualEnd: end,
+      status,
+      percentComplete: t.percentComplete
     });
 
     if (isMilestone) {
@@ -418,4 +464,53 @@ function analyzeFile(filename, text) {
   return analyzeCSVTasks(parseCSV(text));
 }
 
-module.exports = { parseXER, parseCSV, parseMspXml, analyzeXER, analyzeCSVTasks, analyzeMspXml, analyzeFile };
+// Duration-weighted "Earned Schedule" metrics — a real, established schedule-only analog to
+// cost-based EVM (Lipke's Earned Schedule method), needing no cost or resource-loading data at
+// all. Each non-milestone activity with real planned dates is weighted by its own duration (not a
+// cost or resource weight, since neither exists in a bare schedule file) — a documented, honest
+// simplification, never presented as a true cost-weighted S-curve. Activities lacking planned
+// dates (the CSV format always, XER/MSPDI sometimes) are excluded from the weighted average rather
+// than guessed, and the count excluded is returned so the UI can disclose it. Returns
+// { available: false, reason } outright when NO activity has planned dates, rather than showing a
+// number with no real basis at all.
+function computeEarnedSchedule(activities, asOfDate) {
+  const asOf = asOfDate ? new Date(asOfDate) : new Date();
+  const nonMilestones = (activities || []).filter(a => !a.milestone);
+  const weighted = nonMilestones.filter(a => a.plannedStart && a.plannedEnd && a.durationDays > 0);
+  if (!weighted.length) {
+    return { available: false, reason: 'No planned/baseline dates found in this file — earned schedule needs a baseline to compare progress against.' };
+  }
+
+  let totalWeight = 0, plannedWeighted = 0, actualWeighted = 0;
+  weighted.forEach(a => {
+    const plannedStart = new Date(a.plannedStart);
+    const weight = a.durationDays;
+    const elapsedDays = Math.max(0, Math.min(a.durationDays, (asOf - plannedStart) / 86400000));
+    const plannedFraction = elapsedDays / a.durationDays;
+    const actualFraction = (a.percentComplete != null ? a.percentComplete : 0) / 100;
+    totalWeight += weight;
+    plannedWeighted += weight * plannedFraction;
+    actualWeighted += weight * actualFraction;
+  });
+
+  const plannedProgressPct = Math.round((plannedWeighted / totalWeight) * 1000) / 10;
+  const actualProgressPct = Math.round((actualWeighted / totalWeight) * 1000) / 10;
+  const svPoints = Math.round((actualProgressPct - plannedProgressPct) * 10) / 10;
+  // SPI(t)-style ratio — left undefined (null, not zero and not fabricated) when planned progress
+  // is near zero, since dividing by a near-zero denominator produces a meaningless swing, not a
+  // real signal — most often true right at the very start of a project.
+  const spi = plannedProgressPct > 1 ? Math.round((actualProgressPct / plannedProgressPct) * 100) / 100 : null;
+
+  return {
+    available: true,
+    asOfDate: asOf.toISOString().slice(0, 10),
+    plannedProgressPct,
+    actualProgressPct,
+    svPoints,
+    spi,
+    activitiesConsidered: weighted.length,
+    activitiesExcluded: nonMilestones.length - weighted.length
+  };
+}
+
+module.exports = { parseXER, parseCSV, parseMspXml, analyzeXER, analyzeCSVTasks, analyzeMspXml, analyzeFile, computeEarnedSchedule };

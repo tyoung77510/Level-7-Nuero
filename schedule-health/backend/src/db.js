@@ -232,7 +232,8 @@ const FEATURE_FLAG_SEEDS = [
   { id: 'milestone-hygiene', name: 'Milestone Hygiene', description: 'Milestone logical-anchoring check view.' },
   { id: 'critical-path-engine', name: 'Critical Path Engine', description: 'Lists activities currently on the critical path.' },
   { id: 'dcma-14-check', name: 'DCMA 14-Point Check', description: 'Federal schedule-quality issue detection — the core scoring engine for every new analysis.' },
-  { id: 'ask-ordo-ai', name: 'Ask Ordo AI', description: 'Claude-powered schedule Q&A in the sidebar.' }
+  { id: 'ask-ordo-ai', name: 'Ask Ordo AI', description: 'Claude-powered schedule Q&A in the sidebar.' },
+  { id: 'earned-value-metrics', name: 'Earned Value Metrics', description: 'Earned Schedule progress tracking + optional manual-budget cost variance (CPI/CV).' }
 ];
 for (const f of FEATURE_FLAG_SEEDS) {
   db.prepare('INSERT OR IGNORE INTO feature_flags (id, name, description, enabled) VALUES (?, ?, ?, 1)').run(f.id, f.name, f.description);
@@ -302,6 +303,11 @@ ensureColumn('users', 'onboarded_at', 'TEXT');
 // feedback rows default to open (0) rather than silently marked reviewed, so nothing already
 // submitted gets skipped just because this column didn't used to exist.
 ensureColumn('feedback', 'reviewed', 'INTEGER NOT NULL DEFAULT 0');
+// Budget lives on the project (one figure for its whole lifetime, rarely changes); actual cost
+// lives per snapshot since spend-to-date only makes sense as of a specific status update — it's
+// meant to be re-entered alongside each new upload, not a single static value like budget.
+ensureColumn('projects', 'budget_at_completion', 'REAL');
+ensureColumn('snapshots', 'actual_cost_to_date', 'REAL');
 
 // Backfill referral codes for any pre-existing users (fresh databases already get one via
 // createUser at signup; this only runs once, for accounts created before this feature existed).
@@ -540,6 +546,24 @@ function getOrCreateProject(userId, name) {
     row = db.prepare('SELECT * FROM projects WHERE user_id = ? AND name = ?').get(userId, name);
   }
   return row;
+}
+
+// Read-only counterpart to getOrCreateProject — for routes that need the project row (e.g. its
+// budget_at_completion) but shouldn't silently create one if the name doesn't exist yet.
+function getProjectByName(userId, name) {
+  return db.prepare('SELECT * FROM projects WHERE user_id = ? AND name = ?').get(userId, name) || null;
+}
+
+// Null clears the budget (an owner can decide they don't want cost tracking after all, without a
+// separate delete affordance) rather than only ever accepting a positive number.
+function setProjectBudget(projectId, budgetAtCompletion) {
+  db.prepare('UPDATE projects SET budget_at_completion = ? WHERE id = ?').run(budgetAtCompletion, projectId);
+  return db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
+}
+
+function setSnapshotActualCost(snapshotId, actualCostToDate) {
+  db.prepare('UPDATE snapshots SET actual_cost_to_date = ? WHERE id = ?').run(actualCostToDate, snapshotId);
+  return getSnapshotById(snapshotId);
 }
 
 function listProjects(userId) {
@@ -832,5 +856,6 @@ module.exports = {
   searchUsersForAdmin, listFeatureFlags, isFeatureEnabled, setFeatureFlag,
   logAdvisoryClick, getAdvisoryClickCount, getAdminSetting, setAdminSetting,
   listFeedbackForAdmin, setFeedbackReviewed, getUserCountsByTier, getFileIngestionStats, getAiSpendTotal,
-  logAdminAiUsage, getAdminAiUsageTotal
+  logAdminAiUsage, getAdminAiUsageTotal,
+  getProjectByName, setProjectBudget, setSnapshotActualCost
 };

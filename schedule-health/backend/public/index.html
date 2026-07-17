@@ -814,6 +814,7 @@
             <button data-step="milestones"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg> Milestones</button>
             <button data-step="gantt"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg> Gantt Timeline</button>
             <button data-step="criticalpath"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 6h6a4 4 0 0 1 4 4v2a4 4 0 0 0 4 4h-4"/></svg> Critical Path</button>
+            <button data-step="earnedvalue"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 5.66 13.66"/><path d="M12 12l4-2.5"/></svg> Earned Value</button>
             <button data-step="sandbox"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="currentColor" stroke="none"/></svg> Sandbox</button>
             <button data-step="activity"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none"/><line x1="8" y1="6" x2="20" y2="6"/><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/><line x1="8" y1="12" x2="20" y2="12"/><circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none"/><line x1="8" y1="18" x2="20" y2="18"/></svg> Activity Feed</button>
             <button data-step="trends"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg> Trends</button>
@@ -1033,6 +1034,10 @@
       <div id="criticalPathContent"><p class="empty">No schedule analyzed yet.</p></div>
     </div>
 
+    <div id="v-earnedvalue" class="view">
+      <div id="earnedValueContent"><p class="empty">No schedule analyzed yet.</p></div>
+    </div>
+
     <div id="v-sandbox" class="view">
       <div id="sandboxContent"><p class="empty">No schedule analyzed yet.</p></div>
     </div>
@@ -1120,7 +1125,7 @@ const NAV_GROUPS = [
 // for these; sidebar-only destinations (issues/portfolio/pricing/projects/guide) take the full
 // central panel instead. Ask Ordo isn't here — it's permanently docked in the right panel now,
 // not part of the .view toggle system at all.
-const PROJECT_SCOPED_STEPS = ['upload', 'health', 'milestones', 'gantt', 'criticalpath', 'sandbox', 'activity', 'trends', 'report'];
+const PROJECT_SCOPED_STEPS = ['upload', 'health', 'milestones', 'gantt', 'criticalpath', 'earnedvalue', 'sandbox', 'activity', 'trends', 'report'];
 
 function setView(step, sourceBtn){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -1146,6 +1151,7 @@ function setView(step, sourceBtn){
   if (step === 'milestones') renderMilestones();
   if (step === 'gantt') renderGantt();
   if (step === 'criticalpath') renderCriticalPath();
+  if (step === 'earnedvalue') renderEarnedValue();
   if (step === 'sandbox') renderSandbox();
   if (step === 'projects') renderActiveProjects();
   if (step === 'activity') renderActivityFeedTab();
@@ -1339,6 +1345,9 @@ let currentProject = null;
 let currentSnapshot = null;
 let currentActivities = null;
 let currentHasDates = false;
+let currentEarnedSchedule = null;
+let currentBudgetAtCompletion = null;
+let currentActualCostToDate = null;
 let sandboxState = {}; // per-activity float/duration overrides for the What-If sandbox, keyed by activity code
 let currentIssues = [];
 let currentUser = null;
@@ -1480,6 +1489,7 @@ const FEATURE_TIERS = {
   sandboxSimulator: ['pro', 'teams'],
   ganttTimeline: ['pro', 'teams'],
   criticalPath: ['pro', 'teams'],
+  earnedValue: ['pro', 'teams'],
   crossSnapshotVariance: ['pro', 'teams'],
   liveReviewRooms: ['teams'],
   unwatermarkedReports: ['teams'],
@@ -2636,6 +2646,9 @@ async function openProject(name){
     currentIssues = result.issues;
     currentActivities = result.activities || [];
     currentHasDates = currentActivities.some(a => a.start);
+    currentEarnedSchedule = result.earnedSchedule || null;
+    currentBudgetAtCompletion = result.budgetAtCompletion ?? null;
+    currentActualCostToDate = result.actualCostToDate ?? null;
     sandboxState = {};
     renderHealth(currentSnapshot);
     renderIssues(currentIssues);
@@ -2891,6 +2904,120 @@ function renderCriticalPath(){
     '<div class="card"><div class="crit-path-list">' + rows + '</div></div>';
 }
 
+// Earned Schedule (Walt Lipke's methodology) — a schedule-only analog to cost EVM. Weights each
+// activity by its own planned duration (a duration-weighted proxy, not resource/cost-weighted,
+// since almost no uploaded schedule file carries per-activity cost/resource data — see
+// computeEarnedSchedule in src/analyze.js). The optional cost section below only appears once the
+// user enters real numbers; CPI/CV are never estimated or guessed.
+function renderEarnedValue(){
+  const el = document.getElementById('earnedValueContent');
+  if (!currentActivities || !currentActivities.length){
+    el.innerHTML = '<p class="empty">No schedule analyzed yet.</p>';
+    return;
+  }
+  if (!checkFeatureAccess('earnedValue')){
+    el.innerHTML = '<div class="card" style="text-align:center;">' +
+      '<p style="font-size:13px; margin:0 0 10px;">Earned Value is a Pro feature — track real schedule progress against baseline, with optional cost variance.</p>' +
+      '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to unlock Earned Value</button>' +
+      '</div>';
+    return;
+  }
+  if (!checkFlagEnabled('earned-value-metrics')){
+    el.innerHTML = '<p class="empty">Earned Value is temporarily unavailable — check back shortly.</p>';
+    return;
+  }
+
+  const es = currentEarnedSchedule;
+  if (!es || !es.available){
+    el.innerHTML = '<p class="empty">' + escapeHtml((es && es.reason) || 'Earned value needs planned/baseline dates in your schedule file to compute progress.') + '</p>';
+    return;
+  }
+
+  const spiColor = es.spi == null ? 'var(--muted)' : (es.spi >= 1 ? 'var(--good)' : (es.spi >= 0.9 ? 'var(--warn)' : 'var(--bad)'));
+  const svColor = es.svPoints >= 0 ? 'var(--good)' : (es.svPoints >= -10 ? 'var(--warn)' : 'var(--bad)');
+
+  let html =
+    '<p style="font-size:12px; color:var(--muted); margin:0 0 4px;">As of ' + escapeHtml(es.asOfDate) + ' · ' + es.activitiesConsidered + ' activities with baseline dates considered' +
+      (es.activitiesExcluded ? ' (' + es.activitiesExcluded + ' excluded — no baseline dates)' : '') + '</p>' +
+    '<p style="font-size:12px; color:var(--muted); margin:0 0 14px;">Earned Schedule compares how much of the schedule <em>should</em> be done by now against how much actually is, weighting each activity by its own planned duration. It\'s a duration-weighted proxy, not a cost- or resource-weighted one — two activities of equal length count equally here even if their real effort differs.</p>' +
+    '<div class="card">' +
+      '<div class="metric-grid">' +
+        '<div class="metric"><div class="lab">Planned progress</div><div class="val">' + es.plannedProgressPct + '%</div></div>' +
+        '<div class="metric"><div class="lab">Actual progress</div><div class="val">' + es.actualProgressPct + '%</div></div>' +
+        '<div class="metric"><div class="lab">Schedule variance</div><div class="val" style="color:' + svColor + ';">' + (es.svPoints > 0 ? '+' : '') + es.svPoints + ' pts</div></div>' +
+        '<div class="metric"><div class="lab">SPI (schedule)</div><div class="val" style="color:' + spiColor + ';">' + (es.spi != null ? es.spi.toFixed(2) : '—') + '</div></div>' +
+      '</div>' +
+    '</div>';
+
+  html += renderEarnedValueCostSection(es);
+  el.innerHTML = html;
+}
+
+function renderEarnedValueCostSection(es){
+  const bac = currentBudgetAtCompletion;
+  const acwp = currentActualCostToDate;
+  let out = '<div class="card" style="margin-top:14px;">' +
+    '<p style="font-weight:600; font-size:13px; margin:0 0 8px;">Cost variance (optional)</p>' +
+    '<p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Enter your budget and spend-to-date to see cost performance alongside schedule. Both numbers come straight from what you enter — nothing here is estimated.</p>' +
+    '<div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">' +
+      '<div class="sandbox-field"><label>Budget at Completion ($)</label>' +
+        '<input type="number" id="evmBudgetInput" min="0" step="any" value="' + (bac != null ? bac : '') + '" style="width:140px;"></div>' +
+      '<div class="sandbox-field"><label>Actual Cost to Date ($)</label>' +
+        '<input type="number" id="evmActualCostInput" min="0" step="any" value="' + (acwp != null ? acwp : '') + '" style="width:140px;"></div>' +
+      '<button class="btn primary" onclick="saveEarnedValueCostInputs()">Save</button>' +
+    '</div>';
+
+  if (bac != null && acwp != null){
+    const ev = Math.round(bac * (es.actualProgressPct / 100) * 100) / 100;
+    const pv = Math.round(bac * (es.plannedProgressPct / 100) * 100) / 100;
+    const cv = Math.round((ev - acwp) * 100) / 100;
+    const cpi = acwp > 0 ? Math.round((ev / acwp) * 100) / 100 : null;
+    const cpiColor = cpi == null ? 'var(--muted)' : (cpi >= 1 ? 'var(--good)' : (cpi >= 0.9 ? 'var(--warn)' : 'var(--bad)'));
+    const cvColor = cv >= 0 ? 'var(--good)' : 'var(--bad)';
+    out += '<div class="metric-grid" style="margin-top:14px;">' +
+      '<div class="metric"><div class="lab">Earned value (EV)</div><div class="val">$' + ev.toLocaleString() + '</div></div>' +
+      '<div class="metric"><div class="lab">Planned value (PV)</div><div class="val">$' + pv.toLocaleString() + '</div></div>' +
+      '<div class="metric"><div class="lab">Cost variance</div><div class="val" style="color:' + cvColor + ';">' + (cv >= 0 ? '+' : '−') + '$' + Math.abs(cv).toLocaleString() + '</div></div>' +
+      '<div class="metric"><div class="lab">CPI</div><div class="val" style="color:' + cpiColor + ';">' + (cpi != null ? cpi.toFixed(2) : '—') + '</div></div>' +
+    '</div>';
+  }
+  out += '</div>';
+  return out;
+}
+
+async function saveEarnedValueCostInputs(){
+  const budgetRaw = document.getElementById('evmBudgetInput').value;
+  const actualCostRaw = document.getElementById('evmActualCostInput').value;
+  const budget = budgetRaw === '' ? null : parseFloat(budgetRaw);
+  const actualCost = actualCostRaw === '' ? null : parseFloat(actualCostRaw);
+  if ((budgetRaw !== '' && isNaN(budget)) || (actualCostRaw !== '' && isNaN(actualCost))) {
+    showToast('Enter valid numbers');
+    return;
+  }
+  try {
+    if (currentProject) {
+      await api('/api/projects/' + encodeURIComponent(currentProject) + '/budget', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ budgetAtCompletion: budget })
+      });
+      currentBudgetAtCompletion = budget;
+    }
+    if (currentSnapshot) {
+      await api('/api/snapshots/' + currentSnapshot.id + '/actual-cost', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actualCostToDate: actualCost })
+      });
+      currentActualCostToDate = actualCost;
+    }
+    showToast('Saved');
+    renderEarnedValue();
+  } catch (e) {
+    showToast('Could not save: ' + e.message);
+  }
+}
+
 // --- What-If sandbox: tweak an activity's float/duration and see the health score
 // recalculate instantly, entirely client-side — nothing here ever touches the saved snapshot.
 
@@ -3076,6 +3203,9 @@ async function submitAnalysis(projectName, filename, content){
     currentIssues = result.issues;
     currentActivities = result.activities || [];
     currentHasDates = !!result.hasDates;
+    currentEarnedSchedule = result.earnedSchedule || null;
+    currentBudgetAtCompletion = result.budgetAtCompletion ?? null;
+    currentActualCostToDate = result.actualCostToDate ?? null;
     sandboxState = {};
     renderHealth(currentSnapshot);
     renderIssues(currentIssues);
