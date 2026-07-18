@@ -74,3 +74,13 @@ Five patterns, each already answered by something real and shipped in the produc
 ---
 
 > Source: PR #32 ("Product improvements from competitor complaint research") and PR #35 (merged webhook + cookie-consent work) in this repo's git history. Update this doc if new complaint patterns come out of future competitive research.
+
+## Open items (as of 2026-07-18) — read this first if picking up in a new session
+
+- **This doc's PR:** #37 (`claude/api-auth-user-separation-vs12kf` → `main`), still open/draft, docs-only. Being watched for CI/review activity; check its current status before redoing any of this work.
+- **Quoted complaints — blocked, unresolved.** G2, Capterra, TrustRadius, GetApp, and SoftwareAdvice all return HTTP 403 to automated fetches — no verbatim, attributable review text has been pulled yet. The patterns above (data fidelity, metrics overload, DCMA-14 paywalling, window friction, speed) are paraphrased from the original PR #32 research, **not direct quotes** — don't present them as quotes in published content. Next steps floated, none executed yet:
+  1. User pastes review text directly from G2/Capterra (most reliable — human has page access an automated fetch doesn't).
+  2. Try unblocked sources instead (Reddit r/PMO-type threads, forums, YouTube comments) for real complaint language.
+  3. Or skip quoting entirely and publish using the pattern language as-is, framed as "a common complaint in this category," not attributed to a named reviewer.
+- **Semrush connector:** installed org-wide but `enabledInChat: false` in this session as of last check — user was toggling it on, unconfirmed whether it took. Useful for SEO keyword research on the eventual blog posts (not for pulling review quotes — it doesn't do that). Re-check `ListConnectors` in a new session; connector state is account-level so it may already be enabled by the time a new session starts.
+- **Not yet drafted:** actual finished/ready-to-post copy. Everything above is draft material — nothing has been posted to LinkedIn or published to the blog yet.
