@@ -80,11 +80,16 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-// Blog posts are authored in blog-content.js (reviewed like any other code change) and seeded
-// into the DB idempotently on boot — adding a post is a normal code change, not a manual DB write.
+// Blog posts are authored in blog-content.js (reviewed like any other code change) and synced
+// into the DB on boot — adding a post, or editing an existing one, is a normal code change, not
+// a manual DB write. Existing rows are updated in place so title/description/copy fixes actually
+// reach production instead of being silently stuck at whatever was first seeded.
 for (const post of blogContent) {
-  if (!store.getBlogPostBySlug(post.slug)) {
+  const existing = store.getBlogPostBySlug(post.slug);
+  if (!existing) {
     store.createBlogPost(post.slug, post.title, post.description, post.contentHtml);
+  } else if (existing.title !== post.title || existing.description !== post.description || existing.content_html !== post.contentHtml) {
+    store.updateBlogPost(post.slug, post.title, post.description, post.contentHtml);
   }
 }
 

@@ -5,7 +5,7 @@
 module.exports = [
   {
     slug: 'the-non-schedulers-survival-guide',
-    title: "The Non-Scheduler's Survival Guide: 5 Red Flags to Check Before You Accept a Contractor's Baseline",
+    title: "The Non-Scheduler's Guide to a Bad Baseline",
     description: "You don't need a PSP certification to catch a bad baseline. Here are 5 concrete things to check in a contractor's schedule before you sign off on it — and why each one matters.",
     contentHtml: `
 <p>You're not a scheduler. You're a project owner, a PM on the client side, or an exec who has to sign off on a contractor's baseline schedule before work starts — and you know that once you approve it, it becomes the yardstick everyone gets measured against for the next 18 months.</p>
