@@ -806,7 +806,21 @@ route('POST', '/api/billing/webhook', async (req, res) => {
 // --- Project routes (session required — enforced in the server() dispatcher below) ---
 
 route('GET', '/api/projects', async (req, res, params, user) => {
-  sendJSON(res, 200, store.listProjects(user.id));
+  const parsed = url.parse(req.url, true);
+  const archived = parsed.query.archived === '1';
+  sendJSON(res, 200, archived ? store.listArchivedProjects(user.id) : store.listProjects(user.id));
+});
+
+route('POST', '/api/projects/:name/archive', async (req, res, params, user) => {
+  const project = store.getProjectByName(user.id, params.name);
+  if (!project) return sendJSON(res, 404, { error: 'No such project' });
+  sendJSON(res, 200, { project: store.archiveProject(user.id, params.name) });
+});
+
+route('POST', '/api/projects/:name/unarchive', async (req, res, params, user) => {
+  const project = store.getProjectByName(user.id, params.name);
+  if (!project) return sendJSON(res, 404, { error: 'No such project' });
+  sendJSON(res, 200, { project: store.unarchiveProject(user.id, params.name) });
 });
 
 route('GET', '/api/portfolio', async (req, res, params, user) => {
