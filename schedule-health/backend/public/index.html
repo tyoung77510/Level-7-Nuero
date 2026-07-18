@@ -976,6 +976,19 @@
         <button class="btn" id="teamLeaveBtn">Leave team</button>
         <p id="teamMemberNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
       </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h2 style="margin:0 0 4px; font-size:15px;">Integrations</h2>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Get a notification every time a schedule finishes analyzing. Paste a Slack "Incoming Webhook" URL to post to a channel, or a Zapier/Make "catch webhook" URL to trigger anything else.</p>
+        <div class="row" style="justify-content:flex-start; gap:8px; margin-top:0;">
+          <input type="url" id="webhookUrlInput" placeholder="https://hooks.slack.com/services/..." style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
+          <button class="btn cta" id="webhookSaveBtn">Save</button>
+          <button class="btn" id="webhookTestBtn">Send test</button>
+          <button class="btn" id="webhookClearBtn" style="display:none;">Clear</button>
+        </div>
+        <p id="webhookError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
+        <p id="webhookNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
+      </div>
     </div>
 
     <div id="v-upload" class="view active">
@@ -1921,7 +1934,60 @@ function renderPricing(){
     }
   });
   renderTeamSection();
+  renderWebhookSection();
 }
+
+// currentUser already carries webhookUrl (see publicUser() server-side) -- no extra API call
+// needed, unlike renderTeamSection which has to ask /api/team for seat/member data.
+function renderWebhookSection(){
+  const input = document.getElementById('webhookUrlInput');
+  const clearBtn = document.getElementById('webhookClearBtn');
+  const testBtn = document.getElementById('webhookTestBtn');
+  const url = currentUser && currentUser.webhookUrl;
+  input.value = url || '';
+  clearBtn.style.display = url ? '' : 'none';
+  testBtn.disabled = !url;
+  document.getElementById('webhookError').style.display = 'none';
+  document.getElementById('webhookNote').textContent = '';
+}
+
+function showWebhookError(msg){
+  const el = document.getElementById('webhookError');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('webhookNote').textContent = '';
+}
+
+document.getElementById('webhookSaveBtn').addEventListener('click', async () => {
+  const input = document.getElementById('webhookUrlInput');
+  const url = input.value.trim();
+  const btn = document.getElementById('webhookSaveBtn');
+  btn.disabled = true;
+  try {
+    const result = await api('/api/account/webhook', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ webhookUrl: url || null }) });
+    currentUser = result.user;
+    renderWebhookSection();
+    document.getElementById('webhookNote').textContent = url ? 'Saved.' : 'Webhook cleared.';
+  } catch (e) { showWebhookError(e.message); }
+  btn.disabled = false;
+});
+
+document.getElementById('webhookClearBtn').addEventListener('click', async () => {
+  document.getElementById('webhookUrlInput').value = '';
+  document.getElementById('webhookSaveBtn').click();
+});
+
+document.getElementById('webhookTestBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('webhookTestBtn');
+  btn.disabled = true;
+  document.getElementById('webhookError').style.display = 'none';
+  document.getElementById('webhookNote').textContent = 'Sending…';
+  try {
+    await api('/api/account/webhook/test', { method: 'POST' });
+    document.getElementById('webhookNote').textContent = 'Test sent — check your Slack channel or Zap history.';
+  } catch (e) { showWebhookError(e.message); }
+  btn.disabled = false;
+});
 
 function formatInviteDate(iso){
   return new Date(iso.includes('T') ? iso : iso + 'Z').toLocaleDateString();
@@ -3485,5 +3551,6 @@ document.getElementById('fileInput').addEventListener('change', (e) => {
   if (file) handleUploadedFile(file);
 });
 </script>
+<script src="/js/consent.js" defer></script>
 </body>
 </html>

@@ -6,6 +6,7 @@ const http = require('node:http');
 const url = require('node:url');
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 
 // Tiny built-in .env loader — no dotenv dependency. Reads backend/.env if present.
 function loadEnvFile() {
@@ -36,6 +37,7 @@ const pricing = require('./pricing');
 const oauth = require('./oauth');
 const blogContent = require('./blog-content');
 const rateLimit = require('./rate-limit');
+const webhook = require('./webhook');
 
 store.deleteExpiredSessions();
 store.pruneOldErrors();
@@ -224,6 +226,38 @@ route('GET', '/api/health', async (req, res) => {
   sendJSON(res, 200, { ok: true, aiConfigured: ai.aiConfigured(), aiWorking, billingConfigured: billing.stripeConfigured() });
 });
 
+// Which trackers are actually configured, for the consent banner to decide which categories to
+// even offer (never show "Marketing" as an option if no marketing tracker has an ID set — asking
+// for consent to something that doesn't exist is its own kind of dishonest UI) and for
+// consent.js to know which script(s) to inject once a category is actually consented to. IDs
+// themselves aren't secret (they end up in public page source the moment a script loads), so
+// this is safe to expose unauthenticated.
+route('GET', '/api/public/tracking-config', async (req, res) => {
+  sendJSON(res, 200, {
+    gaId: process.env.GA4_MEASUREMENT_ID || null,
+    metaPixelId: process.env.META_PIXEL_ID || null,
+    linkedinPartnerId: process.env.LINKEDIN_PARTNER_ID || null
+  });
+});
+
+// Records what a visitor consented to, for audit purposes -- separate from the ordo7_consent
+// cookie itself (which is what actually gates script loading; this is just the durable log in
+// case a consent decision is ever questioned). Public: most visitors haven't logged in when they
+// first hit the consent banner (blog readers, marketing-site traffic before signup).
+route('POST', '/api/public/consent', async (req, res, params, user) => {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const categories = payload.categories;
+  if (!categories || typeof categories !== 'object') return sendJSON(res, 400, { error: 'categories object required' });
+  const cookies = auth.parseCookies(req);
+  let consentId = cookies.ordo7_consent_id;
+  if (!consentId) consentId = crypto.randomUUID();
+  store.recordConsent(consentId, user ? user.id : null, categories);
+  res.setHeader('Set-Cookie', `ordo7_consent_id=${consentId}; Path=/; Max-Age=63072000; SameSite=Lax` + (isSecureRequest(req) ? '; Secure' : ''));
+  sendJSON(res, 200, { consentId });
+});
+
 function matchRoute(method, pathname) {
   for (const r of routes) {
     if (r.method !== method) continue;
@@ -265,7 +299,8 @@ function publicUser(user) {
     emailVerified: !!user.email_verified,
     referralCode: user.referral_code,
     onboarded: !!user.onboarded_at,
-    isAdmin: isAdmin(user)
+    isAdmin: isAdmin(user),
+    webhookUrl: user.webhook_url || null
   };
 }
 
@@ -632,6 +667,35 @@ route('GET', '/api/auth/me', async (req, res) => {
   const cookies = auth.parseCookies(req);
   const user = auth.getUserForToken(cookies.session);
   sendJSON(res, 200, { user: user ? publicUser(user) : null });
+});
+
+// One webhook URL per account (see the ensureColumn comment in db.js for why not per-project).
+// Validated with the same isSafeWebhookUrl check used at delivery time, so a user gets an
+// immediate, clear error for an unsafe/malformed URL instead of a silently-broken integration.
+route('PATCH', '/api/account/webhook', async (req, res, params, user) => {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const url = payload.webhookUrl;
+  if (url === null || url === '') {
+    return sendJSON(res, 200, { user: publicUser(store.setWebhookUrl(user.id, null)) });
+  }
+  if (typeof url !== 'string' || !(await webhook.isSafeWebhookUrl(url))) {
+    return sendJSON(res, 400, { error: 'That URL isn\'t reachable or isn\'t allowed — must be a public https:// URL (not localhost or an internal address).' });
+  }
+  sendJSON(res, 200, { user: publicUser(store.setWebhookUrl(user.id, url)) });
+});
+
+route('POST', '/api/account/webhook/test', async (req, res, params, user) => {
+  if (!user.webhook_url) return sendJSON(res, 400, { error: 'No webhook URL saved yet' });
+  const result = await webhook.deliverWebhook(user.webhook_url, {
+    text: 'Ordo7: this is a test notification — your webhook is connected correctly.',
+    event: 'test',
+    project: null, score: null, critCount: null, riskCount: null, totalActivities: null,
+    url: 'https://www.ordo7.pro/'
+  });
+  if (!result.ok) return sendJSON(res, 502, { error: result.reason });
+  sendJSON(res, 200, { sent: true });
 });
 
 // Marks the welcome hero + tour as seen for this account, server-side — called once the tour
@@ -1419,6 +1483,22 @@ route('POST', '/api/analyze', async (req, res, params, user) => {
   const { project, snapshot } = store.saveSnapshot(user.id, projectName, result, filename);
   const issues = store.getIssuesForSnapshot(snapshot.id);
   const earnedSchedule = analyzeMod.computeEarnedSchedule(result.activities || []);
+
+  // Not awaited: a slow or broken webhook must never delay the response the user is waiting on
+  // for their own analysis result.
+  if (user.webhook_url) {
+    webhook.deliverWebhook(user.webhook_url, {
+      text: `Ordo7: "${projectName}" scored ${snapshot.score} (${snapshot.crit_count} critical, ${snapshot.risk_count} risk) — https://www.ordo7.pro/`,
+      event: 'analysis_complete',
+      project: projectName,
+      score: snapshot.score,
+      critCount: snapshot.crit_count,
+      riskCount: snapshot.risk_count,
+      totalActivities: snapshot.total_activities,
+      url: 'https://www.ordo7.pro/'
+    });
+  }
+
   sendJSON(res, 200, {
     project, snapshot, issues, activities: result.activities || [], hasDates: !!result.hasDates,
     earnedSchedule, budgetAtCompletion: project.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null
@@ -1881,6 +1961,7 @@ ${jsonLd ? `<script type="application/ld+json">\n${JSON.stringify(jsonLd)}\n</sc
   </div>
 </div>
 <script>${BLOG_SCRIPT}</script>
+<script src="/js/consent.js" defer></script>
 </body>
 </html>
 `;
@@ -2110,13 +2191,34 @@ function serveStatic(req, res, pathname) {
 // single inline <script>/<style> block, so a nonce-based CSP would need a genuine refactor. This
 // still blocks the more common attack shapes (loading a remote script, exfiltrating via an
 // unexpected fetch target, framing the site) without breaking the app that exists today.
+//
+// Analytics/marketing trackers (consent.js, gated behind the cookie-consent banner) are the one
+// exception, and only when actually configured — computed once at startup from the same env vars
+// GET /api/public/tracking-config reads, so an unconfigured tracker never loosens the CSP at all.
+const scriptSrc = ["'self'", "'unsafe-inline'"];
+const connectSrc = ["'self'"];
+const imgSrc = ["'self'", 'data:'];
+if (process.env.GA4_MEASUREMENT_ID) {
+  scriptSrc.push('https://www.googletagmanager.com');
+  connectSrc.push('https://www.google-analytics.com', 'https://analytics.google.com');
+}
+if (process.env.META_PIXEL_ID) {
+  scriptSrc.push('https://connect.facebook.net');
+  imgSrc.push('https://www.facebook.com');
+  connectSrc.push('https://www.facebook.com');
+}
+if (process.env.LINKEDIN_PARTNER_ID) {
+  scriptSrc.push('https://snap.licdn.com');
+  imgSrc.push('https://px.ads.linkedin.com');
+  connectSrc.push('https://px.ads.linkedin.com');
+}
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  'script-src ' + scriptSrc.join(' '),
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data:",
-  "connect-src 'self'",
+  'img-src ' + imgSrc.join(' '),
+  'connect-src ' + connectSrc.join(' '),
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'"

@@ -234,6 +234,18 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Cookie-consent audit trail. consent_id is a random UUID handed out via a first-party cookie
+  -- (not itself a tracking cookie -- its only purpose is remembering the visitor's own choice,
+  -- which is why it doesn't need consent of its own). user_id is nullable: most consent decisions
+  -- happen before or without ever logging in (blog readers, marketing-site visitors).
+  CREATE TABLE IF NOT EXISTS consent_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    consent_id TEXT NOT NULL,
+    user_id INTEGER REFERENCES users(id),
+    categories TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_snapshots_project ON snapshots(project_id);
   CREATE INDEX IF NOT EXISTS idx_issues_snapshot ON issues(snapshot_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
@@ -247,6 +259,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(user_id);
   CREATE INDEX IF NOT EXISTS idx_team_invites_owner ON team_invites(owner_id);
   CREATE INDEX IF NOT EXISTS idx_advisory_clicks_user ON advisory_clicks(user_id);
+  CREATE INDEX IF NOT EXISTS idx_consent_log_consent_id ON consent_log(consent_id);
 `);
 
 // Seed the 5 kill-switchable features, once — INSERT OR IGNORE so re-running this on every boot
@@ -347,6 +360,10 @@ ensureColumn('blog_posts', 'toc_json', 'TEXT');
 // display text design calls for. Null falls back to `title` at render time, so most posts (where
 // the two don't need to differ) never have to set this at all.
 ensureColumn('blog_posts', 'headline', 'TEXT');
+// Null = no webhook configured (the default). One URL per account rather than per-project --
+// matches "smart defaults over configuration": most accounts have one team/one Slack channel to
+// notify, and per-project granularity can be added later if someone actually asks for it.
+ensureColumn('users', 'webhook_url', 'TEXT');
 
 // Backfill referral codes for any pre-existing users (fresh databases already get one via
 // createUser at signup; this only runs once, for accounts created before this feature existed).
@@ -602,6 +619,12 @@ function deleteSessionsForUser(userId) {
 
 function setUserPassword(userId, passwordHash, passwordSalt) {
   db.prepare('UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?').run(passwordHash, passwordSalt, userId);
+  return getUserById(userId);
+}
+
+// null clears the webhook (same "explicit null to disable" convention as setProjectBudget).
+function setWebhookUrl(userId, url) {
+  db.prepare('UPDATE users SET webhook_url = ? WHERE id = ?').run(url, userId);
   return getUserById(userId);
 }
 
@@ -882,6 +905,15 @@ function logAdvisoryClick(userId) {
   db.prepare('INSERT INTO advisory_clicks (user_id) VALUES (?)').run(userId);
 }
 
+// categories is the plain object the client sent (e.g. {analytics:true,marketing:false}) --
+// stored as JSON so the exact shape of what was consented to is preserved verbatim for audit
+// purposes, not normalized into columns that would need a migration every time a category is
+// added or removed.
+function recordConsent(consentId, userId, categories) {
+  db.prepare('INSERT INTO consent_log (consent_id, user_id, categories) VALUES (?, ?, ?)')
+    .run(consentId, userId || null, JSON.stringify(categories));
+}
+
 function getAdvisoryClickCount() {
   return db.prepare('SELECT COUNT(*) AS n FROM advisory_clicks').get().n;
 }
@@ -969,10 +1001,10 @@ module.exports = {
   createSession, getSession, deleteSession, deleteExpiredSessions,
   createVerificationToken, getVerificationToken, deleteVerificationToken, deleteExpiredVerificationTokens,
   createPasswordResetToken, getPasswordResetToken, deletePasswordResetToken, deleteExpiredPasswordResetTokens,
-  deleteSessionsForUser, setUserPassword,
+  deleteSessionsForUser, setUserPassword, setWebhookUrl,
   listBlogPosts, getBlogPostBySlug, createBlogPost, updateBlogPost,
   searchUsersForAdmin, listFeatureFlags, isFeatureEnabled, setFeatureFlag,
-  logAdvisoryClick, getAdvisoryClickCount, getAdminSetting, setAdminSetting,
+  logAdvisoryClick, getAdvisoryClickCount, getAdminSetting, setAdminSetting, recordConsent,
   listFeedbackForAdmin, setFeedbackReviewed, getUserCountsByTier, getFileIngestionStats, getAiSpendTotal,
   logAdminAiUsage, getAdminAiUsageTotal,
   getProjectByName, setProjectBudget, setSnapshotActualCost
