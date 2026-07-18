@@ -868,6 +868,10 @@
         </div>
 
     <div id="v-pricing" class="view">
+      <p style="font-size:12.5px; color:var(--muted); text-align:center; margin:0 0 16px; display:flex; align-items:center; justify-content:center; gap:6px;">
+        <span style="color:var(--good);">&#10003;</span>
+        The DCMA 14-point check is included on every plan, including Free — not a paid add-on.
+      </p>
       <div class="tier-grid">
         <div class="card tier-card">
           <span class="tier-badge tier-badge-free">Free</span>
@@ -2284,6 +2288,10 @@ function renderHealth(snapshot){
           subScoreRow('Float distribution', snapshot.float_distribution) +
           subScoreRow('Constraint hygiene', snapshot.constraint_hygiene) +
           subScoreRow('Milestone hygiene', snapshot.milestone_health) +
+        '</div>' +
+        '<div style="width:100%; margin-top:14px; padding-top:12px; border-top:1px solid var(--line); display:flex; align-items:flex-start; gap:8px; text-align:left;">' +
+          '<span style="color:var(--good); font-size:13px; line-height:1.4; flex-shrink:0;">&#10003;</span>' +
+          '<p style="font-size:12px; color:var(--muted); margin:0; line-height:1.4;">Analyzed exactly as uploaded — Ordo7 never edits, estimates, or reconstructs your schedule data. Every date and relationship above is from your file.</p>' +
         '</div>' +
       '</div>' +
       '<div class="card dash-card-reveal revealed" style="animation-delay:380ms;">' +
