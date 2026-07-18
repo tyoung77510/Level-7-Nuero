@@ -37,6 +37,7 @@ const pricing = require('./pricing');
 const oauth = require('./oauth');
 const blogContent = require('./blog-content');
 const rateLimit = require('./rate-limit');
+const webhook = require('./webhook');
 
 store.deleteExpiredSessions();
 store.pruneOldErrors();
@@ -298,7 +299,8 @@ function publicUser(user) {
     emailVerified: !!user.email_verified,
     referralCode: user.referral_code,
     onboarded: !!user.onboarded_at,
-    isAdmin: isAdmin(user)
+    isAdmin: isAdmin(user),
+    webhookUrl: user.webhook_url || null
   };
 }
 
@@ -665,6 +667,35 @@ route('GET', '/api/auth/me', async (req, res) => {
   const cookies = auth.parseCookies(req);
   const user = auth.getUserForToken(cookies.session);
   sendJSON(res, 200, { user: user ? publicUser(user) : null });
+});
+
+// One webhook URL per account (see the ensureColumn comment in db.js for why not per-project).
+// Validated with the same isSafeWebhookUrl check used at delivery time, so a user gets an
+// immediate, clear error for an unsafe/malformed URL instead of a silently-broken integration.
+route('PATCH', '/api/account/webhook', async (req, res, params, user) => {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const url = payload.webhookUrl;
+  if (url === null || url === '') {
+    return sendJSON(res, 200, { user: publicUser(store.setWebhookUrl(user.id, null)) });
+  }
+  if (typeof url !== 'string' || !(await webhook.isSafeWebhookUrl(url))) {
+    return sendJSON(res, 400, { error: 'That URL isn\'t reachable or isn\'t allowed — must be a public https:// URL (not localhost or an internal address).' });
+  }
+  sendJSON(res, 200, { user: publicUser(store.setWebhookUrl(user.id, url)) });
+});
+
+route('POST', '/api/account/webhook/test', async (req, res, params, user) => {
+  if (!user.webhook_url) return sendJSON(res, 400, { error: 'No webhook URL saved yet' });
+  const result = await webhook.deliverWebhook(user.webhook_url, {
+    text: 'Ordo7: this is a test notification — your webhook is connected correctly.',
+    event: 'test',
+    project: null, score: null, critCount: null, riskCount: null, totalActivities: null,
+    url: 'https://www.ordo7.pro/'
+  });
+  if (!result.ok) return sendJSON(res, 502, { error: result.reason });
+  sendJSON(res, 200, { sent: true });
 });
 
 // Marks the welcome hero + tour as seen for this account, server-side — called once the tour
@@ -1452,6 +1483,22 @@ route('POST', '/api/analyze', async (req, res, params, user) => {
   const { project, snapshot } = store.saveSnapshot(user.id, projectName, result, filename);
   const issues = store.getIssuesForSnapshot(snapshot.id);
   const earnedSchedule = analyzeMod.computeEarnedSchedule(result.activities || []);
+
+  // Not awaited: a slow or broken webhook must never delay the response the user is waiting on
+  // for their own analysis result.
+  if (user.webhook_url) {
+    webhook.deliverWebhook(user.webhook_url, {
+      text: `Ordo7: "${projectName}" scored ${snapshot.score} (${snapshot.crit_count} critical, ${snapshot.risk_count} risk) — https://www.ordo7.pro/`,
+      event: 'analysis_complete',
+      project: projectName,
+      score: snapshot.score,
+      critCount: snapshot.crit_count,
+      riskCount: snapshot.risk_count,
+      totalActivities: snapshot.total_activities,
+      url: 'https://www.ordo7.pro/'
+    });
+  }
+
   sendJSON(res, 200, {
     project, snapshot, issues, activities: result.activities || [], hasDates: !!result.hasDates,
     earnedSchedule, budgetAtCompletion: project.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null

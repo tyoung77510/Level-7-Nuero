@@ -360,6 +360,10 @@ ensureColumn('blog_posts', 'toc_json', 'TEXT');
 // display text design calls for. Null falls back to `title` at render time, so most posts (where
 // the two don't need to differ) never have to set this at all.
 ensureColumn('blog_posts', 'headline', 'TEXT');
+// Null = no webhook configured (the default). One URL per account rather than per-project --
+// matches "smart defaults over configuration": most accounts have one team/one Slack channel to
+// notify, and per-project granularity can be added later if someone actually asks for it.
+ensureColumn('users', 'webhook_url', 'TEXT');
 
 // Backfill referral codes for any pre-existing users (fresh databases already get one via
 // createUser at signup; this only runs once, for accounts created before this feature existed).
@@ -615,6 +619,12 @@ function deleteSessionsForUser(userId) {
 
 function setUserPassword(userId, passwordHash, passwordSalt) {
   db.prepare('UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?').run(passwordHash, passwordSalt, userId);
+  return getUserById(userId);
+}
+
+// null clears the webhook (same "explicit null to disable" convention as setProjectBudget).
+function setWebhookUrl(userId, url) {
+  db.prepare('UPDATE users SET webhook_url = ? WHERE id = ?').run(url, userId);
   return getUserById(userId);
 }
 
@@ -991,7 +1001,7 @@ module.exports = {
   createSession, getSession, deleteSession, deleteExpiredSessions,
   createVerificationToken, getVerificationToken, deleteVerificationToken, deleteExpiredVerificationTokens,
   createPasswordResetToken, getPasswordResetToken, deletePasswordResetToken, deleteExpiredPasswordResetTokens,
-  deleteSessionsForUser, setUserPassword,
+  deleteSessionsForUser, setUserPassword, setWebhookUrl,
   listBlogPosts, getBlogPostBySlug, createBlogPost, updateBlogPost,
   searchUsersForAdmin, listFeatureFlags, isFeatureEnabled, setFeatureFlag,
   logAdvisoryClick, getAdvisoryClickCount, getAdminSetting, setAdminSetting, recordConsent,
