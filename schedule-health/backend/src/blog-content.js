@@ -1,35 +1,71 @@
 // blog-content.js — blog post source content, reviewed and merged like any other code change.
 // New posts get appended here (via the normal draft-PR review flow) and are picked up
-// automatically by seedBlogPosts() in server.js on the next deploy — nothing here writes to the
+// automatically by the sync loop in server.js on the next deploy — nothing here writes to the
 // database directly, so adding a post is just adding an entry to this array.
+//
+// Fields:
+//   title    — short, SERP-facing <title>/OG text (keep under ~60 chars where practical).
+//   headline — optional richer on-page H1/display text; falls back to `title` when unset.
+//   category — drives the colored tag pill in post lists; see CATEGORY_STYLES in server.js.
+//   toc      — optional [{id,label}] array; renders the sticky "ON THIS PAGE" nav when present.
+//              Anchor ids must match id="..." attributes inside contentHtml.
+//   contentHtml — semantic HTML for the article body. Numbered "red flag" sections use the
+//              .flag-N convention (see server.js's blog article CSS) for the colored badge +
+//              callout treatment; a plain post can just use <p>/<h2> with no .flag markup at all.
 module.exports = [
   {
     slug: 'the-non-schedulers-survival-guide',
     title: "The Non-Scheduler's Guide to a Bad Baseline",
-    description: "You don't need a PSP certification to catch a bad baseline. Here are 5 concrete things to check in a contractor's schedule before you sign off on it — and why each one matters.",
+    headline: "The Non-Scheduler's Survival Guide: 5 Red Flags to Check Before You Accept a Contractor's Baseline",
+    description: "You don't need a PSP certification to catch a bad baseline. Here are 5 concrete things to check in a contractor's schedule before you sign off — and why each one matters.",
+    category: 'For owners & PMs',
+    toc: [
+      { id: 's1', label: '1 · Negative float' },
+      { id: 's2', label: '2 · Hard constraints' },
+      { id: 's3', label: '3 · Open ends' },
+      { id: 's4', label: '4 · Long durations' },
+      { id: 's5', label: '5 · Critical path' },
+      { id: 's6', label: 'The bottom line' }
+    ],
     contentHtml: `
-<p>You're not a scheduler. You're a project owner, a PM on the client side, or an exec who has to sign off on a contractor's baseline schedule before work starts — and you know that once you approve it, it becomes the yardstick everyone gets measured against for the next 18 months.</p>
+<p class="lead">You're not a scheduler. You're a project owner, a PM on the client side, or an exec who has to sign off on a contractor's baseline before work starts — and you know that once you approve it, it becomes the yardstick everyone gets measured against for the next 18 months.</p>
 <p>The problem: a bad baseline doesn't look bad. It has thousands of activities, colorful Gantt bars, and a finish date that matches what you were told verbally. It <em>looks</em> professional. Whether it's actually sound is a different question — and most of the ways a schedule goes wrong don't show up until you're three months in and already behind.</p>
 <p>Here are five things worth checking before you accept a baseline, in plain language, no scheduling certification required.</p>
 
-<h2>1. Negative float that's already baked in</h2>
-<p>Float is the cushion an activity has before it starts delaying the finish date. Negative float means an activity is already behind schedule — on day one, before a single shovel hits the ground. If a freshly submitted baseline has activities sitting at negative float, one of two things is true: the contractor is submitting a schedule they already know is unrealistic, or a date was hard-coded in a way that's fighting the network logic (see #2). Either way, it's not a rounding error you can wave off. Ask why, by name, activity by activity.</p>
+<section class="flag flag-1" id="s1">
+  <div class="flag-head"><span class="flag-num">1</span><h2>Negative float that's already baked in</h2></div>
+  <p>Float is the cushion an activity has before it starts delaying the finish date. Negative float means an activity is already behind schedule — on day one, before a single shovel hits the ground. If a freshly submitted baseline has activities sitting at negative float, one of two things is true: the contractor is submitting a schedule they already know is unrealistic, or a date was hard-coded in a way that's fighting the network logic. Either way, it's not a rounding error you can wave off.</p>
+  <div class="callout"><div class="callout-kicker">HOW ORDO7 CATCHES IT</div><div class="callout-body">Ordo flags every activity below zero float the moment you upload, and tells you which ones sit on the critical path.</div></div>
+</section>
 
-<h2>2. Hard date constraints hiding the real finish date</h2>
-<p>A schedule is supposed to calculate dates from logic — this task can't start until that one finishes. A "mandatory" or "must finish by" constraint overrides that math and pins a date in place regardless of what's actually happening upstream. A handful of these tied to real contractual milestones is normal. A schedule riddled with them is a schedule where the finish date isn't a calculation anymore — it's a guess someone typed in, dressed up to look calculated. Count them. If a large share of your critical activities are hard-constrained, the "logic-driven" finish date you were quoted may not be logic-driven at all.</p>
+<section class="flag flag-2" id="s2">
+  <div class="flag-head"><span class="flag-num">2</span><h2>Hard constraints doing the logic's job</h2></div>
+  <p>A healthy schedule is driven by relationships — this activity can't start until that one finishes. A fragile one is held together by <em>constraints</em>: manually pinned dates that override the logic. A few are normal. Dozens of "Must Finish On" constraints usually mean the schedule can't actually support its own dates, so someone nailed them in place to make the finish line land where the contract needed it to.</p>
+  <div class="callout"><div class="callout-kicker">HOW ORDO7 CATCHES IT</div><div class="callout-body">The DCMA check counts hard constraints and surfaces the ones masking negative float underneath.</div></div>
+</section>
 
-<h2>3. Activities with no real connections</h2>
-<p>Every activity should have at least one predecessor and one successor — something that has to happen before it, and something that depends on it finishing. An activity floating with no logic ties in either direction is called an open end, and open ends are exactly what they sound like: pieces of the plan that aren't actually plugged into the rest of the plan. They can move independently, get forgotten, or get "float" that's meaningless because nothing constrains them. A handful in a 3,000-line schedule might be housekeeping. Dozens is a sign the network was built fast and never checked.</p>
+<section class="flag flag-3" id="s3">
+  <div class="flag-head"><span class="flag-num">3</span><h2>Open ends and dangling activities</h2></div>
+  <p>Every activity should have something driving it and something depending on it. When activities have no predecessor or no successor — "open ends" — they float free of the network, and a delay to them quietly fails to ripple through to the finish date. A schedule full of open ends will always look like it's on track, because large parts of it aren't connected to the finish at all.</p>
+  <div class="callout"><div class="callout-kicker">HOW ORDO7 CATCHES IT</div><div class="callout-body">Ordo lists every dangling activity and open end so you can ask the contractor to wire them in before approval.</div></div>
+</section>
 
-<h2>4. Work sequenced out of order</h2>
-<p>This one is subtle: an activity's logic says it can't start until its predecessor finishes, but the actual dates in the schedule show it starting before that predecessor is done. That's a contradiction — the schedule is telling you two different things about the same piece of work. It usually means someone updated progress by hand without respecting the logic underneath it, which is a preview of how schedule updates will go for the rest of the project if it's not caught now.</p>
+<section class="flag flag-4" id="s4">
+  <div class="flag-head"><span class="flag-num">4</span><h2>Activities that run for months</h2></div>
+  <p>A single activity with a 200-day duration is a black box. You can't tell if it's on track until it's late, because there are no interim milestones to measure against. Long-duration activities are where slippage hides — they let a contractor report "in progress" for months without ever being provably behind. Broken into shorter, measurable pieces, the same work becomes something you can actually track.</p>
+  <div class="callout"><div class="callout-kicker">HOW ORDO7 CATCHES IT</div><div class="callout-body">High-duration activities are flagged automatically against the DCMA 14-point threshold.</div></div>
+</section>
 
-<h2>5. Suspiciously long, unbroken activities</h2>
-<p>"Install mechanical systems — 140 days" is not a task, it's a phase wearing a task's clothing. Long, monolithic activities are a red flag for two reasons: you can't tell if they're on track until they're already late (there's no intermediate milestone to miss), and they're often used to bury schedule risk inside a single line item instead of showing it. DCMA scheduling guidance generally flags anything north of about 44 working days as worth breaking down further. If your baseline has a lot of these, ask for them to be broken into smaller, trackable pieces before you sign.</p>
+<section class="flag flag-5" id="s5">
+  <div class="flag-head"><span class="flag-num">5</span><h2>A critical path that doesn't make sense</h2></div>
+  <p>The critical path is the chain of activities that determines your finish date. Trace it end to end and it should tell a story that matches how the job actually gets built. If the "longest path" runs through landscaping and signage instead of structure and MEP, the logic is wrong somewhere — and the date it's protecting is fiction. You don't need to build the schedule to sanity-check the story it tells.</p>
+  <div class="callout"><div class="callout-kicker">HOW ORDO7 CATCHES IT</div><div class="callout-body">Ordo highlights the true critical path so you can read it end to end in plain English.</div></div>
+</section>
 
-<h2>The honest bar</h2>
-<p>None of this requires you to become a scheduler. It requires someone — or something — to actually look. Most owners don't have the time to manually audit a few thousand activities for negative float, constraint abuse, broken logic, and oversized durations before every baseline gets accepted. That's a mechanical, repeatable check, which is exactly the kind of thing that shouldn't depend on someone's Friday-afternoon attention span.</p>
-<p>Ordo7 runs this exact class of check — negative float, hard constraints, out-of-sequence work, broken logic, oversized durations — against an uploaded schedule file and gives you a score and a list of specific activities to go ask about, before you accept the baseline instead of after you're behind on it.</p>
+<section id="s6">
+  <h2>The bottom line</h2>
+  <p>You don't have to become a scheduler to hold one accountable. These five checks catch the large majority of baselines that are unrealistic on the day they're submitted — and asking about them, by name, changes how a contractor builds the next one.</p>
+</section>
 `.trim()
   }
 ];
