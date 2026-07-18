@@ -86,10 +86,15 @@ process.on('uncaughtException', (err) => {
 // reach production instead of being silently stuck at whatever was first seeded.
 for (const post of blogContent) {
   const existing = store.getBlogPostBySlug(post.slug);
+  const tocJson = post.toc ? JSON.stringify(post.toc) : null;
   if (!existing) {
-    store.createBlogPost(post.slug, post.title, post.description, post.contentHtml);
-  } else if (existing.title !== post.title || existing.description !== post.description || existing.content_html !== post.contentHtml) {
-    store.updateBlogPost(post.slug, post.title, post.description, post.contentHtml);
+    store.createBlogPost(post.slug, post.title, post.description, post.contentHtml, post.category, post.toc, post.headline);
+  } else if (
+    existing.title !== post.title || existing.description !== post.description || existing.content_html !== post.contentHtml ||
+    existing.category !== (post.category || 'Fundamentals') || (existing.toc_json || null) !== tocJson ||
+    (existing.headline || null) !== (post.headline || null)
+  ) {
+    store.updateBlogPost(post.slug, post.title, post.description, post.contentHtml, post.category, post.toc, post.headline);
   }
 }
 
@@ -1416,115 +1421,606 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// Shared dark-theme chrome, reusing the same palette/typography as shared-snapshot.html so the
-// blog reads as the same product rather than a bolted-on marketing microsite.
-function renderBlogLayout({ title, description, canonicalPath, bodyHtml, jsonLd }) {
+// Per-category tag-pill styling for post-list rows and related cards. A category not in this map
+// (a future post using a new one) still renders — just in a neutral gray rather than crashing —
+// since this list isn't meant to be the source of truth for which categories exist, only how the
+// four the index's own filter chips advertise happen to be colored.
+const BLOG_CATEGORY_STYLES = {
+  'Fundamentals': { label: 'FUNDAMENTALS', color: '#5eead4', bg: 'rgba(94,234,212,0.1)' },
+  'DCMA & compliance': { label: 'DCMA', color: '#f4b955', bg: 'rgba(244,185,85,0.1)' },
+  'For owners & PMs': { label: 'FOR OWNERS', color: '#a78bfa', bg: 'rgba(167,139,250,0.1)' },
+  'Product': { label: 'PRODUCT', color: '#46d19e', bg: 'rgba(70,209,158,0.1)' }
+};
+function categoryStyle(category) {
+  return BLOG_CATEGORY_STYLES[category] || { label: String(category || '').toUpperCase(), color: '#8695a8', bg: 'rgba(148,163,184,0.1)' };
+}
+
+// No stored read-time column — derived from the post's own word count (strip tags, ~200wpm)
+// rather than a number an author has to remember to keep in sync with edits.
+function estimateReadTime(html) {
+  const text = String(html || '').replace(/<[^>]+>/g, ' ');
+  const words = text.split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 200));
+}
+
+function blogCanonicalUrl(slug) {
+  return `https://www.ordo7.pro/blog/${slug}`;
+}
+
+function buildShareLinks(url, title) {
+  const enc = encodeURIComponent;
+  return {
+    li: `https://www.linkedin.com/sharing/share-offsite/?url=${enc(url)}`,
+    x: `https://twitter.com/intent/tweet?text=${enc(title)}&url=${enc(url)}`,
+    fb: `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}`,
+    wa: `https://wa.me/?text=${enc(title + ' ' + url)}`,
+    mail: `mailto:?subject=${enc(title)}&body=${enc(url)}`
+  };
+}
+
+function parsePublishedAt(raw) {
+  const iso = raw.includes('T') ? raw : raw.replace(' ', 'T') + 'Z';
+  return new Date(iso);
+}
+function formatDateShort(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+function formatDateLong(d) { return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); }
+
+// Derives every display-ready field a template needs from a raw blog_posts row, in one place, so
+// the index and article renderers stay in sync instead of two hand-rolled copies of this math.
+function postViewModel(post) {
+  const url = blogCanonicalUrl(post.slug);
+  const headline = post.headline || post.title;
+  const date = parsePublishedAt(post.published_at);
+  const toc = post.toc_json ? JSON.parse(post.toc_json) : null;
+  return {
+    ...post,
+    url, headline, date,
+    dateShort: formatDateShort(date),
+    dateLong: formatDateLong(date),
+    readMins: estimateReadTime(post.content_html),
+    share: buildShareLinks(url, headline),
+    cat: categoryStyle(post.category),
+    toc: toc && toc.length ? toc : null
+  };
+}
+
+const BLOG_FONTS_HEAD = `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">`;
+
+// One shared stylesheet for both blog pages (as opposed to two near-duplicate <style> blocks) —
+// class-based rather than the design handoff's inline-style-per-element approach, since this is
+// server-rendered from data (posts, categories) rather than a static one-off mockup.
+const BLOG_STYLE = `
+* { box-sizing: border-box; }
+body { margin: 0; background: #06090f; font-family: 'Manrope', sans-serif; color: #e8eef6; }
+a { color: #5eead4; text-decoration: none; }
+a:hover { color: #99f6e4; }
+::selection { background: rgba(94,234,212,0.25); color: #f4f8fc; }
+.navlink:hover { color: #e8eef6 !important; }
+.postrow:hover { border-color: rgba(94,234,212,0.35) !important; transform: translateY(-2px); }
+.postrow:hover .arrow { transform: translateX(4px); color: #5eead4 !important; }
+.tocitem:hover { color: #cdd7e3 !important; border-color: rgba(94,234,212,0.4) !important; }
+.cta-pill:hover, .cta-block:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.ghost:hover { border-color: rgba(94,234,212,0.4); color: #eaf2f9; }
+.chip:hover { border-color: rgba(94,234,212,0.4); color: #eaf2f9; }
+.callout:hover { border-color: rgba(94,234,212,0.28); }
+@keyframes riseIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes floatGlow { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(40px,30px) scale(1.08); } }
+@keyframes floatGlow2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-50px,20px) scale(1.12); } }
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1); }
+.reveal.in { opacity: 1; transform: none; }
+.rise { animation: riseIn .5s ease both; }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity:1 !important; transform:none !important; } .glow, .rise { animation:none !important; } }
+.blog-shell { position: relative; min-height: 100vh; overflow-x: hidden; }
+.blog-ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.blog-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(148,163,184,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.04) 1px, transparent 1px); background-size: 64px 64px; -webkit-mask-image: radial-gradient(1200px 800px at 50% -5%, #000 0%, transparent 75%); mask-image: radial-gradient(1200px 800px at 50% -5%, #000 0%, transparent 75%); }
+.glow { position: absolute; border-radius: 50%; filter: blur(30px); }
+.glow-a { top: -180px; left: -140px; width: 620px; height: 620px; background: radial-gradient(circle, rgba(20,184,166,0.16), transparent 62%); animation: floatGlow 16s ease-in-out infinite; }
+.glow-b { top: 260px; right: -200px; width: 560px; height: 560px; background: radial-gradient(circle, rgba(94,234,212,0.10), transparent 64%); animation: floatGlow2 20s ease-in-out infinite; }
+#blogSpotlight { position: fixed; top: 0; left: 0; z-index: 1; pointer-events: none; width: 640px; height: 640px; margin: -320px 0 0 -320px; border-radius: 50%; background: radial-gradient(circle, rgba(94,234,212,0.10), transparent 60%); opacity: 0; transition: opacity .4s ease; transform: translate(-100px,-100px); }
+.blog-content { position: relative; z-index: 2; }
+#blogProgressTrack { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 40; background: rgba(148,163,184,0.08); }
+#blogProgressFill { height: 100%; width: 0%; background: linear-gradient(90deg,#5eead4,#22d3b0); transition: width .12s linear; }
+.blog-header { position: sticky; top: 0; z-index: 30; backdrop-filter: blur(10px); background: rgba(6,9,15,0.72); border-bottom: 1px solid rgba(148,163,184,0.08); }
+.blog-header-inner { max-width: 1120px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; }
+.blog-logo { display: flex; align-items: center; gap: 11px; }
+.blog-logo img { width: 28px; height: 28px; }
+.blog-wordmark { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; color: #e8eef6; letter-spacing: -0.01em; }
+.blog-wordmark span { color: #5eead4; }
+.blog-tag { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5b6b7f; border-left: 1px solid rgba(148,163,184,0.2); padding-left: 11px; margin-left: 3px; }
+.blog-navlinks { display: flex; align-items: center; gap: 28px; }
+.navlink { color: #aab6c6; font-size: 14px; }
+.navlink.active { color: #e8eef6; }
+.cta-pill { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 13.5px; color: #06231f; background: linear-gradient(135deg,#5eead4,#22d3b0); padding: 9px 16px; border-radius: 9px; transition: all .18s ease; display: inline-block; }
+.blog-footer { border-top: 1px solid rgba(148,163,184,0.08); background: #080c13; position: relative; z-index: 2; }
+.blog-footer-inner { max-width: 1120px; margin: 0 auto; padding: 44px 40px; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.blog-footer-brand { display: flex; align-items: center; gap: 11px; }
+.blog-footer-brand img { width: 24px; height: 24px; }
+.blog-footer-links { display: flex; gap: 26px; font-size: 13.5px; color: #8695a8; align-items: center; flex-wrap: wrap; }
+main.blog-main { max-width: 1120px; margin: 0 auto; padding: 76px 40px 120px; }
+.blog-kicker { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .18em; color: #5eead4; margin-bottom: 18px; }
+.blog-h1 { font-family: 'Space Grotesk', sans-serif; font-size: 56px; line-height: 1.05; font-weight: 700; letter-spacing: -0.025em; margin: 0 0 20px; color: #f4f8fc; max-width: 760px; text-wrap: balance; }
+.blog-sub { font-size: 19px; line-height: 1.6; color: #9aa8ba; margin: 0; max-width: 600px; }
+.chips { display: flex; gap: 10px; margin: 44px 0 40px; flex-wrap: wrap; }
+.chip-active { font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 13px; color: #06231f; background: linear-gradient(135deg,#5eead4,#22d3b0); padding: 8px 15px; border-radius: 20px; }
+.chip { cursor: default; font-size: 13px; color: #aab6c6; border: 1px solid rgba(148,163,184,0.18); padding: 8px 15px; border-radius: 20px; transition: all .18s ease; }
+/* Cards use the "stretched link" pattern, not a card-wide <a>: an <a> can't contain another <a>
+   (share icons are real nested links), so a full-card anchor would make browsers silently
+   un-nest them and break the share links. .stretch-link is an invisible full-card overlay anchor
+   sitting at z-index 0; any element that needs its own independent click target (the share row)
+   gets position:relative + a higher z-index to float above the overlay instead. */
+.stretch-link { position: absolute; inset: 0; z-index: 0; }
+.card-interactive { position: relative; z-index: 1; }
+.featured { position: relative; display: grid; grid-template-columns: 1.15fr 1fr; border: 1px solid rgba(148,163,184,0.14); border-radius: 18px; overflow: hidden; background: #0b111c; transition: all .22s ease; margin-bottom: 44px; }
+.featured-left { padding: 40px 42px; }
+.featured-badges { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; }
+.badge-featured { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5eead4; background: rgba(94,234,212,0.1); border: 1px solid rgba(94,234,212,0.28); padding: 4px 10px; border-radius: 20px; }
+.featured-cat { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5b6b7f; }
+.featured-title { position: relative; z-index: 1; display: block; font-family: 'Space Grotesk', sans-serif; font-size: 31px; line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 16px; color: #f4f8fc; text-wrap: balance; }
+.featured-excerpt { font-size: 16px; line-height: 1.65; color: #9aa8ba; margin: 0 0 26px; }
+.byline-row { display: flex; align-items: center; gap: 14px; }
+.avatar { border-radius: 50%; background: linear-gradient(135deg,#5eead4,#22d3b0); display: flex; align-items: center; justify-content: center; color: #06231f; font-weight: 700; font-family: 'Space Grotesk', sans-serif; flex-shrink: 0; }
+.byline-text { font-size: 13px; color: #8695a8; }
+.byline-text b { color: #cdd7e3; font-weight: 600; }
+.featured-right { position: relative; background: radial-gradient(420px 340px at 70% 30%, #0f2b26 0%, #0a1119 70%); border-left: 1px solid rgba(148,163,184,0.08); min-height: 340px; overflow: hidden; }
+/* Purely decorative — its own mouse-tilt listens on window, not itself — so let clicks pass
+   through to .stretch-link underneath instead of swallowing them (it paints on top by DOM order). */
+.featured-right schedule-net, .featured-right canvas { pointer-events: none; }
+.featured-right-label { position: absolute; left: 22px; bottom: 20px; z-index: 2; pointer-events: none; }
+.featured-right-label .k { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .16em; color: #5eead4; }
+.featured-right-label .m { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8695a8; margin-top: 3px; }
+.section-label { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .14em; color: #5b6b7f; margin-bottom: 20px; }
+.postlist { display: flex; flex-direction: column; gap: 14px; }
+.postrow { position: relative; cursor: pointer; display: flex; align-items: center; gap: 24px; border: 1px solid rgba(148,163,184,0.12); border-radius: 14px; padding: 22px 26px; background: #0a0f18; transition: all .22s ease; }
+.postrow-body { flex: 1; min-width: 0; }
+.tag-row { display: flex; gap: 10px; align-items: center; margin-bottom: 9px; }
+.tag-pill { font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 3px 9px; border-radius: 20px; }
+.postrow-meta { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5b6b7f; }
+.postrow-title { position: relative; z-index: 1; display: block; font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 600; color: #f4f8fc; margin-bottom: 6px; letter-spacing: -0.01em; }
+.postrow-excerpt { font-size: 14.5px; color: #8695a8; line-height: 1.5; margin-bottom: 14px; }
+.arrow { flex-shrink: 0; font-size: 22px; color: #5b6b7f; transition: all .2s ease; }
+.newsletter { margin-top: 60px; border: 1px solid rgba(94,234,212,0.22); border-radius: 18px; background: linear-gradient(135deg,rgba(94,234,212,0.07),rgba(94,234,212,0.01)); padding: 40px 44px; display: flex; align-items: center; justify-content: space-between; gap: 32px; flex-wrap: wrap; }
+.newsletter h3 { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: #f4f8fc; margin: 0 0 8px; letter-spacing: -0.01em; }
+.newsletter p { font-size: 15px; color: #9aa8ba; margin: 0; line-height: 1.55; max-width: 520px; }
+.newsletter-form { display: flex; gap: 10px; flex: 1; min-width: 280px; max-width: 400px; }
+.newsletter-form input { flex: 1; background: #090d16; border: 1px solid rgba(148,163,184,0.2); border-radius: 10px; padding: 13px 15px; color: #e8eef6; font-size: 14px; font-family: inherit; }
+.share-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.share-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5b6b7f; margin-right: 2px; }
+.ghost { border-radius: 8px; border: 1px solid rgba(148,163,184,0.18); display: flex; align-items: center; justify-content: center; color: #aab6c6; font-size: 12px; transition: all .18s ease; }
+main.blog-article-main { max-width: 1120px; margin: 0 auto; padding: 0 40px; }
+.article-header { max-width: 760px; margin: 0 auto; padding: 64px 0 40px; }
+.back-link { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; color: #8695a8; margin-bottom: 34px; transition: color .15s ease; }
+.back-link:hover { color: #99f6e4; }
+.article-badges { display: flex; gap: 10px; align-items: center; margin-bottom: 22px; }
+.article-h1 { font-family: 'Space Grotesk', sans-serif; font-size: 44px; line-height: 1.1; font-weight: 700; letter-spacing: -0.025em; margin: 0 0 26px; color: #f4f8fc; text-wrap: balance; }
+.article-byline { display: flex; align-items: center; gap: 14px; padding-bottom: 34px; border-bottom: 1px solid rgba(148,163,184,0.12); flex-wrap: wrap; }
+.byline-name { font-size: 14px; color: #cdd7e3; font-weight: 600; }
+.byline-sub { font-size: 13px; color: #8695a8; }
+.article-share { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.article-grid { display: grid; grid-template-columns: 1fr 224px; gap: 56px; max-width: 1040px; margin: 0 auto; align-items: start; padding-bottom: 100px; }
+.article-body { max-width: 720px; font-size: 17px; line-height: 1.75; color: #9aa8ba; }
+.article-body p.lead { font-size: 20px; line-height: 1.7; color: #c5d0dc; margin: 0 0 26px; font-weight: 500; }
+.article-body > p { margin: 0 0 22px; }
+.article-body em { color: #cdd7e3; font-style: italic; }
+.article-body .flag { scroll-margin-top: 90px; }
+.article-body .flag-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+.article-body .flag-num { flex-shrink: 0; width: 38px; height: 38px; border-radius: 11px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; display: flex; align-items: center; justify-content: center; background: var(--fc-bg); border: 1px solid var(--fc-bd); color: var(--fc); }
+.article-body .flag h2 { font-family: 'Space Grotesk', sans-serif; font-size: 27px; font-weight: 600; color: #f4f8fc; margin: 2px 0 0; letter-spacing: -0.01em; }
+.article-body .flag > p { margin: 0 0 20px; }
+.article-body #s6 { scroll-margin-top: 90px; }
+.article-body #s6 h2 { font-family: 'Space Grotesk', sans-serif; font-size: 27px; font-weight: 600; color: #f4f8fc; margin: 0 0 16px; letter-spacing: -0.01em; }
+.callout { border: 1px solid rgba(148,163,184,0.14); border-left: 2px solid var(--fc); border-radius: 12px; background: #0b111c; padding: 18px 20px; margin: 0 0 40px; transition: border-color .2s ease; }
+.callout-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .1em; color: var(--fc); margin-bottom: 8px; }
+.callout-body { font-size: 15px; line-height: 1.6; color: #cdd7e3; }
+.flag-1 { --fc: #f2716a; --fc-bg: rgba(242,113,106,0.14); --fc-bd: rgba(242,113,106,0.4); }
+.flag-2 { --fc: #f4b955; --fc-bg: rgba(244,185,85,0.14); --fc-bd: rgba(244,185,85,0.4); }
+.flag-3 { --fc: #5eead4; --fc-bg: rgba(94,234,212,0.14); --fc-bd: rgba(94,234,212,0.4); }
+.flag-4 { --fc: #a78bfa; --fc-bg: rgba(167,139,250,0.14); --fc-bd: rgba(167,139,250,0.4); }
+.flag-5 { --fc: #46d19e; --fc-bg: rgba(70,209,158,0.14); --fc-bd: rgba(70,209,158,0.4); }
+.inline-cta { margin-top: 20px; border: 1px solid rgba(94,234,212,0.3); border-radius: 16px; background: radial-gradient(600px 300px at 20% 0%, rgba(94,234,212,0.08), transparent 70%), #0b111c; padding: 32px 34px; }
+.inline-cta h3 { font-family: 'Space Grotesk', sans-serif; font-size: 23px; font-weight: 700; color: #f4f8fc; margin: 0 0 10px; letter-spacing: -0.01em; }
+.inline-cta p { font-size: 15.5px; line-height: 1.6; color: #9aa8ba; margin: 0 0 22px; max-width: 520px; }
+.inline-cta-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.cta-block { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 15px; color: #06231f; background: linear-gradient(135deg,#5eead4,#22d3b0); padding: 13px 24px; border-radius: 11px; transition: all .18s ease; display: inline-block; }
+.ghost-btn { font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 15px; color: #cdd7e3; border: 1px solid rgba(148,163,184,0.22); padding: 13px 22px; border-radius: 11px; transition: all .18s ease; display: inline-block; }
+.ghost-btn:hover, .cta-block:hover { border-color: rgba(94,234,212,0.4); }
+.toc-aside { position: sticky; top: 96px; align-self: start; }
+.toc-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .14em; color: #5b6b7f; margin-bottom: 16px; }
+.toc-nav { display: flex; flex-direction: column; gap: 2px; border-left: 1px solid rgba(148,163,184,0.14); margin-bottom: 24px; }
+.tocitem { font-size: 13px; color: #8695a8; padding: 7px 0 7px 16px; margin-left: -1px; border-left: 2px solid transparent; line-height: 1.4; transition: all .15s ease; }
+.toc-share-block { padding-top: 20px; border-top: 1px solid rgba(148,163,184,0.12); }
+.toc-share-block > .share-caption { font-size: 13px; color: #8695a8; line-height: 1.55; margin-bottom: 12px; }
+.toc-book-cta { display: block; text-align: center; margin-top: 18px; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 13px; color: #06231f; background: linear-gradient(135deg,#5eead4,#22d3b0); padding: 11px; border-radius: 10px; transition: all .18s ease; }
+.related-wrap { max-width: 1040px; margin: 0 auto; padding: 0 0 100px; }
+.related-inner { border-top: 1px solid rgba(148,163,184,0.12); padding-top: 40px; }
+.related-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+.related-card { position: relative; border: 1px solid rgba(148,163,184,0.12); border-radius: 14px; padding: 22px; background: #0a0f18; transition: all .22s ease; }
+.related-card-title { position: relative; z-index: 1; display: block; font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600; color: #f4f8fc; margin: 14px 0 8px; line-height: 1.25; letter-spacing: -0.01em; }
+.related-card-excerpt { font-size: 13.5px; color: #8695a8; line-height: 1.5; margin-bottom: 14px; }
+.copied { color: #5eead4 !important; }
+@media (max-width: 860px) {
+  main.blog-main, main.blog-article-main { padding-left: 20px; padding-right: 20px; }
+  .featured { grid-template-columns: 1fr; }
+  .featured-right { min-height: 220px; }
+  .article-grid { grid-template-columns: 1fr; }
+  .toc-aside { position: static; }
+  .related-grid { grid-template-columns: 1fr; }
+  .blog-h1 { font-size: 38px; }
+  .article-h1 { font-size: 32px; }
+}
+@media (max-width: 560px) {
+  /* Product/Pricing don't fit alongside the logo + BLOG tag + Blog link + Try free pill at this
+     width and the header (unlike the footer) has no flex-wrap — drop the two least-essential
+     links rather than letting them overlap. Blog (home) and Try free (the conversion action)
+     stay since they're the point of this page. */
+  .blog-header-inner { padding: 14px 20px; }
+  .blog-navlinks { gap: 14px; }
+  .blog-navlinks a.navlink:not(.active) { display: none; }
+}
+`;
+
+// Vanilla JS (no framework, matching this app's zero-build-step convention) driving: the mouse
+// spotlight, scroll-reveal via IntersectionObserver, the article reading-progress bar, and
+// copy-link buttons. Runs on both blog pages; the progress-bar/copy-link pieces are no-ops on the
+// index page since those elements simply don't exist there.
+const BLOG_SCRIPT = `
+window.addEventListener('mousemove', function (e) {
+  var sp = document.getElementById('blogSpotlight');
+  if (!sp) return;
+  sp.style.transform = 'translate(' + e.clientX + 'px,' + e.clientY + 'px)';
+  sp.style.opacity = '1';
+}, { passive: true });
+
+(function () {
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+})();
+
+(function () {
+  var track = document.getElementById('blogProgressTrack');
+  var fill = document.getElementById('blogProgressFill');
+  if (!track || !fill) return;
+  var onScroll = function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    var pct = max > 0 ? Math.min(100, Math.max(0, (h.scrollTop / max) * 100)) : 0;
+    fill.style.width = pct.toFixed(1) + '%';
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+
+document.querySelectorAll('[data-copy-url]').forEach(function (btn) {
+  btn.addEventListener('click', function (e) {
+    e.preventDefault();
+    var url = btn.getAttribute('data-copy-url');
+    if (navigator.clipboard) { try { navigator.clipboard.writeText(url); } catch (err) {} }
+    var original = btn.textContent;
+    btn.textContent = '\\u2713';
+    btn.classList.add('copied');
+    setTimeout(function () { btn.textContent = original; btn.classList.remove('copied'); }, 1800);
+  });
+});
+`;
+
+function blogHeader(active) {
+  return `<header class="blog-header">
+    <div class="blog-header-inner">
+      <a href="/blog" class="blog-logo">
+        <img src="/brand/musk/glyph.png" alt="">
+        <span class="blog-wordmark">Ordo<span>7</span></span>
+        <span class="blog-tag">BLOG</span>
+      </a>
+      <nav class="blog-navlinks">
+        <a href="/" class="navlink">Product</a>
+        <a href="/" class="navlink">Pricing</a>
+        <a href="/blog" class="navlink${active === 'blog' ? ' active' : ''}">Blog</a>
+        <a href="/" class="cta-pill">Try free →</a>
+      </nav>
+    </div>
+  </header>`;
+}
+
+function blogFooter() {
+  return `<footer class="blog-footer">
+    <div class="blog-footer-inner">
+      <div class="blog-footer-brand">
+        <img src="/brand/musk/glyph.png" alt="">
+        <span class="blog-wordmark">Ordo<span>7</span></span>
+        <span style="font-size:13px; color:#5b6b7f; margin-left:6px;">Schedule intelligence for construction</span>
+      </div>
+      <div class="blog-footer-links">
+        <a href="/" class="navlink" style="color:#8695a8;">Product</a>
+        <a href="/" class="navlink" style="color:#8695a8;">Pricing</a>
+        <a href="https://level7data.com/" target="_blank" rel="noopener" class="navlink" style="color:#8695a8;">Powered by Level 7</a>
+        <a href="https://level7data.com/" target="_blank" rel="noopener" class="cta-pill">Book a consultation →</a>
+      </div>
+    </div>
+  </footer>`;
+}
+
+// Icon labels are plain text glyphs (in / 𝕏 / f / ✆ / ✉ / ⧉), same as the design handoff — it
+// calls out swapping these for a real icon set (Phosphor) as a follow-up, not required for
+// launch fidelity.
+function shareRow(share, { size = 32, withCopy = false, copyUrl = '', leading = true } = {}) {
+  const btn = (href, label, glyph, extra = '') => `<a href="${href}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ghost" title="${label}" style="width:${size}px; height:${size}px;" ${extra}>${glyph}</a>`;
+  const copy = withCopy
+    ? `<a href="#" class="ghost" title="Copy link" data-copy-url="${escapeHtml(copyUrl)}" onclick="event.stopPropagation()" style="width:${size}px; height:${size}px;">⧉</a>`
+    : '';
+  const wa = withCopy ? btn(share.wa, 'Share on WhatsApp', '✆') : '';
+  return `<div class="share-row">
+    ${leading ? '<span class="share-label">SHARE</span>' : ''}
+    ${btn(share.li, 'LinkedIn', 'in')}
+    ${btn(share.x, 'X', '𝕏')}
+    ${btn(share.fb, 'Facebook', 'f')}
+    ${wa}
+    ${btn(share.mail, 'Email', '✉')}
+    ${copy}
+  </div>`;
+}
+
+function postRowHtml(vm) {
+  return `<div class="postrow">
+    <a href="/blog/${escapeHtml(vm.slug)}" class="stretch-link" aria-label="${escapeHtml(vm.headline)}"></a>
+    <div class="postrow-body">
+      <div class="tag-row">
+        <span class="tag-pill" style="color:${vm.cat.color}; background:${vm.cat.bg};">${escapeHtml(vm.cat.label)}</span>
+        <span class="postrow-meta">${vm.dateShort} · ${vm.readMins} min</span>
+      </div>
+      <a href="/blog/${escapeHtml(vm.slug)}" class="postrow-title">${escapeHtml(vm.headline)}</a>
+      <div class="postrow-excerpt">${escapeHtml(vm.description)}</div>
+      <div class="card-interactive">${shareRow(vm.share, { size: 29, leading: true })}</div>
+    </div>
+    <span class="arrow">→</span>
+  </div>`;
+}
+
+function relatedCardHtml(vm) {
+  return `<div class="related-card">
+    <a href="/blog/${escapeHtml(vm.slug)}" class="stretch-link" aria-label="${escapeHtml(vm.headline)}"></a>
+    <span class="tag-pill" style="color:${vm.cat.color}; background:${vm.cat.bg};">${escapeHtml(vm.cat.label)}</span>
+    <a href="/blog/${escapeHtml(vm.slug)}" class="related-card-title">${escapeHtml(vm.headline)}</a>
+    <div class="related-card-excerpt">${escapeHtml(vm.description)}</div>
+    <div class="card-interactive">${shareRow(vm.share, { size: 29, leading: false })}</div>
+  </div>`;
+}
+
+// Shared page wrapper: ambient background, spotlight, sticky nav/footer, fonts, shared stylesheet
+// and script. isArticle adds the fixed reading-progress bar (present but at 0% width / inert on
+// the index page would be misleading, so it's only in the DOM when actually meaningful).
+function renderBlogPage({ title, description, canonicalPath, ogImage, isArticle, jsonLd, bodyHtml, active }) {
   const canonical = `https://www.ordo7.pro${canonicalPath}`;
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" sizes="32x32" href="/brand/musk/icon-32.png">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
 <link rel="canonical" href="${canonical}">
-<meta property="og:type" content="article">
+<meta property="og:type" content="${isArticle ? 'article' : 'website'}">
 <meta property="og:url" content="${canonical}">
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(description)}">
 <meta property="og:site_name" content="Ordo7">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="${ogImage || 'https://www.ordo7.pro/brand/musk/icon-512.png'}">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(description)}">
-${jsonLd ? `<script type="application/ld+json">\n${JSON.stringify(jsonLd)}\n</script>\n` : ''}<style>
-  :root {
-    --ink: #e7ecf2; --paper: #0a0e14; --line: #232b36; --muted: #8b96a5;
-    --card: #121821; --teal: #2dd6c4; --accent: var(--teal);
-  }
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--paper); color: var(--ink); margin: 0; padding: 32px 20px 80px; line-height: 1.65; }
-  .wrap { max-width: 720px; margin: 0 auto; }
-  a { color: var(--accent); }
-  .back { display: inline-block; margin-bottom: 24px; font-size: 13px; color: var(--muted); text-decoration: none; }
-  .brand { font-weight: 800; font-size: 22px; margin: 0 0 28px; }
-  .brand span { color: #f37443; }
-  h1 { font-size: 28px; line-height: 1.25; margin: 0 0 10px; }
-  .post-meta { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
-  .post-list-item { border-bottom: 1px solid var(--line); padding: 20px 0; }
-  .post-list-item:first-child { padding-top: 0; }
-  .post-list-item h2 { font-size: 19px; margin: 0 0 6px; }
-  .post-list-item h2 a { color: var(--ink); text-decoration: none; }
-  .post-list-item h2 a:hover { color: var(--accent); }
-  .post-list-item p { color: var(--muted); font-size: 14px; margin: 0; }
-  .post-body { font-size: 15.5px; }
-  .post-body h2 { font-size: 20px; margin: 32px 0 12px; }
-  .post-body p { margin: 0 0 16px; }
-  .post-body ul, .post-body ol { margin: 0 0 16px; padding-left: 22px; }
-  .post-body li { margin-bottom: 8px; }
-  .empty { color: var(--muted); font-size: 13px; }
-  .cta { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); text-align: center; font-size: 13px; color: var(--muted); }
-  .cta a { font-weight: 600; }
-</style>
+${BLOG_FONTS_HEAD}
+${jsonLd ? `<script type="application/ld+json">\n${JSON.stringify(jsonLd)}\n</script>\n` : ''}<style>${BLOG_STYLE}</style>
 </head>
 <body>
-<div class="wrap">
-  <a class="back" href="/">&larr; www.ordo7.pro</a>
-  <p class="brand">Ordo<span>7</span></p>
-  ${bodyHtml}
-  <p class="cta">Want to check your own schedule? <a href="/">Try Ordo7 free →</a></p>
+<div class="blog-shell">
+  <div class="blog-ambient">
+    <div class="blog-grid"></div>
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+  </div>
+  <div id="blogSpotlight"></div>
+  <div class="blog-content">
+    ${isArticle ? '<div id="blogProgressTrack"><div id="blogProgressFill"></div></div>' : ''}
+    ${blogHeader(active)}
+    ${bodyHtml}
+    ${blogFooter()}
+  </div>
 </div>
+<script>${BLOG_SCRIPT}</script>
 </body>
 </html>
 `;
 }
 
 function serveBlogIndex(req, res) {
-  const posts = store.listBlogPosts();
-  const listHtml = posts.length
-    ? posts.map(p => `<div class="post-list-item">
-      <h2><a href="/blog/${escapeHtml(p.slug)}">${escapeHtml(p.title)}</a></h2>
-      <p>${escapeHtml(p.description)}</p>
-    </div>`).join('')
-    : '<p class="empty">No posts yet — check back soon.</p>';
-  const html = renderBlogLayout({
-    title: 'Blog — Ordo7',
+  const posts = store.listBlogPosts().map(postViewModel);
+  const featured = posts[0];
+  const rest = posts.slice(1);
+
+  let bodyHtml;
+  if (!featured) {
+    bodyHtml = `<main class="blog-main">
+      <div class="rise">
+        <div class="blog-kicker">THE ORDO7 BLOG</div>
+        <h1 class="blog-h1">Schedule health, explained without the jargon.</h1>
+        <p class="blog-sub">Practical writing for the people who own construction schedules — no PSP certification required.</p>
+      </div>
+      <p style="color:#8695a8; font-size:14px; margin-top:44px;">No posts yet — check back soon.</p>
+    </main>`;
+  } else {
+    const moreSection = rest.length ? `
+      <div class="section-label reveal">MORE FROM THE BLOG</div>
+      <div class="postlist reveal">
+        ${rest.map(postRowHtml).join('\n')}
+      </div>` : '';
+    bodyHtml = `<main class="blog-main">
+      <div class="rise">
+        <div class="blog-kicker">THE ORDO7 BLOG</div>
+        <h1 class="blog-h1">Schedule health, explained without the jargon.</h1>
+        <p class="blog-sub">Practical writing for the people who own construction schedules — no PSP certification required.</p>
+      </div>
+
+      <div class="chips rise">
+        <span class="chip-active">All</span>
+        <span class="chip">Fundamentals</span>
+        <span class="chip">For owners &amp; PMs</span>
+        <span class="chip">DCMA &amp; compliance</span>
+        <span class="chip">Product</span>
+      </div>
+
+      <div class="featured rise">
+        <a href="/blog/${escapeHtml(featured.slug)}" class="stretch-link" aria-label="${escapeHtml(featured.headline)}"></a>
+        <div class="featured-left">
+          <div class="featured-badges">
+            <span class="badge-featured">FEATURED</span>
+            <span class="featured-cat">${escapeHtml(featured.category)}</span>
+          </div>
+          <a href="/blog/${escapeHtml(featured.slug)}" class="featured-title">${escapeHtml(featured.headline)}</a>
+          <p class="featured-excerpt">${escapeHtml(featured.description)}</p>
+          <div class="byline-row">
+            <div class="avatar" style="width:34px; height:34px; font-size:14px;">O7</div>
+            <div class="byline-text"><b>Ordo7 Team</b> · ${featured.dateShort} · ${featured.readMins} min read</div>
+          </div>
+          <div class="card-interactive" style="margin-top:22px;">${shareRow(featured.share, { size: 32 })}</div>
+        </div>
+        <div class="featured-right">
+          <schedule-net></schedule-net>
+          <div class="featured-right-label">
+            <div class="k">SCHEDULE NETWORK</div>
+            <div class="m">${rest.length + 1} post${rest.length ? 's' : ''} · live logic map</div>
+          </div>
+        </div>
+      </div>
+
+      ${moreSection}
+
+      <div class="newsletter reveal">
+        <div>
+          <h3>Schedule tips, twice a month.</h3>
+          <p>Plain-language writing on reading, fixing and defending construction schedules. No spam.</p>
+        </div>
+        <form class="newsletter-form" onsubmit="event.preventDefault(); this.querySelector('button').textContent='Coming soon';">
+          <input type="email" placeholder="you@company.com" required>
+          <button type="submit" class="cta-pill" style="border:none; cursor:pointer;">Subscribe</button>
+        </form>
+      </div>
+    </main>
+    <script type="module" src="/js/schedule-net.js"></script>`;
+  }
+
+  const html = renderBlogPage({
+    title: 'Ordo7 Blog — Schedule health, explained without the jargon',
     description: 'Practical guidance on construction schedule health, DCMA checks, and spotting a bad baseline before it costs you.',
     canonicalPath: '/blog',
-    bodyHtml: `<h1>The Ordo7 Blog</h1><p class="post-meta">Schedule health, explained without the jargon.</p>${listHtml}`
+    isArticle: false,
+    active: 'blog',
+    bodyHtml
   });
   res.writeHead(200, { 'Content-Type': 'text/html' });
   res.end(html);
 }
 
 function serveBlogPost(req, res, slug) {
-  const post = store.getBlogPostBySlug(slug);
-  if (!post) {
-    res.writeHead(404, { 'Content-Type': 'text/html' });
-    return res.end(renderBlogLayout({
+  const raw = store.getBlogPostBySlug(slug);
+  if (!raw) {
+    const html = renderBlogPage({
       title: 'Post not found — Ordo7 Blog',
       description: 'This post could not be found.',
       canonicalPath: `/blog/${slug}`,
-      bodyHtml: '<h1>Post not found</h1><p class="empty">This post may have been moved or removed. <a href="/blog">Back to the blog</a>.</p>'
-    }));
+      isArticle: false,
+      active: 'blog',
+      bodyHtml: `<main class="blog-main"><h1 class="blog-h1" style="font-size:32px;">Post not found</h1><p style="color:#8695a8;">This post may have been moved or removed. <a href="/blog">Back to the blog</a>.</p></main>`
+    });
+    res.writeHead(404, { 'Content-Type': 'text/html' });
+    return res.end(html);
   }
-  const isoPublished = post.published_at.includes('T') ? post.published_at : post.published_at.replace(' ', 'T') + 'Z';
-  const publishedDate = new Date(isoPublished).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const canonical = `https://www.ordo7.pro/blog/${post.slug}`;
-  const html = renderBlogLayout({
+  const post = postViewModel(raw);
+  const others = store.listBlogPosts().map(postViewModel).filter(p => p.slug !== post.slug).slice(0, 3);
+
+  const tocHtml = post.toc
+    ? `<div class="toc-label">ON THIS PAGE</div>
+       <nav class="toc-nav">
+         ${post.toc.map(item => `<a href="#${escapeHtml(item.id)}" class="tocitem">${escapeHtml(item.label)}</a>`).join('\n')}
+       </nav>`
+    : '';
+
+  const relatedHtml = others.length
+    ? `<div class="related-wrap">
+        <div class="related-inner reveal">
+          <div class="section-label">KEEP READING</div>
+          <div class="related-grid">
+            ${others.map(relatedCardHtml).join('\n')}
+          </div>
+        </div>
+      </div>`
+    : '';
+
+  const bodyHtml = `<main class="blog-article-main">
+    <div class="article-header rise">
+      <a href="/blog" class="back-link">← All posts</a>
+      <div class="article-badges">
+        <span class="badge-featured">${escapeHtml(post.category.toUpperCase())}</span>
+        <span class="featured-cat">${post.readMins} min read</span>
+      </div>
+      <h1 class="article-h1">${escapeHtml(post.headline)}</h1>
+      <div class="article-byline">
+        <div class="avatar" style="width:42px; height:42px; font-size:16px;">O7</div>
+        <div>
+          <div class="byline-name">Ordo7 Team</div>
+          <div class="byline-sub">${post.dateLong} · Powered by <a href="https://level7data.com/" target="_blank" rel="noopener">Level 7</a></div>
+        </div>
+        <div class="article-share">
+          ${shareRow(post.share, { size: 36, withCopy: true, copyUrl: post.url })}
+        </div>
+      </div>
+    </div>
+
+    <div class="article-grid">
+      <article class="article-body rise">
+        ${post.content_html}
+        <div class="inline-cta reveal">
+          <h3>Run every check in one upload.</h3>
+          <p>Drop in a P6, XER or MS Project file and Ordo7 scores your schedule in seconds — free to start, no card required.</p>
+          <div class="inline-cta-actions">
+            <a href="/" class="cta-block">Check your schedule free →</a>
+            <a href="https://level7data.com/" target="_blank" rel="noopener" class="ghost-btn">Book a consultation with Level 7 →</a>
+          </div>
+        </div>
+      </article>
+      <aside class="toc-aside">
+        ${tocHtml}
+        <div class="toc-share-block">
+          <div class="share-caption">Share this article</div>
+          ${shareRow(post.share, { size: 34, withCopy: true, copyUrl: post.url, leading: false })}
+          <a href="https://level7data.com/" target="_blank" rel="noopener" class="toc-book-cta">Book a consultation →</a>
+        </div>
+      </aside>
+    </div>
+
+    ${relatedHtml}
+  </main>`;
+
+  const html = renderBlogPage({
     title: `${post.title} — Ordo7 Blog`,
     description: post.description,
     canonicalPath: `/blog/${post.slug}`,
+    ogImage: 'https://www.ordo7.pro/brand/musk/icon-512.png',
+    isArticle: true,
+    active: 'blog',
+    bodyHtml,
     // content_html is authored server-side by us (seeded content or the reviewed output of the
     // marketing Routine's draft PR flow), never user-submitted, so it's trusted to render as-is.
-    bodyHtml: `<h1>${escapeHtml(post.title)}</h1><p class="post-meta">${publishedDate} · Ordo7, powered by Level 7</p><div class="post-body">${post.content_html}</div>`,
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'BlogPosting',
-      headline: post.title,
+      headline: post.headline,
       description: post.description,
-      datePublished: isoPublished,
-      mainEntityOfPage: canonical,
-      url: canonical,
+      datePublished: post.date.toISOString(),
+      mainEntityOfPage: post.url,
+      url: post.url,
       publisher: {
         '@type': 'Organization',
         name: 'Ordo7',

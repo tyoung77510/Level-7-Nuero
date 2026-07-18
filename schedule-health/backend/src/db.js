@@ -332,6 +332,18 @@ ensureColumn('feedback', 'reviewed', 'INTEGER NOT NULL DEFAULT 0');
 // meant to be re-entered alongside each new upload, not a single static value like budget.
 ensureColumn('projects', 'budget_at_completion', 'REAL');
 ensureColumn('snapshots', 'actual_cost_to_date', 'REAL');
+// Category drives the colored tag pill in post lists and the (inert, unfiltered) index chips —
+// a fixed default rather than nullable since every post needs some category to render a pill at
+// all, and 'Fundamentals' is a reasonable default for the one pre-migration post either way.
+ensureColumn('blog_posts', 'category', "TEXT NOT NULL DEFAULT 'Fundamentals'");
+// Null for a post with no numbered-section structure (most posts) — the sticky table-of-contents
+// only renders when this is present, rather than showing an empty "ON THIS PAGE" nav.
+ensureColumn('blog_posts', 'toc_json', 'TEXT');
+// Separate from `title` on purpose: `title` drives the <title>/OG tag (kept short for SERP
+// display — see the title-length SEO fix this replaced), `headline` is the richer on-page H1/
+// display text design calls for. Null falls back to `title` at render time, so most posts (where
+// the two don't need to differ) never have to set this at all.
+ensureColumn('blog_posts', 'headline', 'TEXT');
 
 // Backfill referral codes for any pre-existing users (fresh databases already get one via
 // createUser at signup; this only runs once, for accounts created before this feature existed).
@@ -803,15 +815,15 @@ function getBlogPostBySlug(slug) {
   return db.prepare('SELECT * FROM blog_posts WHERE slug = ?').get(slug);
 }
 
-function createBlogPost(slug, title, description, contentHtml) {
-  db.prepare('INSERT INTO blog_posts (slug, title, description, content_html) VALUES (?, ?, ?, ?)')
-    .run(slug, title, description, contentHtml);
+function createBlogPost(slug, title, description, contentHtml, category, toc, headline) {
+  db.prepare('INSERT INTO blog_posts (slug, title, description, content_html, category, toc_json, headline) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(slug, title, description, contentHtml, category || 'Fundamentals', toc ? JSON.stringify(toc) : null, headline || null);
   return getBlogPostBySlug(slug);
 }
 
-function updateBlogPost(slug, title, description, contentHtml) {
-  db.prepare('UPDATE blog_posts SET title = ?, description = ?, content_html = ? WHERE slug = ?')
-    .run(title, description, contentHtml, slug);
+function updateBlogPost(slug, title, description, contentHtml, category, toc, headline) {
+  db.prepare('UPDATE blog_posts SET title = ?, description = ?, content_html = ?, category = ?, toc_json = ?, headline = ? WHERE slug = ?')
+    .run(title, description, contentHtml, category || 'Fundamentals', toc ? JSON.stringify(toc) : null, headline || null, slug);
   return getBlogPostBySlug(slug);
 }
 
