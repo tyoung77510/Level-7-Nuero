@@ -1543,8 +1543,9 @@ main.blog-main { max-width: 1120px; margin: 0 auto; padding: 76px 40px 120px; }
 .blog-h1 { font-family: 'Space Grotesk', sans-serif; font-size: 56px; line-height: 1.05; font-weight: 700; letter-spacing: -0.025em; margin: 0 0 20px; color: #f4f8fc; max-width: 760px; text-wrap: balance; }
 .blog-sub { font-size: 19px; line-height: 1.6; color: #9aa8ba; margin: 0; max-width: 600px; }
 .chips { display: flex; gap: 10px; margin: 44px 0 40px; flex-wrap: wrap; }
-.chip-active { font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 13px; color: #06231f; background: linear-gradient(135deg,#5eead4,#22d3b0); padding: 8px 15px; border-radius: 20px; }
-.chip { cursor: default; font-size: 13px; color: #aab6c6; border: 1px solid rgba(148,163,184,0.18); padding: 8px 15px; border-radius: 20px; transition: all .18s ease; }
+.chip-active, .chip { font-family: 'Manrope', sans-serif; cursor: pointer; }
+.chip-active { font-weight: 600; font-size: 13px; color: #06231f; background: linear-gradient(135deg,#5eead4,#22d3b0); border: none; padding: 8px 15px; border-radius: 20px; }
+.chip { font-size: 13px; color: #aab6c6; background: transparent; border: 1px solid rgba(148,163,184,0.18); padding: 8px 15px; border-radius: 20px; transition: all .18s ease; }
 /* Cards use the "stretched link" pattern, not a card-wide <a>: an <a> can't contain another <a>
    (share icons are real nested links), so a full-card anchor would make browsers silently
    un-nest them and break the share links. .stretch-link is an invisible full-card overlay anchor
@@ -1704,6 +1705,42 @@ document.querySelectorAll('[data-copy-url]').forEach(function (btn) {
     setTimeout(function () { btn.textContent = original; btn.classList.remove('copied'); }, 1800);
   });
 });
+
+// Category chip filtering — only present on the index page, so this whole block is a silent
+// no-op (chipBar is null) on the article page rather than needing a separate script include.
+(function () {
+  var chipBar = document.getElementById('blogChips');
+  if (!chipBar) return;
+  var featured = document.querySelector('.featured');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('.postrow'));
+  var moreSection = document.getElementById('blogMoreSection');
+  var emptyState = document.getElementById('blogEmptyState');
+
+  function applyFilter(cat) {
+    var anyVisible = false;
+    if (featured) {
+      var show = cat === 'all' || featured.getAttribute('data-cat') === cat;
+      featured.style.display = show ? '' : 'none';
+      if (show) anyVisible = true;
+    }
+    var anyRowVisible = false;
+    rows.forEach(function (row) {
+      var show = cat === 'all' || row.getAttribute('data-cat') === cat;
+      row.style.display = show ? '' : 'none';
+      if (show) { anyRowVisible = true; anyVisible = true; }
+    });
+    if (moreSection) moreSection.style.display = anyRowVisible ? '' : 'none';
+    if (emptyState) emptyState.style.display = anyVisible ? 'none' : '';
+  }
+
+  chipBar.querySelectorAll('button').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      chipBar.querySelectorAll('button').forEach(function (c) { c.className = 'chip'; });
+      chip.className = 'chip-active';
+      applyFilter(chip.getAttribute('data-cat'));
+    });
+  });
+})();
 `;
 
 function blogHeader(active) {
@@ -1763,7 +1800,7 @@ function shareRow(share, { size = 32, withCopy = false, copyUrl = '', leading = 
 }
 
 function postRowHtml(vm) {
-  return `<div class="postrow">
+  return `<div class="postrow" data-cat="${escapeHtml(vm.category)}">
     <a href="/blog/${escapeHtml(vm.slug)}" class="stretch-link" aria-label="${escapeHtml(vm.headline)}"></a>
     <div class="postrow-body">
       <div class="tag-row">
@@ -1852,9 +1889,11 @@ function serveBlogIndex(req, res) {
     </main>`;
   } else {
     const moreSection = rest.length ? `
-      <div class="section-label reveal">MORE FROM THE BLOG</div>
-      <div class="postlist reveal">
-        ${rest.map(postRowHtml).join('\n')}
+      <div id="blogMoreSection">
+        <div class="section-label reveal">MORE FROM THE BLOG</div>
+        <div class="postlist reveal">
+          ${rest.map(postRowHtml).join('\n')}
+        </div>
       </div>` : '';
     bodyHtml = `<main class="blog-main">
       <div class="rise">
@@ -1863,15 +1902,15 @@ function serveBlogIndex(req, res) {
         <p class="blog-sub">Practical writing for the people who own construction schedules — no PSP certification required.</p>
       </div>
 
-      <div class="chips rise">
-        <span class="chip-active">All</span>
-        <span class="chip">Fundamentals</span>
-        <span class="chip">For owners &amp; PMs</span>
-        <span class="chip">DCMA &amp; compliance</span>
-        <span class="chip">Product</span>
+      <div class="chips rise" id="blogChips">
+        <button type="button" class="chip-active" data-cat="all">All</button>
+        <button type="button" class="chip" data-cat="Fundamentals">Fundamentals</button>
+        <button type="button" class="chip" data-cat="For owners &amp; PMs">For owners &amp; PMs</button>
+        <button type="button" class="chip" data-cat="DCMA &amp; compliance">DCMA &amp; compliance</button>
+        <button type="button" class="chip" data-cat="Product">Product</button>
       </div>
 
-      <div class="featured rise">
+      <div class="featured rise" data-cat="${escapeHtml(featured.category)}">
         <a href="/blog/${escapeHtml(featured.slug)}" class="stretch-link" aria-label="${escapeHtml(featured.headline)}"></a>
         <div class="featured-left">
           <div class="featured-badges">
@@ -1896,6 +1935,8 @@ function serveBlogIndex(req, res) {
       </div>
 
       ${moreSection}
+
+      <p id="blogEmptyState" style="display:none; color:#8695a8; font-size:14px; margin-top:20px;">No posts in this category yet — check back soon.</p>
 
       <div class="newsletter reveal">
         <div>
