@@ -2797,19 +2797,58 @@ async function openProject(name){
   }
 }
 
+// Module-level rather than a function param so the toggle survives being called again from
+// setView()'s normal per-tab re-render, the same way currentProject persists across renders.
+let projectsShowingArchived = false;
+
+async function toggleArchivedProjects(){
+  projectsShowingArchived = !projectsShowingArchived;
+  renderActiveProjects();
+}
+
+async function archiveProjectAction(name){
+  try { await api('/api/projects/' + encodeURIComponent(name) + '/archive', { method: 'POST' }); }
+  catch (e) { showToast(e.message); return; }
+  showToast('Project archived — find it under "Show archived" if you need it back.');
+  renderActiveProjects();
+}
+
+async function unarchiveProjectAction(name){
+  try { await api('/api/projects/' + encodeURIComponent(name) + '/unarchive', { method: 'POST' }); }
+  catch (e) { showToast(e.message); return; }
+  showToast('Project restored.');
+  // Switch back to the active view — otherwise this re-renders the archived list, which the
+  // project just left, making the restore look like it silently did nothing.
+  projectsShowingArchived = false;
+  renderActiveProjects();
+}
+
 async function renderActiveProjects(){
   const el = document.getElementById('projectsContent');
+  const archived = projectsShowingArchived;
   let rows;
-  try { rows = await api('/api/projects'); } catch (e) { el.innerHTML = '<p class="error">Could not reach the server: ' + e.message + '</p>'; return; }
-  if (!rows.length){ el.innerHTML = '<p class="empty">No projects yet — upload a schedule to create one.</p>'; return; }
-  el.innerHTML = rows.map(p => {
+  try { rows = await api('/api/projects' + (archived ? '?archived=1' : '')); }
+  catch (e) { el.innerHTML = '<p class="error">Could not reach the server: ' + e.message + '</p>'; return; }
+
+  const toggle = '<p style="margin:0 0 14px;"><a href="#" onclick="event.preventDefault(); toggleArchivedProjects();" style="font-size:12px; color:var(--muted);">' +
+    (archived ? '← Back to active projects' : 'Show archived projects') + '</a></p>';
+
+  if (!rows.length){
+    el.innerHTML = toggle + '<p class="empty">' + (archived ? 'No archived projects.' : 'No projects yet — upload a schedule to create one.') + '</p>';
+    return;
+  }
+  el.innerHTML = toggle + rows.map(p => {
     // Nested-context escaping: jsStringEscape makes it safe as a JS string literal, then
     // escapeHtml makes that result safe as an HTML attribute value (project names are
     // user-controlled — e.g. a project literally named `"><script>` must not break out).
     const onclickSafe = escapeHtml(jsStringEscape(p.name));
-    return '<div class="issue" style="cursor:pointer;" onclick="openProject(\'' + onclickSafe + '\')">' +
+    const action = archived
+      ? '<a href="#" onclick="event.preventDefault(); event.stopPropagation(); unarchiveProjectAction(\'' + onclickSafe + '\');" style="font-size:12px; color:var(--accent);">Restore</a>'
+      : '<a href="#" onclick="event.preventDefault(); event.stopPropagation(); archiveProjectAction(\'' + onclickSafe + '\');" style="font-size:12px; color:var(--muted);">Archive</a>';
+    const openLink = archived ? '' : '<span style="font-size:12px; color:var(--accent);">Open →</span>';
+    return '<div class="issue"' + (archived ? '' : ' style="cursor:pointer;" onclick="openProject(\'' + onclickSafe + '\')"') + '>' +
       '<div style="font-size:13px; font-weight:500;">' + escapeHtml(p.name) + '</div>' +
-      '<div class="issue-right"><span style="font-size:12px; color:var(--accent);">Open →</span></div>' +
+      '<div class="issue-right">' + openLink + action + '</div>' +
     '</div>';
   }).join('');
 }

@@ -332,6 +332,9 @@ ensureColumn('feedback', 'reviewed', 'INTEGER NOT NULL DEFAULT 0');
 // meant to be re-entered alongside each new upload, not a single static value like budget.
 ensureColumn('projects', 'budget_at_completion', 'REAL');
 ensureColumn('snapshots', 'actual_cost_to_date', 'REAL');
+// Null = active. A timestamp rather than a boolean so "when was this archived" is answerable
+// without a separate column, the same convention already used for onboarded_at/updated_at above.
+ensureColumn('projects', 'archived_at', 'TEXT');
 // Category drives the colored tag pill in post lists and the (inert, unfiltered) index chips —
 // a fixed default rather than nullable since every post needs some category to render a pill at
 // all, and 'Fundamentals' is a reasonable default for the one pre-migration post either way.
@@ -629,8 +632,25 @@ function setSnapshotActualCost(snapshotId, actualCostToDate) {
   return getSnapshotById(snapshotId);
 }
 
+// Archived projects are excluded by default everywhere this feeds into (Active Projects,
+// Portfolio Overview, and the Leaderboard all call this) so archiving a project actually
+// declutters those views rather than just adding a label nobody sees.
 function listProjects(userId) {
-  return db.prepare('SELECT * FROM projects WHERE user_id = ? ORDER BY name').all(userId);
+  return db.prepare('SELECT * FROM projects WHERE user_id = ? AND archived_at IS NULL ORDER BY name').all(userId);
+}
+
+function listArchivedProjects(userId) {
+  return db.prepare('SELECT * FROM projects WHERE user_id = ? AND archived_at IS NOT NULL ORDER BY archived_at DESC').all(userId);
+}
+
+function archiveProject(userId, name) {
+  db.prepare("UPDATE projects SET archived_at = datetime('now') WHERE user_id = ? AND name = ?").run(userId, name);
+  return getProjectByName(userId, name);
+}
+
+function unarchiveProject(userId, name) {
+  db.prepare('UPDATE projects SET archived_at = NULL WHERE user_id = ? AND name = ?').run(userId, name);
+  return getProjectByName(userId, name);
 }
 
 function getIssueOwnerUserId(issueId) {
@@ -930,7 +950,7 @@ function getAdminAiUsageTotal() {
 }
 
 module.exports = {
-  db, getOrCreateProject, listProjects, saveSnapshot,
+  db, getOrCreateProject, listProjects, listArchivedProjects, archiveProject, unarchiveProject, saveSnapshot,
   getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio, getActivityFeed,
   getIssueOwnerUserId, createFeedback,
   logError, listErrorsForAdmin, pruneOldErrors,
