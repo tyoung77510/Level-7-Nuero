@@ -38,6 +38,20 @@ This entry establishes the template for every future Founder Log post: numbered 
 - On oil & gas refinery turnaround planning: reduced schedule deviation by 18% using EVM and trend analysis on CPM turnaround schedules.
 - 15% cost reduction achieved through supplier contract negotiations.
 
+## The spark — why now (confirmed origin thesis for Founder Log 002+)
+
+This is the real "why now," and it's a market observation, not just a personal annoyance — use this as the core of Founder Log 002.
+
+**The boom:** Data centers, manufacturing plants, and major industrial capital projects are surging right now (Taj saw this firsthand inside a major EV/manufacturing employer in California — reference as "a manufacturing employer," never by name). That boom is driving a sharp rise in demand for project managers and project controls analysts specifically.
+
+**The gap:** Staffing agencies can't keep up with that demand. There's a real, structural shortage of qualified project controls talent relative to the number of active capital projects that need it.
+
+**The migration parallel:** Taj draws a direct analogy to the population migration out of California to lower-cost-of-living states (Houston, Arizona, Dallas, etc.) — the physical infrastructure (roads, freeways) in those receiving cities can't expand fast enough to absorb the influx. Organizations have the exact same problem: project volume is growing faster than their internal capacity (headcount, trained controls staff) to manage it.
+
+**The actual pain point Ordo7 addresses:** Because there aren't enough dedicated project controls analysts to hire, the slack gets absorbed by Project Managers — who end up doing cost control and schedule maintenance on top of their actual PM job. That's not their role, it's an extra burden created by a talent shortage, and it's a recurring, structural problem Taj has seen across multiple industries and employers, not a one-off complaint. Ordo7 exists to give an overloaded PM (or a company that can't staff a full project controls function) the schedule-health visibility a dedicated analyst would normally provide — without requiring Primavera-analyst-level expertise or a new headcount.
+
+This reframes Ordo7's pitch: it's not just "the existing tools are clunky," it's "there's a genuine labor shortage in project controls right now, driven by a real construction/data-center/manufacturing boom, and the people absorbing that gap (PMs wearing two jobs) need something built for them specifically."
+
 ## Target audience — education / K-12 bond programs
 
 **This is a real, credibility-backed vertical, not a cold pitch.** Taj has direct hands-on experience delivering a K-12 capital/bond modernization program — this is the strongest, most specific story hook available for this audience, and should be used, not buried.
@@ -71,9 +85,8 @@ The rule for "consistent across channels": **the hook, the core claim, and the C
 
 ## What's still needed from Taj
 
-Background is now confirmed (see above). Still open:
+Background and the origin thesis are now confirmed (see above). Still open:
 
-- **The specific spark moment.** Was building the Excel milestone-reporting tool the moment it clicked that this should be a real product — or was there a separate, sharper frustration (a specific bad status meeting, a specific tool failure) that's the actual origin beat for Founder Log 002?
 - **Build timeline.** Roughly when did work on Ordo7 start, and what's the current real state (prototype, backend live, in testing) — needed to sequence future Founder Log entries truthfully.
 - **What "support" concretely means** once the audience-building phase converts — paid beta, waitlist-to-launch, pre-orders, something else. The CTA evolves once it stops being pure "follow the journey," and this determines when/how that shift happens.
 
