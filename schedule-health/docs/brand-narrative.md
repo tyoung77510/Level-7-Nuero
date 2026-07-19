@@ -19,6 +19,38 @@ This is a "build in public" strategy: the goal right now is **audience before as
 
 This entry establishes the template for every future Founder Log post: numbered sequentially (002, 003, ...), each one documenting a real build milestone, decision, or problem encountered — not generic motivational content.
 
+## Founder background (confirmed, anonymized)
+
+**Confidentiality rule: never name a former employer/organization in any public content. Reference industries only.**
+
+- **8+ years** in project controls, PMP-certified, advanced in Primavera P6, Excel, and Earned Value Management (EVM).
+- Supported capital portfolios **over $100M** in total value.
+- Industries worked in: **utility, manufacturing, pharmaceutical, oil & gas, and education** (K-12 capital/bond programs).
+- Currently completing a BS in Business Administration / Construction Management, with coursework directly in construction scheduling, cost estimating, and construction law — formal credentialing layered on top of hands-on practice.
+
+**Real, quantified track record (anonymized — usable in Founder Log posts as "in a past role" / "on a project I ran," never with a company name):**
+- Improved schedule baseline accuracy by 17% on a $1M–$25M energy project portfolio through disciplined schedule logic and milestone placement.
+- Directed $35M+ in monthly forecasting cycles, cutting cost variance by 12%.
+- Improved performance by 11% across a 15-project energy portfolio through variance analysis and early risk identification.
+- **Built an Excel-based milestone reporting tool from scratch** to give a Project Manager schedule visibility that the existing enterprise tools weren't providing — direct precedent for the instinct behind building Ordo7. This is a strong, true anchor for an origin story: *"This isn't the first time I built the tool because the tool that existed wasn't good enough."*
+- On a K-12 school district capital program: **>95% schedule adherence**, cut year-end budget lapses by 30%, delivered a **$50M multi-site school modernization program 12% under budget and ahead of schedule**, and reduced potential delays by 20% on $50M+ of campus modernization work through risk management.
+- On a water utility maintenance program: 9% reduction in safety incidents through enforced safety adherence and training.
+- On oil & gas refinery turnaround planning: reduced schedule deviation by 18% using EVM and trend analysis on CPM turnaround schedules.
+- 15% cost reduction achieved through supplier contract negotiations.
+
+## Target audience — education / K-12 bond programs
+
+**This is a real, credibility-backed vertical, not a cold pitch.** Taj has direct hands-on experience delivering a K-12 capital/bond modernization program — this is the strongest, most specific story hook available for this audience, and should be used, not buried.
+
+Primary titles to target for Ordo7 in this vertical:
+- **School district superintendents**
+- **Facilities directors**
+- **Bond program directors**
+
+These buyers manage voter-approved bond dollars for campus modernization/construction — high public scrutiny, hard deadlines tied to bond timelines, and (per Taj's own experience) real exposure to schedule slippage and budget lapses that a fast, plain-language schedule-health check would catch early. Founder Log content aimed at this audience should lean on the real $50M-program, 12%-under-budget, ahead-of-schedule result as proof, not a generic pitch.
+
+Note: this is in addition to Ordo7's other target segment already explored for prospecting (project controls analysts/schedulers across construction, oil & gas, aerospace & defense, infrastructure, utilities — see the Apollo.io prospecting item in `08-DECISIONS.md`). Education/bond programs is a distinct buyer type (district-level decision-makers, not individual practitioners) and may warrant its own outreach and content track rather than being folded into the practitioner-focused messaging.
+
 ## Voice guidelines for Founder Log content
 
 - **First person, not corporate.** This is Taj talking, not "Ordo7 the company." "I decided to fix it," not "Ordo7 was founded to address..."
@@ -37,14 +69,13 @@ This entry establishes the template for every future Founder Log post: numbered 
 
 The rule for "consistent across channels": **the hook, the core claim, and the CTA stay identical everywhere** — only the format and length adapt per channel. If a LinkedIn post says "Scheduling's been broken for years," the blog version and the ad script should open on the same claim, not a rephrased one. Drift here is how a brand narrative stops feeling like one person's story.
 
-## What's needed from Taj to keep building this out
+## What's still needed from Taj
 
-This doc can only go as far as confirmed facts. To draft more Founder Log entries or the long-form origin story, the following real specifics are needed — none of this should be invented:
+Background is now confirmed (see above). Still open:
 
-- The actual project-controls/PM background (companies, roles, years — as much as you're comfortable sharing publicly)
-- The specific recurring problem/moment that triggered building Ordo7 (a real project, a real frustration)
-- A rough timeline of the build so far, for sequencing future Founder Log entries (002, 003, ...)
-- What "support" concretely means once the audience-building phase converts — paid beta, waitlist-to-launch, pre-orders, something else — since the CTA evolves once it stops being pure "follow the journey"
+- **The specific spark moment.** Was building the Excel milestone-reporting tool the moment it clicked that this should be a real product — or was there a separate, sharper frustration (a specific bad status meeting, a specific tool failure) that's the actual origin beat for Founder Log 002?
+- **Build timeline.** Roughly when did work on Ordo7 start, and what's the current real state (prototype, backend live, in testing) — needed to sequence future Founder Log entries truthfully.
+- **What "support" concretely means** once the audience-building phase converts — paid beta, waitlist-to-launch, pre-orders, something else. The CTA evolves once it stops being pure "follow the journey," and this determines when/how that shift happens.
 
 ## Obsidian / cross-references
 
