@@ -83,12 +83,17 @@ Note: this is in addition to Ordo7's other target segment already explored for p
 
 The rule for "consistent across channels": **the hook, the core claim, and the CTA stay identical everywhere** — only the format and length adapt per channel. If a LinkedIn post says "Scheduling's been broken for years," the blog version and the ad script should open on the same claim, not a rephrased one. Drift here is how a brand narrative stops feeling like one person's story.
 
+## Build timeline and current state (confirmed)
+
+- Build started **roughly 2 weeks** before this entry (keep this vague/relative in public content — don't invent a specific calendar date beyond what's confirmed).
+- **Launch-ready.** The only remaining blocker is Postmark email account verification (transactional email delivery — see `07-INFRASTRUCTURE/tech-stack.md` in the Level 7 brain and `privacy.html`'s processor list). This is a concrete, specific, honest status update — good material for a Founder Log entry ("one verification away from launch"), not a vague "coming soon."
+- **Ordo7 is explicitly not static.** A user feedback loop is already built in to surface feature requests, things to remove, and process improvements post-launch. The product is designed to keep evolving after launch, not ship-and-freeze. This is close to a tagline in its own right: *"Ordo7 is not static; it's evolving."*
+
 ## What's still needed from Taj
 
-Background and the origin thesis are now confirmed (see above). Still open:
+Background, the origin thesis, and the build timeline are now confirmed (see above). Still open:
 
-- **Build timeline.** Roughly when did work on Ordo7 start, and what's the current real state (prototype, backend live, in testing) — needed to sequence future Founder Log entries truthfully.
-- **What "support" concretely means** once the audience-building phase converts — paid beta, waitlist-to-launch, pre-orders, something else. The CTA evolves once it stops being pure "follow the journey," and this determines when/how that shift happens.
+- **What "support" concretely means** once the audience-building phase converts — paid beta, waitlist-to-launch, pre-orders, something else. The CTA evolves once it stops being pure "follow the journey," and this determines when/how that shift happens. Not urgent before launch — "follow the journey" still holds as the CTA through launch itself.
 
 ## Obsidian / cross-references
 
