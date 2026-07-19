@@ -6,6 +6,7 @@ Version-controlled marketing/social-media creative for Ordo7 — **not served by
 
 - `facebook/` — assets for Facebook posts/ads. Currently: `ordo7-upload-flow-animation.mp4`, a screen recording of the real upload flow (New Analysis → drop a schedule file → what-you'll-get panel).
 - `social-ads/` — vertical (9:16) short-form ad clips for Reels/Stories/TikTok-style placements, generated via ElevenLabs. Currently: `02-the-fix.mp4` ("Score any schedule in seconds"). Numbered — looks like part of a series, so more (01, 03, ...) may follow.
+- `linkedin-founder-log/` — full design handoff for the "Founder Log" LinkedIn series (the "Nocturne" design system): design source HTML, spec README, logo mark + founder portrait assets, and post-ready JPG renders for entries 001 and 002. See `../docs/brand-narrative.md` for the confirmed copy, voice rules, and cross-channel consistency requirements this feeds.
 
 ## Pending
 
