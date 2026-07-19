@@ -1,6 +1,6 @@
 # Level 7 Consulting — Key Decisions Log
 > **Purpose:** Track every significant decision, its rationale, who made it, and why.
-> **Status:** ✅ Active | **Last Updated:** 2026-07-11
+> **Status:** ✅ Active | **Last Updated:** 2026-07-19
 
 ## Decision Log
 | Date | Decision | Rationale | Made By | Status |
@@ -19,12 +19,15 @@
 | 2026-07-11 | Deleted 00-INDEX.md; consolidated to a single navigation hub (00-MOC-MASTER.md) | Two entry points had already drifted out of sync (Step 1–2 of the Musk Algorithm: question the requirement, delete the redundant part) | Data Agent | ✅ |
 | 2026-07-11 | Added README.md, LICENSE, .gitignore; standardized "Last Updated" metadata across all brain files | Repo had no GitHub-native orientation and no consistent freshness tracking — audit gap closed | Data Agent | ✅ |
 | 2026-07-11 | Documented Knock (linked to cto.new) as notification infrastructure in tech-stack.md | Was connected but undocumented; workflows not yet built | Owner | ✅ |
+| 2026-07-19 | Stripe activated via cto.new — live path to collect payment now exists | Business filings completed, unblocking payment processing | Owner | ✅ |
 
 ## Open Action Items
 | Item | Why It Matters | Owner Action Needed |
 |------|-----------------|----------------------|
-| Stripe payment processing ⏳ | No live path to collect on a signed SOW without it | Upgrade cto.new plan to enable Stripe |
 | Digital Brain ↔ shared filesystem sync | This repo mirrors `/home/team/shared/digital-brain/` but nothing enforces they stay in sync | Decide: GitHub becomes canonical, or set up a scheduled sync |
+| DocuSign SOW template | Draft SOW built; needs signature/date tabs placed in DocuSign's template editor | Owner walks through tab placement with Claude |
+| Apollo.io prospecting for Ordo7 | Search endpoint is plan-gated on the current free tier | Upgrade Apollo plan |
+| Level 7 outreach — 8 remaining contacts | EnPro, Franklin Electric, Rogers, Watts Water, Archrock, HNTB, CDM Smith, Valmont still need enrichment/verified emails | Run apollo_people_bulk_match once ready |
 
 ## Decision Principles
 1. **Default to documented** — If not written down, it didn't happen
