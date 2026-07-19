@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/nocturne-59babb18-6293-4a31-97ad-0e5ef6b4459e/styles.css">
+<script src="_ds/nocturne-59babb18-6293-4a31-97ad-0e5ef6b4459e/_ds_bundle.js"></script>
+<style>
+  @keyframes gridDrift { from { background-position:0 0,0 0; } to { background-position:96px 96px,96px 96px; } }
+  @keyframes haloPulse { 0%,100% { opacity:.22; transform:scale(1); } 50% { opacity:.42; transform:scale(1.09); } }
+  @keyframes ctaPulse { 0%,100% { box-shadow:0 0 0 0 rgba(145,132,217,.45); } 50% { box-shadow:0 0 34px 2px rgba(145,132,217,.35); } }
+  @keyframes ringSpin { to { transform:rotate(360deg); } }
+  @keyframes livePulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(.7); } }
+  @keyframes sheen { 0% { transform:translateX(-120%) skewX(-18deg); } 60%,100% { transform:translateX(320%) skewX(-18deg); } }
+  .kickr{font-size:15px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:#d2cefd}
+  .wm{font-weight:600;letter-spacing:-.03em;line-height:.9;color:#e9e9ed}
+</style>
+</helmet>
+
+<div style="min-height:100%;background:#0e1019;padding:72px;display:flex;flex-wrap:wrap;gap:80px;align-items:flex-start;justify-content:center;font-family:'Inter',system-ui,sans-serif;color:#e9e9ed">
+
+  <!-- ══ FEED POST · LOG 001 · 1200×1500 (4:5) ══ -->
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:baseline;gap:12px">
+      <span style="font-size:13px;font-weight:600;color:#d2cefd;border:1px solid #423a6a;background:#2b2741;padding:2px 9px;border-radius:4px">FEED · 4:5</span>
+      <span style="font-size:16px;font-weight:500">Founder Log 001 — Invite · 1200 × 1500</span>
+    </div>
+    <div id="feed-001" style="position:relative;width:1200px;height:1500px;overflow:hidden;border-radius:6px;box-shadow:0 0 0 1px #2a2d3d,0 30px 80px rgba(0,0,0,.6);background:radial-gradient(90% 110% at 24% 20%,#1b1e30 0%,#141626 52%,#0d0f1a 100%)">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(#ffffff0d 1px,transparent 1px),linear-gradient(90deg,#ffffff0d 1px,transparent 1px);background-size:96px 96px;animation:gridDrift 16s linear infinite"></div>
+      <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,transparent,#9184d9 22%,#9184d9 78%,transparent)"></div>
+
+      <div style="position:absolute;left:88px;top:96px;display:flex;align-items:center;gap:16px">
+        <div style="position:relative;width:64px;height:64px;display:flex;align-items:center;justify-content:center">
+          <div style="position:absolute;inset:-6px;border-radius:50%;box-shadow:0 0 0 1px #4a4470;animation:ringSpin 22s linear infinite"></div>
+          <img src="assets/mark.png" alt="Ordo7" style="height:44px;width:auto">
+        </div>
+        <span class="wm" style="font-size:34px">Ordo7</span>
+      </div>
+
+      <div style="position:absolute;left:88px;top:230px;width:404px;height:520px">
+        <div style="position:absolute;inset:-40px;border-radius:24px;background:radial-gradient(circle at 50% 40%,#9184d9 0%,transparent 62%);animation:haloPulse 5s ease-in-out infinite"></div>
+        <div style="position:absolute;inset:0;border-radius:18px;overflow:hidden;box-shadow:0 0 0 1px #4a4470,0 20px 50px rgba(0,0,0,.55);background:#0d0f1a url(assets/ceo-portrait.png) 50% 0%/cover no-repeat"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:42%;border-radius:0 0 18px 18px;background:linear-gradient(0deg,#0d0f1acc,transparent)"></div>
+        <div style="position:absolute;left:22px;bottom:20px">
+          <div style="font-size:22px;font-weight:500;color:#e9e9ed">Taj Young</div>
+          <div style="font-size:14px;color:#b2b6ca;letter-spacing:.03em">Founder &amp; Developer</div>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:88px;top:820px;width:1024px;display:flex;flex-direction:column;gap:30px">
+        <div style="font-size:16px;font-weight:600;letter-spacing:.28em;color:#d2cefd">[ FOUNDER LOG — 001 ]</div>
+        <div style="font-size:82px;font-weight:500;line-height:1.03;letter-spacing:-.025em">Scheduling's been broken for years. I decided to <span style="color:#d2cefd">fix it.</span></div>
+        <div style="font-size:26px;color:#b2b6ca;line-height:1.5;max-width:960px">I'm a developer building Ordo7 in the open — the project-controls tool professionals keep asking for. No big team. No permission. Just the work, shared step by step.</div>
+        <div style="margin-top:14px;position:relative;display:inline-flex;align-self:flex-start;overflow:hidden;border:1px solid #9184d9;border-radius:10px;animation:ctaPulse 3.4s ease-in-out infinite">
+          <div style="display:inline-flex;align-items:center;gap:12px;padding:20px 34px;color:#e9e9ed;font-size:25px;font-weight:600;letter-spacing:-.01em">Follow the journey <span style="color:#d2cefd">→ ordo7.pro</span></div>
+          <div style="position:absolute;top:0;left:0;width:60px;height:100%;background:linear-gradient(90deg,transparent,#9184d955,transparent);animation:sheen 3.4s ease-in-out infinite"></div>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:88px;bottom:88px;display:flex;align-items:center;gap:14px">
+        <span style="width:9px;height:9px;border-radius:50%;background:#9184d9;animation:livePulse 1.8s ease-in-out infinite"></span>
+        <span style="font-size:17px;color:#75798c;letter-spacing:.03em">New from the build, every week · ordo7.pro</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ FEED POST · LOG 002 · 1200×1500 (4:5) ══ -->
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:baseline;gap:12px">
+      <span style="font-size:13px;font-weight:600;color:#d2cefd;border:1px solid #423a6a;background:#2b2741;padding:2px 9px;border-radius:4px">FEED · 4:5</span>
+      <span style="font-size:16px;font-weight:500">Founder Log 002 — Two jobs · 1200 × 1500</span>
+    </div>
+    <div id="feed-002" style="position:relative;width:1200px;height:1500px;overflow:hidden;border-radius:6px;box-shadow:0 0 0 1px #2a2d3d,0 30px 80px rgba(0,0,0,.6);background:radial-gradient(90% 110% at 24% 20%,#1b1e30 0%,#141626 52%,#0d0f1a 100%)">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(#ffffff0d 1px,transparent 1px),linear-gradient(90deg,#ffffff0d 1px,transparent 1px);background-size:96px 96px;animation:gridDrift 16s linear infinite"></div>
+      <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,transparent,#9184d9 22%,#9184d9 78%,transparent)"></div>
+
+      <div style="position:absolute;left:88px;top:96px;display:flex;align-items:center;gap:16px">
+        <div style="position:relative;width:64px;height:64px;display:flex;align-items:center;justify-content:center">
+          <div style="position:absolute;inset:-6px;border-radius:50%;box-shadow:0 0 0 1px #4a4470;animation:ringSpin 22s linear infinite"></div>
+          <img src="assets/mark.png" alt="Ordo7" style="height:44px;width:auto">
+        </div>
+        <span class="wm" style="font-size:34px">Ordo7</span>
+      </div>
+
+      <div style="position:absolute;right:96px;top:110px;width:340px;height:440px">
+        <div style="position:absolute;inset:-36px;border-radius:22px;background:radial-gradient(circle at 50% 40%,#9184d9 0%,transparent 62%);animation:haloPulse 5s ease-in-out infinite"></div>
+        <div style="position:absolute;inset:0;border-radius:16px;overflow:hidden;box-shadow:0 0 0 1px #4a4470,0 20px 50px rgba(0,0,0,.55);background:#0d0f1a url(assets/ceo-portrait.png) 50% 0%/cover no-repeat"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:44%;border-radius:0 0 16px 16px;background:linear-gradient(0deg,#0d0f1acc,transparent)"></div>
+        <div style="position:absolute;left:20px;bottom:18px">
+          <div style="font-size:20px;font-weight:500;color:#e9e9ed">Taj Young</div>
+          <div style="font-size:13px;color:#b2b6ca;letter-spacing:.03em">Founder &amp; Developer</div>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:88px;top:660px;width:1024px;display:flex;flex-direction:column;gap:30px">
+        <div style="font-size:16px;font-weight:600;letter-spacing:.28em;color:#d2cefd">[ FOUNDER LOG — 002 ]</div>
+        <div style="font-size:84px;font-weight:500;line-height:1.02;letter-spacing:-.025em">PMs are doing two jobs. <span style="color:#d2cefd">Ordo7 takes one back.</span></div>
+        <div style="font-size:26px;color:#b2b6ca;line-height:1.5;max-width:980px">A capital-projects boom is outpacing the trained staff to run it — so PMs absorb cost control and schedule maintenance on top of their real job. Upload a schedule, get a plain-language health check. No Primavera analyst, no new headcount.</div>
+        <div style="margin-top:14px;position:relative;display:inline-flex;align-self:flex-start;overflow:hidden;border:1px solid #9184d9;border-radius:10px;animation:ctaPulse 3.4s ease-in-out infinite">
+          <div style="display:inline-flex;align-items:center;gap:12px;padding:20px 34px;color:#e9e9ed;font-size:25px;font-weight:600;letter-spacing:-.01em">Follow the journey <span style="color:#d2cefd">→ ordo7.pro</span></div>
+          <div style="position:absolute;top:0;left:0;width:60px;height:100%;background:linear-gradient(90deg,transparent,#9184d955,transparent);animation:sheen 3.4s ease-in-out infinite"></div>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:88px;bottom:88px;display:flex;align-items:center;gap:14px">
+        <span style="width:9px;height:9px;border-radius:50%;background:#9184d9;animation:livePulse 1.8s ease-in-out infinite"></span>
+        <span style="font-size:17px;color:#75798c;letter-spacing:.03em">Built for the PM already doing two jobs · ordo7.pro</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LINK / ARTICLE COVER · 1200×627 (1.91:1) ══ -->
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:baseline;gap:12px">
+      <span style="font-size:13px;font-weight:600;color:#d2cefd;border:1px solid #423a6a;background:#2b2741;padding:2px 9px;border-radius:4px">COVER · 1.91:1</span>
+      <span style="font-size:16px;font-weight:500">Link / article cover · 1200 × 627</span>
+    </div>
+    <div id="cover-191" style="position:relative;width:1200px;height:627px;overflow:hidden;border-radius:6px;box-shadow:0 0 0 1px #2a2d3d,0 30px 80px rgba(0,0,0,.6);background:radial-gradient(90% 150% at 78% 30%,#1b1e30 0%,#141626 52%,#0d0f1a 100%)">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(#ffffff0d 1px,transparent 1px),linear-gradient(90deg,#ffffff0d 1px,transparent 1px);background-size:72px 72px;animation:gridDrift 16s linear infinite"></div>
+      <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,transparent,#9184d9 22%,#9184d9 78%,transparent)"></div>
+
+      <div style="position:absolute;left:56px;top:44px;display:flex;align-items:center;gap:13px">
+        <div style="position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center">
+          <div style="position:absolute;inset:-5px;border-radius:50%;box-shadow:0 0 0 1px #4a4470;animation:ringSpin 22s linear infinite"></div>
+          <img src="assets/mark.png" alt="Ordo7" style="height:36px;width:auto">
+        </div>
+        <span class="wm" style="font-size:28px">Ordo7</span>
+      </div>
+
+      <div style="position:absolute;right:56px;top:82px;width:300px;height:462px">
+        <div style="position:absolute;inset:-34px;border-radius:22px;background:radial-gradient(circle at 50% 40%,#9184d9 0%,transparent 62%);animation:haloPulse 5s ease-in-out infinite"></div>
+        <div style="position:absolute;inset:0;border-radius:16px;overflow:hidden;box-shadow:0 0 0 1px #4a4470,0 20px 50px rgba(0,0,0,.55);background:#0d0f1a url(assets/ceo-portrait.png) 50% 0%/cover no-repeat"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:42%;border-radius:0 0 16px 16px;background:linear-gradient(0deg,#0d0f1acc,transparent)"></div>
+        <div style="position:absolute;left:18px;bottom:16px">
+          <div style="font-size:18px;font-weight:500;color:#e9e9ed">Taj Young</div>
+          <div style="font-size:12px;color:#b2b6ca;letter-spacing:.03em">Founder &amp; Developer</div>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:60px;top:50%;transform:translateY(-46%);width:640px;display:flex;flex-direction:column;gap:20px">
+        <div style="font-size:13px;font-weight:600;letter-spacing:.28em;color:#d2cefd">[ FOUNDER LOG — 001 ]</div>
+        <div style="font-size:46px;font-weight:500;line-height:1.05;letter-spacing:-.025em">Scheduling's been broken for years. I decided to <span style="color:#d2cefd">fix it.</span></div>
+        <div style="font-size:18px;color:#b2b6ca;line-height:1.5;max-width:520px">I'm a developer building Ordo7 in the open — the project-controls tool professionals keep asking for. Follow the build, step by step.</div>
+        <div style="margin-top:6px;position:relative;display:inline-flex;align-self:flex-start;overflow:hidden;border:1px solid #9184d9;border-radius:10px;animation:ctaPulse 3.4s ease-in-out infinite">
+          <div style="display:inline-flex;align-items:center;gap:10px;padding:14px 24px;color:#e9e9ed;font-size:18px;font-weight:600;letter-spacing:-.01em">Follow the journey <span style="color:#d2cefd">→ ordo7.pro</span></div>
+          <div style="position:absolute;top:0;left:0;width:50px;height:100%;background:linear-gradient(90deg,transparent,#9184d955,transparent);animation:sheen 3.4s ease-in-out infinite"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
