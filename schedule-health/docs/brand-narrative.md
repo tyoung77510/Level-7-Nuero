@@ -10,14 +10,40 @@ This is a "build in public" strategy: the goal right now is **audience before as
 
 ## What's confirmed (do not deviate from this)
 
-**Founder Log — 001** (first published entry):
-- Headline: *"Scheduling's been broken for years. I decided to fix it."*
-- Subhead: *"I'm a developer building Ordo7 in the open — the project-controls tool professionals keep asking for. Follow the build, step by step."*
-- CTA: *"Follow the journey → ordo7.pro"*
-- Byline: Taj Young, Founder & Developer
-- Visual style: dark navy/near-black background, subtle grid pattern, founder headshot on the right in a bordered card, "Founder Log — 001" as a small tracked-letterspacing label above the headline.
+A high-fidelity design handoff (the "Nocturne" system, see below) locked final copy for both entries below — this supersedes any earlier draft wording, including the copy drafted earlier in this doc's history.
 
-This entry establishes the template for every future Founder Log post: numbered sequentially (002, 003, ...), each one documenting a real build milestone, decision, or problem encountered — not generic motivational content.
+**Founder Log — 001** (first published entry):
+- Headline: *"Scheduling's been broken for years. I decided to **fix it**."* (key phrase in accent color)
+- Body: *"I'm a developer building Ordo7 in the open — the project-controls tool professionals keep asking for. No big team. No permission. Just the work, shared step by step."*
+- CTA button: *"Follow the journey → ordo7.pro"*
+- Footer caption: *"New from the build, every week · ordo7.pro"*
+- Byline: Taj Young, Founder & Developer
+- Portrait position: upper-left
+
+**Founder Log — 002:**
+- Headline: *"**PMs are doing two jobs.** Ordo7 takes one back."* (key phrase in accent color)
+- Body: *"A capital-projects boom is outpacing the trained staff to run it — so PMs absorb cost control and schedule maintenance on top of their real job. Upload a schedule, get a plain-language health check. No Primavera analyst, no new headcount."*
+- CTA button: *"Follow the journey → ordo7.pro"*
+- Footer caption: *"Built for the PM already doing two jobs · ordo7.pro"*
+- Byline: Taj Young, Founder & Developer
+- Portrait position: upper-right (alternates with 001 for visual rhythm)
+
+This entry establishes the template for every future Founder Log post: numbered sequentially (003, 004, ...), each one documenting a real build milestone, decision, or problem encountered — not generic motivational content. Per the design handoff's own recipe: each new episode only needs a new number, a new headline (key phrase in accent color), a 2–3 sentence body, and optionally a portrait side-swap — everything else in the system stays fixed.
+
+**LinkedIn caption formula** (from the design handoff): hook line → the problem/story → what Ordo7 does → `Follow the journey → https://ordo7.pro` → 4–5 hashtags. Suggested hashtag set: `#BuildInPublic #ProjectControls #Scheduling #SaaS #FounderJourney`.
+
+## Visual design system ("Nocturne")
+
+Locked, high-fidelity design tokens — recreate pixel-accurately for any new Founder Log entry rather than improvising a new look.
+
+- **Canvas:** 1200×1500 (4:5, preferred for LinkedIn feed reach — shown uncropped) or 1200×627 (1.91:1, for article/link-preview covers, since feed crops square images to this ratio there). Export flattened JPG, no alpha — transparent PNGs get rejected by some LinkedIn uploaders.
+- **Ground:** radial gradient `#1b1e30 → #141626 → #0d0f1a`, 6px radius, faint 96px blueprint grid overlay (~5% white), 5px accent spine down the left edge fading top/bottom.
+- **Top lockup:** Ordo7 ring mark (44px) inside a 64px ring, + "Ordo7" wordmark at 34px / weight 500 / letter-spacing -0.03em.
+- **Portrait card:** ~404×520, rounded 18px, founder portrait cropped `50% 0%` (headroom so the head never clips), bottom gradient scrim, name + "Founder & Developer" caption, soft accent halo behind. Alternates left/right per entry.
+- **Content block:** episode label `[ FOUNDER LOG — 00N ]` (16px / weight 600 / letter-spacing 0.28em / `#d2cefd`); headline ~82px / weight 500 / line-height 1.03 (key phrase in `#d2cefd`); body 26px / `#b2b6ca`; outlined CTA button (transparent fill, 1px `#9184d9` border, 10px radius — accent outlines only, never filled, per the design system's own rule).
+- **Colors:** ground `#0d0f1a`/`#141626`/`#1b1e30`; text primary `#e9e9ed`, muted `#b2b6ca`, faint `#75798c`; accent (blurple) `#9184d9`, light accent `#d2cefd`.
+- **Type:** Inter — headings weight 500 max (never bolder), body weight 400, kicker/label weight 600 uppercase.
+- **Asset files:** stored at `schedule-health/marketing-assets/linkedin-founder-log/` — design source HTML, README with full spec, `assets/mark.png` + `assets/ceo-portrait.png`, and post-ready renders in `renders/`.
 
 ## Founder background (confirmed, anonymized)
 
