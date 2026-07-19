@@ -1,5 +1,5 @@
 # Technology Stack
-> **Source:** INFRA-002 (Technology Stack) | **Last Updated:** 2026-07-11
+> **Source:** INFRA-002 (Technology Stack) | **Last Updated:** 2026-07-19
 
 ## Core Platform
 | System | Purpose | Access |
@@ -35,7 +35,7 @@
 ## Finance
 | System | Purpose | Status |
 |--------|---------|:------:|
-| Stripe (via cto.new) | Payment processing | ⏳ Requires paid plan upgrade |
+| Stripe (via cto.new) | Payment processing | ✅ Active |
 
 ## Notifications
 | System | Purpose | Status |
