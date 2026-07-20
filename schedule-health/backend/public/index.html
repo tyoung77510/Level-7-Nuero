@@ -1616,6 +1616,7 @@ const FEATURE_TIERS = {
   criticalPath: ['pro', 'teams'],
   earnedValue: ['pro', 'teams'],
   crossSnapshotVariance: ['pro', 'teams'],
+  fixGuidance: ['pro', 'teams'],
   liveReviewRooms: ['teams'],
   unwatermarkedReports: ['teams'],
   unrestrictedLeaderboard: ['pro', 'teams']
@@ -2487,16 +2488,65 @@ function renderIssues(issues){
     const shareBtn = (!resolved && i.severity === 'crit')
       ? '<button class="btn tiny no-print" onclick="shareCatch(\'' + escapeHtml(jsStringEscape(i.name)) + '\', \'' + escapeHtml(jsStringEscape(i.sub)) + '\')">🏆 Share This Catch</button>'
       : '';
-    return '<div class="issue reveal-item' + (resolved ? ' resolved' : '') + '" style="animation-delay:' + (idx * 52) + 'ms;"><div><p class="issue-name">' + name + '</p><p class="issue-sub">' + sub + '</p></div>' +
-    '<div class="issue-right">' +
-      (resolved
-        ? '<span class="badge resolved-badge">resolved</span>'
-        : '<span class="badge ' + (i.severity === 'crit' ? 'crit">critical' : 'risk">at risk') + '</span>' +
-          shareBtn +
-          '<button class="btn tiny no-print" onclick="resolveIssue(' + i.id + ')">Mark resolved</button>') +
-    '</div></div>';
+    const fixBtn = !resolved
+      ? '<button class="btn tiny no-print" onclick="toggleFixGuidance(' + i.id + ')">🔧 How to fix</button>'
+      : '';
+    return '<div class="issue-wrap">' +
+      '<div class="issue reveal-item' + (resolved ? ' resolved' : '') + '" style="animation-delay:' + (idx * 52) + 'ms;"><div><p class="issue-name">' + name + '</p><p class="issue-sub">' + sub + '</p></div>' +
+      '<div class="issue-right">' +
+        (resolved
+          ? '<span class="badge resolved-badge">resolved</span>'
+          : '<span class="badge ' + (i.severity === 'crit' ? 'crit">critical' : 'risk">at risk') + '</span>' +
+            shareBtn + fixBtn +
+            '<button class="btn tiny no-print" onclick="resolveIssue(' + i.id + ')">Mark resolved</button>') +
+      '</div></div>' +
+      '<div id="fix-guidance-' + i.id + '" class="no-print" style="display:none; margin:-2px 0 8px;"></div>' +
+    '</div>';
   }).join('');
   observeReveal(el);
+}
+
+// Lazy-loaded, toggled per issue — fetched once per page load (cached on the panel's own
+// dataset.loaded flag) then just shown/hidden on subsequent clicks, same as not re-fetching
+// something that can't have changed since the issue itself hasn't changed.
+async function toggleFixGuidance(issueId){
+  const panel = document.getElementById('fix-guidance-' + issueId);
+  if (!panel) return;
+  if (panel.dataset.loaded){
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    return;
+  }
+  panel.style.display = 'block';
+
+  if (!checkFeatureAccess('fixGuidance')){
+    panel.innerHTML = '<div class="card" style="margin-top:4px;"><p style="font-size:12.5px; margin:0 0 8px;">Fix guidance is a Pro feature — step-by-step remediation for every issue type Ordo7 flags.</p>' +
+      '<button class="btn primary" style="font-size:12px; padding:6px 14px;" onclick="setView(\'pricing\')">Upgrade to unlock fix guidance</button></div>';
+    panel.dataset.loaded = '1';
+    return;
+  }
+
+  panel.innerHTML = '<p class="empty" style="padding:6px 0;">Loading fix guidance…</p>';
+  try {
+    const res = await fetch(API + '/api/issues/' + issueId + '/fix-guidance', { credentials: 'same-origin' });
+    if (res.status === 402){
+      panel.innerHTML = '<div class="card" style="margin-top:4px;"><p style="font-size:12.5px; margin:0 0 8px;">Fix guidance is a Pro feature — step-by-step remediation for every issue type Ordo7 flags.</p>' +
+        '<button class="btn primary" style="font-size:12px; padding:6px 14px;" onclick="setView(\'pricing\')">Upgrade to unlock fix guidance</button></div>';
+      panel.dataset.loaded = '1';
+      return;
+    }
+    if (!res.ok){
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || ('Request failed: ' + res.status));
+    }
+    const data = await res.json();
+    panel.innerHTML = '<div class="card" style="margin-top:4px; border-left:3px solid var(--accent);">' +
+      '<p style="font-weight:600; font-size:13px; margin:0 0 6px;">🔧 ' + escapeHtml(data.guidance.title) + '</p>' +
+      '<p style="font-size:12.5px; color:var(--muted); margin:0; line-height:1.5;">' + escapeHtml(data.guidance.body) + '</p>' +
+    '</div>';
+    panel.dataset.loaded = '1';
+  } catch (e) {
+    panel.innerHTML = '<p class="error" style="font-size:12px; padding:4px 0;">Could not load fix guidance: ' + escapeHtml(e.message) + '</p>';
+  }
 }
 
 function shareCatch(name, sub){

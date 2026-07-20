@@ -766,6 +766,10 @@ function getIssuesForSnapshot(snapshotId) {
   return db.prepare('SELECT * FROM issues WHERE snapshot_id = ? ORDER BY severity, id').all(snapshotId);
 }
 
+function getIssueById(issueId) {
+  return db.prepare('SELECT * FROM issues WHERE id = ?').get(issueId);
+}
+
 function getSnapshotById(snapshotId) {
   return db.prepare('SELECT * FROM snapshots WHERE id = ?').get(snapshotId);
 }
@@ -1047,7 +1051,7 @@ function getAdminAiUsageTotal() {
 
 module.exports = {
   db, getOrCreateProject, listProjects, listArchivedProjects, archiveProject, unarchiveProject, saveSnapshot,
-  getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio, getActivityFeed,
+  getHistory, getLatestSnapshot, getIssuesForSnapshot, getIssueById, updateIssueStatus, getPortfolio, getActivityFeed,
   getIssueOwnerUserId, createFeedback,
   logError, listErrorsForAdmin, pruneOldErrors,
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,

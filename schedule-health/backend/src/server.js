@@ -39,6 +39,7 @@ const blogContent = require('./blog-content');
 const rateLimit = require('./rate-limit');
 const webhook = require('./webhook');
 const mailerlite = require('./mailerlite');
+const fixGuidance = require('./fix-guidance');
 
 store.deleteExpiredSessions();
 store.pruneOldErrors();
@@ -1043,6 +1044,29 @@ route('PATCH', '/api/issues/:id', async (req, res, params, user) => {
   if (ownerId !== user.id) return sendJSON(res, 403, { error: 'Not your project' });
   const updated = store.updateIssueStatus(issueId, payload.status);
   sendJSON(res, 200, updated);
+});
+
+// Rule-based (not AI-generated) remediation guidance, one per DCMA-style check type — see
+// fix-guidance.js for why. Pro/Teams only, enforced here server-side (not just hidden behind a
+// frontend tier check) — the content itself isn't sensitive, but it's the thing being sold, so a
+// free-tier account calling this route directly must not get it for free. 402, not 403 — this is
+// "your plan doesn't include this feature," the same account-level case flagged as reserved for
+// 402 in the narrative route above, distinct from an ownership violation.
+route('GET', '/api/issues/:id/fix-guidance', async (req, res, params, user) => {
+  const issueId = Number(params.id);
+  const ownerId = store.getIssueOwnerUserId(issueId);
+  if (ownerId === null) return sendJSON(res, 404, { error: 'No such issue' });
+  if (ownerId !== user.id) return sendJSON(res, 403, { error: 'Not your project' });
+
+  const billingUser = store.getEffectiveTierUser(user);
+  if (!['pro', 'teams'].includes(billingUser.plan_tier)) {
+    return sendJSON(res, 402, { error: 'Fix guidance is a Pro feature', requiredTier: 'pro' });
+  }
+
+  const issue = store.getIssueById(issueId);
+  const guidance = fixGuidance.getFixGuidanceForIssue(issue);
+  if (!guidance) return sendJSON(res, 404, { error: 'No fix guidance available for this issue type yet' });
+  sendJSON(res, 200, { guidance });
 });
 
 route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => {
