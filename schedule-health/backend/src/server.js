@@ -1209,8 +1209,8 @@ route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
 // strings. migratedFrom's option list doubles as the same competitor set tracked in the private
 // competitive-intelligence repo, so a real answer here also validates (or corrects) those
 // assumptions with first-party data.
-const PORTFOLIO_SIZE_BUCKETS = ['1', '2-5', '6-15', '16-50', '50+'];
-const MIGRATED_FROM_OPTIONS = ['primavera_p6', 'acumen_fuse', 'smartpm', 'schedulereader', 'ecosys_hexagon', 'excel_spreadsheets', 'nothing_first_tool', 'other'];
+const PORTFOLIO_SIZE_BUCKETS = ['first_project', '1', '2-5', '6-15', '16-50', '50+'];
+const MIGRATED_FROM_OPTIONS = ['starting_fresh', 'primavera_p6', 'acumen_fuse', 'smartpm', 'schedulereader', 'ecosys_hexagon', 'excel_spreadsheets', 'other'];
 
 // Optional, skippable — see the profile_survey_dismissed_at column comment in db.js. Called with
 // both fields null/absent when the user clicks Skip or closes the prompt without answering; that
