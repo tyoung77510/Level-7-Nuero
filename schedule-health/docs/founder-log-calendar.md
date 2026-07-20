@@ -141,6 +141,8 @@ The Founder Log is one channel, not the whole go-to-market plan. These are the n
 - [ ] **Small, targeted event presence** — regional/local AGC chapter events or startup/tech-showcase tracks at larger conferences, not full booth sponsorship. Even just attending and turning it into real Founder Log content ("here's what I heard this week") is on-brand and costs a plane ticket.
 - [ ] **Not yet, on purpose:** paid conference sponsorship and published case studies both wait on having real, permissioned user results to point to — don't force either before that's true.
 
+The three relationship-building items (earned-coverage outreach, referral channel, event presence) run on a daily automated engine — see `gtm-action-log.md` for the rotation, the research/draft-only rule, and the running log of what's been found and drafted.
+
 ## Obsidian / cross-references
 
 - [[brand-narrative.md]] — voice rules, locked copy, the "don't fabricate" standard this calendar follows
