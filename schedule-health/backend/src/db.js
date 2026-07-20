@@ -900,6 +900,42 @@ function updateBlogPost(slug, title, description, contentHtml, category, toc, he
 
 // --- Admin Command Center ---
 
+// Each breakdown's percentages are computed against only the users who answered *that* field, not
+// against every prompted user — a skip on one field shouldn't dilute the distribution of the
+// other. totalPrompted/totalSkippedEntirely give the response-rate context alongside the two
+// breakdowns, so the console can show both "of people who answered, X% said Y" and "N people have
+// been asked, M skipped entirely" without conflating the two.
+function getProfileSurveyStats() {
+  const totalPrompted = db.prepare('SELECT COUNT(*) AS n FROM users WHERE profile_survey_dismissed_at IS NOT NULL').get().n;
+  const totalSkippedEntirely = db.prepare(`
+    SELECT COUNT(*) AS n FROM users
+    WHERE profile_survey_dismissed_at IS NOT NULL AND portfolio_size_bucket IS NULL AND migrated_from IS NULL
+  `).get().n;
+
+  const portfolioRows = db.prepare(`
+    SELECT portfolio_size_bucket AS value, COUNT(*) AS n FROM users
+    WHERE portfolio_size_bucket IS NOT NULL GROUP BY portfolio_size_bucket
+  `).all();
+  const portfolioTotal = portfolioRows.reduce((sum, r) => sum + r.n, 0);
+
+  const migratedRows = db.prepare(`
+    SELECT migrated_from AS value, COUNT(*) AS n FROM users
+    WHERE migrated_from IS NOT NULL GROUP BY migrated_from
+  `).all();
+  const migratedTotal = migratedRows.reduce((sum, r) => sum + r.n, 0);
+
+  const toBreakdown = (rows, total) => rows
+    .map(r => ({ value: r.value, count: r.n, pct: total ? Math.round((r.n / total) * 100) : 0 }))
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    totalPrompted,
+    totalSkippedEntirely,
+    portfolioSize: { total: portfolioTotal, breakdown: toBreakdown(portfolioRows, portfolioTotal) },
+    migratedFrom: { total: migratedTotal, breakdown: toBreakdown(migratedRows, migratedTotal) }
+  };
+}
+
 // Search is optional — an empty/undefined query returns every account, newest first, capped so
 // a large user base can't return an unbounded response to the console in one call.
 function searchUsersForAdmin(query, limit) {
@@ -1017,7 +1053,7 @@ module.exports = {
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
   getOrCreateShareToken, getPublicSnapshotByShareToken,
   createUser, getUserByEmail, getUserById, setEmailVerified, markOnboarded,
-  saveProfileSurvey, countSnapshotsForUser,
+  saveProfileSurvey, countSnapshotsForUser, getProfileSurveyStats,
   getUserByOAuthAccount, linkOAuthAccount, createOAuthUser,
   createPendingOAuthSignup, consumePendingOAuthSignup,
   getUserByReferralCode, getReferralStats,

@@ -1212,6 +1212,17 @@ route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
 const PORTFOLIO_SIZE_BUCKETS = ['first_project', '1', '2-5', '6-15', '16-50', '50+'];
 const MIGRATED_FROM_OPTIONS = ['starting_fresh', 'primavera_p6', 'acumen_fuse', 'smartpm', 'schedulereader', 'ecosys_hexagon', 'excel_spreadsheets', 'other'];
 
+// Human-readable labels for the admin console's aggregate panel — kept in sync with the <option>
+// text in index.html's survey modal by hand, same as the enums above.
+const PORTFOLIO_SIZE_LABELS = {
+  first_project: 'This is my first project', '1': 'Just 1', '2-5': '2–5', '6-15': '6–15', '16-50': '16–50', '50+': '50+'
+};
+const MIGRATED_FROM_LABELS = {
+  starting_fresh: "I'm starting fresh", primavera_p6: 'Primavera P6', acumen_fuse: 'Deltek Acumen Fuse',
+  smartpm: 'SmartPM', schedulereader: 'ScheduleReader', ecosys_hexagon: 'Hexagon / EcoSys',
+  excel_spreadsheets: 'Excel / spreadsheets', other: 'Other'
+};
+
 // Optional, skippable — see the profile_survey_dismissed_at column comment in db.js. Called with
 // both fields null/absent when the user clicks Skip or closes the prompt without answering; that
 // still marks it dismissed so it never shows again.
@@ -1341,6 +1352,18 @@ route('GET', '/api/admin/telemetry', async (req, res, params, user) => {
     advisorToolSpendUsd: advisorSpend.costUsd,
     serverCostMonthlyUsd: serverCostRaw ? Number(serverCostRaw) : null,
     advisoryClickCount: store.getAdvisoryClickCount()
+  });
+});
+
+route('GET', '/api/admin/profile-survey-stats', async (req, res, params, user) => {
+  if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  const stats = store.getProfileSurveyStats();
+  const withLabels = (breakdown, labels) => breakdown.map(row => ({ ...row, label: labels[row.value] || row.value }));
+  sendJSON(res, 200, {
+    totalPrompted: stats.totalPrompted,
+    totalSkippedEntirely: stats.totalSkippedEntirely,
+    portfolioSize: { total: stats.portfolioSize.total, breakdown: withLabels(stats.portfolioSize.breakdown, PORTFOLIO_SIZE_LABELS) },
+    migratedFrom: { total: stats.migratedFrom.total, breakdown: withLabels(stats.migratedFrom.breakdown, MIGRATED_FROM_LABELS) }
   });
 });
 

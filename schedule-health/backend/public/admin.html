@@ -123,6 +123,18 @@
   .col-header .tag { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--muted); }
   .col-body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; }
 
+  /* Profile survey aggregate panel */
+  .survey-panel { flex-shrink: 0; margin-top: 16px; }
+  .survey-split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 14px 16px; }
+  .survey-group-title { font-size: 12px; font-weight: 600; color: var(--secondary); margin-bottom: 10px; }
+  .survey-bar-row { margin-bottom: 10px; }
+  .survey-bar-row:last-child { margin-bottom: 0; }
+  .survey-bar-label { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink); margin-bottom: 4px; }
+  .survey-bar-label .survey-bar-pct { font-family: 'JetBrains Mono', monospace; color: var(--muted); }
+  .survey-bar-track { height: 6px; border-radius: 3px; background: var(--card-nested); overflow: hidden; }
+  .survey-bar-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--accent-2)); border-radius: 3px; }
+  .survey-empty { font-size: 12.5px; color: var(--muted); padding: 4px 0; }
+
   /* Column 1: users */
   .search-input {
     width: 100%; background: var(--paper); border: 1px solid rgba(148,163,184,.18); border-radius: 10px;
@@ -349,6 +361,23 @@
         <div class="col-body" id="feedbackList"></div>
       </section>
     </div>
+
+    <div class="col survey-panel">
+      <div class="col-header">
+        <h2>Profile Survey — Portfolio Size &amp; Migrated From</h2>
+        <span class="tag mono" id="surveyResponseTag">— prompted</span>
+      </div>
+      <div class="survey-split">
+        <div>
+          <div class="survey-group-title">How many projects are in your portfolio?</div>
+          <div id="surveyPortfolioBars"></div>
+        </div>
+        <div>
+          <div class="survey-group-title">What tool are you moving away from, if any?</div>
+          <div id="surveyMigratedBars"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -466,7 +495,7 @@ function enterConsole(user) {
 // --- Data loading ---
 
 async function loadAll() {
-  await Promise.all([loadTelemetry(), loadUsers(), loadFlags(), loadFeedback(), loadErrors()]);
+  await Promise.all([loadTelemetry(), loadUsers(), loadFlags(), loadFeedback(), loadErrors(), loadProfileSurveyStats()]);
 }
 
 function fmtUsd(n) {
@@ -498,6 +527,32 @@ async function loadTelemetry() {
     document.getElementById('kpiAdvisory').textContent = t.advisoryClickCount.toLocaleString();
   } catch (e) {
     showToast('Could not load telemetry: ' + e.message);
+  }
+}
+
+function renderSurveyBars(containerId, breakdown) {
+  const el = document.getElementById(containerId);
+  if (!breakdown.length) {
+    el.innerHTML = '<div class="survey-empty">No responses yet.</div>';
+    return;
+  }
+  el.innerHTML = breakdown.map(row =>
+    '<div class="survey-bar-row">' +
+      '<div class="survey-bar-label"><span>' + escapeHtml(row.label) + '</span><span class="survey-bar-pct">' + row.pct + '% · ' + row.count + '</span></div>' +
+      '<div class="survey-bar-track"><div class="survey-bar-fill" style="width:' + row.pct + '%;"></div></div>' +
+    '</div>'
+  ).join('');
+}
+
+async function loadProfileSurveyStats() {
+  try {
+    const s = await api('/api/admin/profile-survey-stats');
+    document.getElementById('surveyResponseTag').textContent =
+      s.totalPrompted.toLocaleString() + ' prompted · ' + s.totalSkippedEntirely.toLocaleString() + ' skipped entirely';
+    renderSurveyBars('surveyPortfolioBars', s.portfolioSize.breakdown);
+    renderSurveyBars('surveyMigratedBars', s.migratedFrom.breakdown);
+  } catch (e) {
+    showToast('Could not load profile survey stats: ' + e.message);
   }
 }
 
