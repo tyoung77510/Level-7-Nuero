@@ -1,0 +1,42 @@
+[
+  {
+    "day": 3,
+    "headline": "An activity with no predecessor isn't a schedule. **It's a guess.**",
+    "body": "Logic is DCMA check #1 for a reason: every activity needs something driving it and something depending on it. Skip that, and your finish date isn't really connected to the work. Ordo7 flags every open end the moment you upload.",
+    "footer": "DCMA 14-Point Series — 1 of 14 · ordo7.pro",
+    "portraitSide": "left",
+    "types": ["feed", "cover"]
+  },
+  {
+    "day": 4,
+    "headline": "In utility work, a missed schedule isn't just late. **It's a safety problem.**",
+    "body": "On a water utility maintenance program, enforcing real schedule discipline cut safety incidents by 9%. Compliance-driven schedules don't get extensions — building Ordo7 to work for that reality, not just construction's.",
+    "footer": "From the field: utility programs · ordo7.pro",
+    "portraitSide": "right",
+    "types": ["feed", "cover"]
+  },
+  {
+    "day": 5,
+    "headline": "Eight years in project controls taught me **one thing keeps breaking.**",
+    "body": "PMP-certified, deep in Primavera P6 and EVM, across $100M+ in portfolios — utility, manufacturing, pharma, oil & gas, education. The tools were always powerful. Never built for the person running the schedule. That's the gap Ordo7 fills.",
+    "footer": "Founder background · ordo7.pro",
+    "portraitSide": "left",
+    "types": ["feed", "cover"]
+  },
+  {
+    "day": 7,
+    "headline": "No big team. No funding round. **Just the work, in public.**",
+    "body": "Building in public isn't a growth hack here — it's the only way I know how to build something honest. You'll see the real milestones and the real setbacks. No polish where there isn't progress yet.",
+    "footer": "Why build in public · ordo7.pro",
+    "portraitSide": "left",
+    "types": ["feed", "cover"]
+  },
+  {
+    "day": 9,
+    "headline": "There aren't enough project controls analysts. **Everyone feels it.**",
+    "body": "Staffing agencies can't fill project controls roles fast enough to match the current capital-projects boom. The gap doesn't disappear — it gets absorbed by whoever's already on the project. Usually the PM.",
+    "footer": "The spark, part 2 · ordo7.pro",
+    "portraitSide": "left",
+    "types": ["feed", "cover"]
+  }
+]

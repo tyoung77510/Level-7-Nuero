@@ -1523,7 +1523,8 @@ const BLOG_CATEGORY_STYLES = {
   'Fundamentals': { label: 'FUNDAMENTALS', color: '#5eead4', bg: 'rgba(94,234,212,0.1)' },
   'DCMA & compliance': { label: 'DCMA', color: '#f4b955', bg: 'rgba(244,185,85,0.1)' },
   'For owners & PMs': { label: 'FOR OWNERS', color: '#a78bfa', bg: 'rgba(167,139,250,0.1)' },
-  'Product': { label: 'PRODUCT', color: '#46d19e', bg: 'rgba(70,209,158,0.1)' }
+  'Product': { label: 'PRODUCT', color: '#46d19e', bg: 'rgba(70,209,158,0.1)' },
+  'Founder Log': { label: 'FOUNDER LOG', color: '#9184d9', bg: 'rgba(145,132,217,0.1)' }
 };
 function categoryStyle(category) {
   return BLOG_CATEGORY_STYLES[category] || { label: String(category || '').toUpperCase(), color: '#8695a8', bg: 'rgba(148,163,184,0.1)' };

@@ -44,6 +44,7 @@ Locked, high-fidelity design tokens — recreate pixel-accurately for any new Fo
 - **Colors:** ground `#0d0f1a`/`#141626`/`#1b1e30`; text primary `#e9e9ed`, muted `#b2b6ca`, faint `#75798c`; accent (blurple) `#9184d9`, light accent `#d2cefd`.
 - **Type:** Inter — headings weight 500 max (never bolder), body weight 400, kicker/label weight 600 uppercase.
 - **Asset files:** stored at `schedule-health/marketing-assets/linkedin-founder-log/` — design source HTML, README with full spec, `assets/mark.png` + `assets/ceo-portrait.png`, and post-ready renders in `renders/`.
+- **Render pipeline:** `linkedin-founder-log/render/` — parameterized HTML templates (feed + cover) and a Playwright script that turn a JSON data file into pixel-consistent JPGs. Any day's graphic is one command away; see `render/README.md`. This is what generates every Founder Log entry's image now, rather than manual recreation per post.
 
 ## Founder background (confirmed, anonymized)
 
@@ -97,6 +98,7 @@ Note: this is in addition to Ordo7's other target segment already explored for p
 - **Specific over vague.** Reference the actual thing that changed that week — a feature shipped, a real user's frustration, a design decision and why. Never a content-free "big things coming!" post.
 - **Same bluntness as Level 7's brand voice**, but more personal — this is Taj's voice, not the institutional "Truth-Teller" voice used for Level 7 Consulting client-facing material. Direct, no jargon, contractions welcome, no corporate speak ("synergize," "leverage," "best-in-class" are still banned here).
 - **Don't fabricate.** No invented metrics, no invented user testimonials, no invented milestones ahead of when they're real. This mirrors the product's own "don't fabricate metrics" rule in `design-notes.md` — the brand narrative holds itself to the same honesty standard the product does.
+- **User feedback content is real-only.** When a Founder Log post references a user comment, request, or reaction, it must be an actual thing a real user said, anonymized (no names, no organizations — same confidentiality rule as everywhere else in this doc). Never invent a quote or paraphrase to fill a content slot. If there's nothing real to reference yet, the post waits or runs a category-appropriate placeholder instead — see `founder-log-calendar.md`'s Slot F rule.
 
 ## Channel application
 
@@ -121,8 +123,13 @@ Background, the origin thesis, and the build timeline are now confirmed (see abo
 
 - **What "support" concretely means** once the audience-building phase converts — paid beta, waitlist-to-launch, pre-orders, something else. The CTA evolves once it stops being pure "follow the journey," and this determines when/how that shift happens. Not urgent before launch — "follow the journey" still holds as the CTA through launch itself.
 
+## 90-day content calendar
+
+The Founder Log runs as a daily series (LinkedIn + blog, same story every day) for 90 days, structured as a 7-slot weekly wheel (build log, spark/thesis, DCMA education, industry pain point, founder story, user feedback, reflective) so it has consistent rhythm without repeating a topic. Full day-by-day topic bank, the fabrication guardrails for the two "live" slots, and the batching approach live in `founder-log-calendar.md`. First batch (Days 003–009) is fully drafted — graphics in `../marketing-assets/linkedin-founder-log/renders/`, LinkedIn captions in `../marketing-assets/linkedin-founder-log/batch-01-linkedin-captions.md`, blog posts appended to `../backend/src/blog-content.js`.
+
 ## Obsidian / cross-references
 
 - [[../CLAUDE.md]] — product overview and architecture
 - [[design-notes.md]] — product thesis and UX principles this narrative should stay consistent with
+- [[founder-log-calendar.md]] — the 90-day day-by-day topic calendar
 - [[../marketing-assets/README.md]] — asset inventory this content plan feeds
