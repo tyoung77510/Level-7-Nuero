@@ -131,6 +131,16 @@ Days 001–002 are already published (see `../marketing-assets/linkedin-founder-
 
 Full copy + rendered graphics get produced in small batches, not all 90 at once — this keeps Slots A and F honest (nothing gets written before it's true) and keeps quality consistent (each batch gets reviewed against voice guidelines before it ships). First batch: Days 003–009 (closes out the rest of week one). See `../marketing-assets/linkedin-founder-log/render/` for the pipeline that turns a finished batch into graphics.
 
+## GTM action items (non-content — tracked here for visibility, not part of the daily posting cadence)
+
+The Founder Log is one channel, not the whole go-to-market plan. These are the near-term, low-cost moves worth doing alongside it — sequenced cheap-and-true-to-brand first, expensive and enterprise-shaped later, since Ordo7 is bootstrapped and self-serve rather than funded like the larger players in this category. (Full research and reasoning behind this sequencing lives in the private competitive-intelligence tracking — ask before assuming any specific claim about a competitor's marketing is fair game for public content.)
+
+- [ ] **SEO blog backlog** — a handful of dedicated long-tail posts targeting real commercial-intent searches, separate from the daily Founder Log narrative: "DCMA 14 point check software," "Primavera schedule health score," "P6 schedule review tool." Candidates for `blog-content.js` once the DCMA-14 educational series (Slot C) wraps around Day 087.
+- [ ] **Earned-coverage outreach** — guest posts / interviews with PM and scheduling educators and niche communities (Planning Planet, PMI local chapters, construction-scheduling YouTube/newsletter voices); a guest lecture or case-study conversation tied to the Construction Management coursework.
+- [ ] **Light-touch referral/consultant channel** — identify a handful of independent project-controls consultants or freelance schedulers who might refer clients; test an informal referral arrangement before building anything formal.
+- [ ] **Small, targeted event presence** — regional/local AGC chapter events or startup/tech-showcase tracks at larger conferences, not full booth sponsorship. Even just attending and turning it into real Founder Log content ("here's what I heard this week") is on-brand and costs a plane ticket.
+- [ ] **Not yet, on purpose:** paid conference sponsorship and published case studies both wait on having real, permissioned user results to point to — don't force either before that's true.
+
 ## Obsidian / cross-references
 
 - [[brand-narrative.md]] — voice rules, locked copy, the "don't fabricate" standard this calendar follows
