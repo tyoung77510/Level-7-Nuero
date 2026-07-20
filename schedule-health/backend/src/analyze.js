@@ -63,6 +63,23 @@ function milestoneHealthFrom(milestoneIssueCount, totalMilestones) {
   return totalMilestones > 0 ? pct(milestoneIssueCount, totalMilestones) : null;
 }
 
+// DCMA check #9, Invalid Dates — structural date problems plus actual dates set in the future.
+// Deliberately doesn't rely on a "data date" field from the source file (XER's own data-date
+// field is inconsistently populated and CSV has no data date concept at all); "now" at analysis
+// time is used as the future-date reference instead, which is what DCMA guidance itself falls
+// back to when a file's own data date isn't reliable. Returns a plain list of problem phrases so
+// callers can push one issue per phrase, matching the one-issue-per-condition pattern used
+// elsewhere in this file. Naturally produces zero issues for CSV-format files, which carry no
+// dates at all — an honest silence, not a fabricated pass.
+function invalidDateIssues(plannedStart, plannedEnd, actualStart, actualEnd, now) {
+  const problems = [];
+  if (actualEnd && !actualStart) problems.push('has an actual finish date but no actual start date');
+  if (actualStart && actualEnd && actualStart > actualEnd) problems.push('has an actual finish date before its actual start date');
+  if (plannedStart && plannedEnd && plannedStart > plannedEnd) problems.push('has a planned finish date before its planned start date');
+  if ((actualStart && actualStart > now) || (actualEnd && actualEnd > now)) problems.push('has an actual date set in the future');
+  return problems;
+}
+
 // Groups the six DCMA-style checks into three dashboard sub-scores. Each pairing groups checks
 // that measure the same underlying schedule-quality concern:
 // - logicQuality: missing logic + out-of-sequence work — is the network actually connected and
@@ -158,6 +175,16 @@ function analyzeXER(tables) {
       actualEnd: actualEndDate ? actualEndDate.toISOString().slice(0, 10) : null,
       status,
       percentComplete: Math.round(percentComplete * 10) / 10
+    });
+
+    // Runs for every task, milestone or not, and specifically *before* the isMilestone branch —
+    // reversed actual/planned dates can themselves produce a negative (clamped-to-zero) duration
+    // above, which would otherwise silently reclassify the very task this check exists to catch as
+    // a milestone and skip it entirely. Milestones don't get the general activity checks below, but
+    // date validity applies regardless of duration.
+    invalidDateIssues(plannedStart, plannedEnd, actualStartDate, actualEndDate, new Date()).forEach(problem => {
+      issues.push({ name: activityName + ' ' + problem, sub: (isMilestone ? 'Milestone ' : 'Activity ') + (t.task_code || t.task_id) + ' · invalid dates', sev: 'risk' });
+      nRisk++;
     });
 
     if (isMilestone) {
@@ -416,6 +443,20 @@ function analyzeMspXml(tasks) {
       percentComplete: t.percentComplete
     });
 
+    // Runs for every task, milestone or not, and before the isMilestone branch — see the identical
+    // comment in analyzeXER for why order matters here (a reversed-date task can otherwise get
+    // silently reclassified as a milestone upstream and skip this check entirely).
+    {
+      const actualStartDate = t.percentComplete > 0 && t.start ? new Date(t.start) : null;
+      const actualEndDate = t.percentComplete >= 100 && t.finish ? new Date(t.finish) : null;
+      const plannedStartDate = t.baselineStart ? new Date(t.baselineStart) : null;
+      const plannedEndDate = t.baselineFinish ? new Date(t.baselineFinish) : null;
+      invalidDateIssues(plannedStartDate, plannedEndDate, actualStartDate, actualEndDate, new Date()).forEach(problem => {
+        issues.push({ name: t.name + ' ' + problem, sub: (isMilestone ? 'Milestone ' : 'Activity ') + t.uid + ' · invalid dates', sev: 'risk' });
+        nRisk++;
+      });
+    }
+
     if (isMilestone) {
       totalMilestones++;
       let flagged = false;
@@ -519,4 +560,45 @@ function computeEarnedSchedule(activities, asOfDate) {
   };
 }
 
-module.exports = { parseXER, parseCSV, parseMspXml, analyzeXER, analyzeCSVTasks, analyzeMspXml, analyzeFile, computeEarnedSchedule };
+// 0.90 is a common EVM/DCMA convention for "at risk" (as opposed to 1.0 = exactly on plan) —
+// used here, not 1.0, so ordinary day-to-day noise around plan doesn't trip the alert.
+const RECOVERY_ALERT_SPI_THRESHOLD = 0.9;
+
+// Per SmartPM's 2026 industry report, a mid-project SPI dip with no recovery response was the
+// single strongest predictor of a bad outcome found in their causal study (~2.5x worse than
+// projects that responded). This is an honest, narrower proxy for that finding, not a
+// reimplementation of it: the report's own causal study specifically measured "end date slipped
+// beyond critical-path delay with no recovery plan," which needs baseline-finish-date tracking
+// Ordo7 doesn't do. What this function actually checks is the trend it *can* see from data it
+// already has — has schedule-only SPI stayed below the at-risk threshold across a project's last
+// few snapshots with no sign of recovering — which is a real, honest, narrower signal, not a claim
+// to reproduce the report's exact causal finding.
+//
+// spiHistory: array of { snapshotId, createdAt, spi } ordered oldest -> newest, already filtered
+// to entries where spi is non-null (see computeEarnedSchedule's own null-when-not-computable rule).
+function computeRecoveryAlert(spiHistory) {
+  if (!spiHistory || spiHistory.length < 2) {
+    return { available: false, reason: 'Needs at least two snapshots with a computable SPI to check for a trend.' };
+  }
+  const recent = spiHistory.slice(-3);
+  const belowCount = recent.filter(p => p.spi < RECOVERY_ALERT_SPI_THRESHOLD).length;
+  const earliest = recent[0];
+  const latest = recent[recent.length - 1];
+  const sustainedLow = belowCount >= 2 && latest.spi < RECOVERY_ALERT_SPI_THRESHOLD;
+  // Small tolerance, not a strict >, so rounding noise between snapshots doesn't read as recovery.
+  const improving = latest.spi > earliest.spi + 0.02;
+  const triggered = sustainedLow && !improving;
+  return {
+    available: true,
+    triggered,
+    threshold: RECOVERY_ALERT_SPI_THRESHOLD,
+    spiTrend: recent,
+    reason: triggered
+      ? 'SPI has stayed below ' + RECOVERY_ALERT_SPI_THRESHOLD + ' across the last ' + recent.length + ' snapshots with no sign of recovery.'
+      : (sustainedLow
+          ? 'SPI was below ' + RECOVERY_ALERT_SPI_THRESHOLD + ' but is trending back up.'
+          : 'SPI is not sustained below ' + RECOVERY_ALERT_SPI_THRESHOLD + '.')
+  };
+}
+
+module.exports = { parseXER, parseCSV, parseMspXml, analyzeXER, analyzeCSVTasks, analyzeMspXml, analyzeFile, computeEarnedSchedule, computeRecoveryAlert };

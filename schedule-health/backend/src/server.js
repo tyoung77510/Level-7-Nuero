@@ -936,9 +936,11 @@ route('GET', '/api/projects/:name/latest', async (req, res, params, user) => {
   try { activities = JSON.parse(snapshot.activities_json || '[]'); } catch (e) { activities = []; }
   const project = store.getProjectByName(user.id, params.name);
   const earnedSchedule = analyzeMod.computeEarnedSchedule(activities);
+  const recoveryAlert = computeRecoveryAlertForProject(user.id, params.name);
   sendJSON(res, 200, {
     snapshot, issues, activities,
-    earnedSchedule, budgetAtCompletion: project?.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null
+    earnedSchedule, budgetAtCompletion: project?.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null,
+    recoveryAlert
   });
 });
 
@@ -1083,6 +1085,10 @@ route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => 
 // source file's own task code/id), which is only a stable identity within the same project's
 // re-uploads of what's meant to be the same schedule — comparing snapshots from two unrelated
 // projects would just show everything as added/removed, which is accurate, if not useful.
+//
+// Also includes changedActuals/regressedProgress — a data-integrity check, not just a status
+// diff, flagging restated actual dates and backward-moving percent-complete between the two
+// snapshots (see the comment at their computation below for why).
 route('GET', '/api/snapshots/compare', async (req, res, params, user) => {
   const parsed = url.parse(req.url, true);
   const fromId = Number(parsed.query.from);
@@ -1111,6 +1117,13 @@ route('GET', '/api/snapshots/compare', async (req, res, params, user) => {
   const added = toActivities.filter(a => !fromByCode.has(a.code)).map(a => ({ code: a.code, name: a.name }));
   const removed = fromActivities.filter(a => !toByCode.has(a.code)).map(a => ({ code: a.code, name: a.name }));
   const becameCritical = [], resolvedCritical = [], floatChanges = [];
+  // Per SmartPM's 2026 industry report, actual dates being restated after the fact and reported
+  // progress moving backward are two of the strongest signals that an update was edited to "look
+  // right" rather than reflect real field conditions — 44% and 32% of updates in that study carried
+  // one or the other. Both are flagged here as a direct data-integrity check, not a normal float/
+  // criticality change: an actual date is supposed to be a fact once recorded, and percent-complete
+  // isn't supposed to go down.
+  const changedActuals = [], regressedProgress = [];
   for (const [code, toA] of toByCode) {
     const fromA = fromByCode.get(code);
     if (!fromA) continue;
@@ -1121,6 +1134,15 @@ route('GET', '/api/snapshots/compare', async (req, res, params, user) => {
       // 1 day is the smallest change worth surfacing — anything smaller is noise from rounding,
       // not a real shift a reviewer would care about.
       if (Math.abs(delta) >= 1) floatChanges.push({ code, name: toA.name, fromFloat: fromA.totalFloatDays, toFloat: toA.totalFloatDays, delta });
+    }
+    if (fromA.actualStart && toA.actualStart && fromA.actualStart !== toA.actualStart) {
+      changedActuals.push({ code, name: toA.name, field: 'start', from: fromA.actualStart, to: toA.actualStart });
+    }
+    if (fromA.actualEnd && toA.actualEnd && fromA.actualEnd !== toA.actualEnd) {
+      changedActuals.push({ code, name: toA.name, field: 'finish', from: fromA.actualEnd, to: toA.actualEnd });
+    }
+    if (fromA.percentComplete != null && toA.percentComplete != null && toA.percentComplete < fromA.percentComplete) {
+      regressedProgress.push({ code, name: toA.name, from: fromA.percentComplete, to: toA.percentComplete });
     }
   }
   floatChanges.sort((a, b) => a.delta - b.delta);
@@ -1141,7 +1163,7 @@ route('GET', '/api/snapshots/compare', async (req, res, params, user) => {
     scoreDelta: toSnap.score - fromSnap.score,
     critCountDelta: toSnap.crit_count - fromSnap.crit_count,
     riskCountDelta: toSnap.risk_count - fromSnap.risk_count,
-    activityChanges: { added, removed, becameCritical, resolvedCritical, floatChanges },
+    activityChanges: { added, removed, becameCritical, resolvedCritical, floatChanges, changedActuals, regressedProgress },
     issueChanges: { newIssues, resolvedIssues }
   });
 });
@@ -1517,6 +1539,26 @@ route('GET', '/api/feature-flags', async (req, res, params, user) => {
   sendJSON(res, 200, { flags: flags.map(f => ({ id: f.id, enabled: !!f.enabled })) });
 });
 
+// Builds the SPI trend series for a project's snapshot history and runs it through
+// computeRecoveryAlert — shared by /api/analyze (right after a new upload) and
+// /api/projects/:name/latest (reopening a project later), so the alert is consistent regardless
+// of which path got you to the current snapshot. Each historical snapshot's SPI is computed
+// as-of that snapshot's own created_at, not "now" — a past snapshot's earned-schedule read should
+// reflect what was known at that point in time, not be recomputed against today's date.
+function computeRecoveryAlertForProject(userId, projectName) {
+  const history = store.getHistory(userId, projectName);
+  const spiHistory = [];
+  for (const snap of history) {
+    let activities = [];
+    try { activities = JSON.parse(snap.activities_json || '[]'); } catch (e) { continue; }
+    const es = analyzeMod.computeEarnedSchedule(activities, snap.created_at);
+    if (es.available && es.spi != null) {
+      spiHistory.push({ snapshotId: snap.id, createdAt: snap.created_at, spi: es.spi });
+    }
+  }
+  return analyzeMod.computeRecoveryAlert(spiHistory);
+}
+
 route('POST', '/api/analyze', async (req, res, params, user) => {
   // analyze.js has no sub-togglable pieces — DCMA-14 checks run as one inseparable pass over the
   // schedule, so this flag's blast radius is the entire upload/analyze pipeline, not just the
@@ -1575,11 +1617,12 @@ route('POST', '/api/analyze', async (req, res, params, user) => {
   // /api/profile/survey below). Checked here rather than via a separate "have they analyzed
   // before" flag so it can't drift out of sync with the actual snapshot rows.
   const isFirstAnalysis = store.countSnapshotsForUser(user.id) === 1;
+  const recoveryAlert = computeRecoveryAlertForProject(user.id, projectName);
 
   sendJSON(res, 200, {
     project, snapshot, issues, activities: result.activities || [], hasDates: !!result.hasDates,
     earnedSchedule, budgetAtCompletion: project.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null,
-    isFirstAnalysis
+    isFirstAnalysis, recoveryAlert
   });
 });
 

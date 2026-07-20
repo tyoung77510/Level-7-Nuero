@@ -1444,6 +1444,7 @@ let currentSnapshot = null;
 let currentActivities = null;
 let currentHasDates = false;
 let currentEarnedSchedule = null;
+let currentRecoveryAlert = null;
 let currentBudgetAtCompletion = null;
 let currentActualCostToDate = null;
 let sandboxState = {}; // per-activity float/duration overrides for the What-If sandbox, keyed by activity code
@@ -2887,6 +2888,16 @@ function renderVarianceResult(data){
       '<span style="color:' + (f.delta < 0 ? 'var(--bad)' : 'var(--good)') + ';">' + (f.delta > 0 ? '+' : '') + f.delta + 'd</span></div></div>'
   ).join('');
 
+  const changedActualRows = (data.activityChanges.changedActuals || []).map(c =>
+    '<div class="crit-path-row"><div class="crit-path-name">' + escapeHtml(c.name) + ' <span style="color:var(--muted); font-weight:400;">&middot; actual ' + c.field + '</span></div>' +
+      '<div class="crit-path-meta"><span style="color:var(--bad);">' + c.from + ' &rarr; ' + c.to + '</span></div></div>'
+  ).join('');
+
+  const regressedProgressRows = (data.activityChanges.regressedProgress || []).map(r =>
+    '<div class="crit-path-row"><div class="crit-path-name">' + escapeHtml(r.name) + '</div>' +
+      '<div class="crit-path-meta"><span style="color:var(--bad);">' + r.from + '% &rarr; ' + r.to + '%</span></div></div>'
+  ).join('');
+
   const issueRow = (i) => '<div class="issue"><div style="font-size:13px; font-weight:500;">' + escapeHtml(i.name) + '</div>' +
     '<div class="issue-right" style="font-size:12px; color:var(--muted);">' + escapeHtml(i.sub) + '</div></div>';
 
@@ -2894,6 +2905,16 @@ function renderVarianceResult(data){
       '<div class="card" style="text-align:center; padding:12px;"><div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Score</div><div style="font-size:20px; font-weight:700; margin-top:4px;">' + data.from.score + ' &rarr; ' + data.to.score + '</div><div style="margin-top:2px;">' + deltaLabel(data.scoreDelta, false) + '</div></div>' +
       '<div class="card" style="text-align:center; padding:12px;"><div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Critical issues</div><div style="font-size:20px; font-weight:700; margin-top:4px;">' + data.from.critCount + ' &rarr; ' + data.to.critCount + '</div><div style="margin-top:2px;">' + deltaLabel(data.critCountDelta, true) + '</div></div>' +
       '<div class="card" style="text-align:center; padding:12px;"><div style="font-size:11px; color:var(--muted); text-transform:uppercase;">At-risk issues</div><div style="font-size:20px; font-weight:700; margin-top:4px;">' + data.from.riskCount + ' &rarr; ' + data.to.riskCount + '</div><div style="margin-top:2px;">' + deltaLabel(data.riskCountDelta, true) + '</div></div>' +
+    '</div>' +
+    '<div class="card" style="margin-bottom:12px;">' +
+      '<h2 style="margin:0 0 4px; font-size:14px;">Data integrity — restated actuals</h2>' +
+      '<p style="font-size:11.5px; color:var(--muted); margin:0 0 8px;">An actual date is supposed to be a fact once recorded. These changed between the two snapshots.</p>' +
+      (changedActualRows ? '<div class="crit-path-list">' + changedActualRows + '</div>' : '<p class="empty" style="padding:6px 0;">None — no actual dates were restated.</p>') +
+    '</div>' +
+    '<div class="card" style="margin-bottom:12px;">' +
+      '<h2 style="margin:0 0 4px; font-size:14px;">Data integrity — progress moved backward</h2>' +
+      '<p style="font-size:11.5px; color:var(--muted); margin:0 0 8px;">Percent-complete dropped between the two snapshots for these activities.</p>' +
+      (regressedProgressRows ? '<div class="crit-path-list">' + regressedProgressRows + '</div>' : '<p class="empty" style="padding:6px 0;">None — no reported progress moved backward.</p>') +
     '</div>' +
     '<div class="card" style="margin-bottom:12px;">' +
       '<h2 style="margin:0 0 8px; font-size:14px;">Activities that became critical</h2>' + varianceActivityList(data.activityChanges.becameCritical, 'None.') +
@@ -2925,6 +2946,7 @@ async function openProject(name){
     currentActivities = result.activities || [];
     currentHasDates = currentActivities.some(a => a.start);
     currentEarnedSchedule = result.earnedSchedule || null;
+    currentRecoveryAlert = result.recoveryAlert || null;
     currentBudgetAtCompletion = result.budgetAtCompletion ?? null;
     currentActualCostToDate = result.actualCostToDate ?? null;
     sandboxState = {};
@@ -3226,6 +3248,26 @@ function renderCriticalPath(){
 // since almost no uploaded schedule file carries per-activity cost/resource data — see
 // computeEarnedSchedule in src/analyze.js). The optional cost section below only appears once the
 // user enters real numbers; CPI/CV are never estimated or guessed.
+// Per SmartPM's 2026 industry report, a mid-project SPI dip with no recovery response was the
+// strongest predictor of a bad outcome they found — ~2.5x worse than projects that responded. This
+// renders that trend check (see computeRecoveryAlert in analyze.js for exactly what's measured and
+// what it deliberately doesn't claim to be). Silent (empty string) when there isn't enough
+// snapshot history yet, or when SPI isn't sustained low — this only speaks up when there's
+// something to say, same principle as the rest of this app's issue reporting.
+function renderRecoveryAlertBanner(){
+  const alert = currentRecoveryAlert;
+  if (!alert || !alert.available || !alert.triggered) return '';
+  return '<div class="card" style="margin-bottom:14px; border:1px solid var(--bad); background:color-mix(in srgb, var(--bad) 8%, transparent);">' +
+    '<div style="display:flex; align-items:flex-start; gap:10px;">' +
+      '<span style="font-size:18px; line-height:1;">&#9888;&#65039;</span>' +
+      '<div>' +
+        '<div style="font-weight:600; font-size:13.5px; color:var(--bad); margin-bottom:2px;">Early slip, no recovery</div>' +
+        '<div style="font-size:12.5px; color:var(--muted);">' + escapeHtml(alert.reason) + ' Per industry research, this pattern predicts significantly worse final outcomes than a one-off dip — worth a look now, not next update.</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 function renderEarnedValue(){
   const el = document.getElementById('earnedValueContent');
   if (!currentActivities || !currentActivities.length){
@@ -3253,7 +3295,8 @@ function renderEarnedValue(){
   const spiColor = es.spi == null ? 'var(--muted)' : (es.spi >= 1 ? 'var(--good)' : (es.spi >= 0.9 ? 'var(--warn)' : 'var(--bad)'));
   const svColor = es.svPoints >= 0 ? 'var(--good)' : (es.svPoints >= -10 ? 'var(--warn)' : 'var(--bad)');
 
-  let html =
+  let html = renderRecoveryAlertBanner();
+  html +=
     '<p style="font-size:12px; color:var(--muted); margin:0 0 4px;">As of ' + escapeHtml(es.asOfDate) + ' · ' + es.activitiesConsidered + ' activities with baseline dates considered' +
       (es.activitiesExcluded ? ' (' + es.activitiesExcluded + ' excluded — no baseline dates)' : '') + '</p>' +
     '<p style="font-size:12px; color:var(--muted); margin:0 0 14px;">Earned Schedule compares how much of the schedule <em>should</em> be done by now against how much actually is, weighting each activity by its own planned duration. It\'s a duration-weighted proxy, not a cost- or resource-weighted one — two activities of equal length count equally here even if their real effort differs.</p>' +
@@ -3521,6 +3564,7 @@ async function submitAnalysis(projectName, filename, content){
     currentActivities = result.activities || [];
     currentHasDates = !!result.hasDates;
     currentEarnedSchedule = result.earnedSchedule || null;
+    currentRecoveryAlert = result.recoveryAlert || null;
     currentBudgetAtCompletion = result.budgetAtCompletion ?? null;
     currentActualCostToDate = result.actualCostToDate ?? null;
     sandboxState = {};
