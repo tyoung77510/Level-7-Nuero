@@ -14,6 +14,22 @@
 //              callout treatment; a plain post can just use <p>/<h2> with no .flag markup at all.
 module.exports = [
   {
+    slug: 'founder-log-035-no-fabrication',
+    title: "Founder Log 035: An Industry Report Just Proved Why Ordo7 Won't Guess",
+    headline: "Founder Log 035 — 44% of Schedule Updates Rewrite the Truth. Here's Why Ordo7 Never Will.",
+    description: "A leading schedule-analytics platform's own 2026 industry report found nearly half of schedule updates carry risky levels of changed actual dates. Here's why Ordo7 was built to never do that.",
+    category: 'Founder Log',
+    contentHtml: `
+<p class="lead">A leading schedule-analytics platform just published a 2026 industry report — survey responses plus a warehouse of real historic project schedules. Two numbers in it stopped me.</p>
+<p>44% of schedule updates in the study carried risky levels of changed actual dates. 32% walked back progress already claimed. Once an activity starts or finishes, that date is supposed to be a fact. When almost half of updates quietly rewrite it, percent-complete stops reflecting field reality and starts reflecting expectations instead.</p>
+<h2>The confidence gap is just as bad</h2>
+<p>The same report found teams rate their own schedule quality roughly 3x better than the data supports — 38% believe they're "high quality," the actual measurement found 13%. A separate cut found a third of schedules were objectively poor, but only 15% of the people running them knew it. You can't fix a gap you can't see, and most teams can't see it because self-rating and objective measurement aren't the same thing.</p>
+<h2>Why this is exactly the problem Ordo7 was built around</h2>
+<p>This is the whole reason Ordo7 doesn't fabricate a metric it can't actually compute. True cost-based EVM — CPI, cost variance — isn't shown in Ordo7's reports, because a schedule-only export genuinely doesn't carry cost data. Rather than estimate one, it's marked unavailable. The schedule-only performance signal Ordo7 does show is scored directly off what's actually in your uploaded file — no retrofitting, no rounding a number up because it "should" look better by now.</p>
+<p>An industry report just spent 80 pages proving, with real data, that self-reported schedule health can't be trusted at face value. That's not a knock on anyone doing the reporting — it's the exact argument for why an objective, honestly-scoped read matters more than a confident one.</p>
+`.trim()
+  },
+  {
     slug: 'founder-log-014-ask-ordo',
     title: "Founder Log 014: We Already Built 'Chat With Your Schedule'",
     headline: "Founder Log 014 — A Well-Funded Competitor Just Validated 'Chat With Your Schedule.' Ordo7's Had It Since Day One.",

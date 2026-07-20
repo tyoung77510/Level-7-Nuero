@@ -6,6 +6,8 @@ Companion to `brand-narrative.md`, which holds the locked voice rules and the "d
 
 **Changelog (2026-07-20):** swapped two Slot G days to cover real product capabilities the market hasn't heard about yet, per `brand-narrative.md`'s new "Product capabilities" section — Day 014 (was "audience before ask," now redundant with Day 044's near-identical angle) → **Ask Ordo spotlight**, timely because a well-funded competitor just validated the same feature category; Day 077 (was "scope cuts") → **what-if sandbox spotlight**. Reserved, not yet assigned a day: **Portfolio Overview / Multi-Project Leaderboard**, **printable status report**, **Team seats**, **shareable snapshot links** — all real, all currently undocumented in any Founder Log content. These don't have a natural home in the current 7-slot wheel without displacing more reflective/meta topics than is worth it in one pass — flag for a decision on where they go (a short feature-spotlight sub-series, or folded into the next 90-day cycle) rather than cramming them in unilaterally.
 
+**Changelog (2026-07-20, second entry):** sharpened Day 035 (Slot G) with real, cited numbers — a leading schedule-analytics platform's own 2026 industry report independently confirmed the exact data-integrity problem the original generic topic was gesturing at (44% of schedule updates carry risky changed-actual-dates, teams self-rate quality ~3x better than measured). Same "never name the publisher, reference generically" rule applied as Day 014. Copy in `batch-03-linkedin-captions.md`, graphic rendered, blog post appended.
+
 ## The structure: a 7-slot weekly wheel
 
 Every day maps to one of 7 recurring content categories, so the calendar has rhythm (same 7 categories every week — the "consistent theme, feel") while every single day covers a different specific topic (the "different topic every day"). Slot assignment is just `(day number − 1) mod 7`:
@@ -70,7 +72,7 @@ Days 001–002 are already published (see `../marketing-assets/linkedin-founder-
 | 032 | D | K-12 bond programs — delivering a $50M modernization 12% under budget, ahead of schedule |
 | 033 | E | The Excel tool I built from scratch before Ordo7 existed — same instinct, earlier problem |
 | 034 | F | *Placeholder — real user comment/request, anonymized.* |
-| 035 | G | Why Ordo7 doesn't fabricate a metric it can't actually compute |
+| 035 | G | An industry report found 44% of schedule updates rewrite the actuals — why Ordo7 never will |
 | 036 | A | *Placeholder — real build milestone from the week.* |
 | 037 | B | Why plain language beats a 35-metric dashboard nobody has time to read |
 | 038 | C | High Float — the tasks nobody's watching because they look safe |
