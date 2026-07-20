@@ -1,6 +1,6 @@
 # GTM action log — relationship-building engine
 
-> **Status:** ✅ Active | **Purpose:** Source of truth for the daily GTM outreach Routine — what's been researched, what's been drafted, what's waiting on Taj to review and send. | **Last Updated:** 2026-07-20
+> **Status:** ✅ Active | **Purpose:** Source of truth for the daily GTM outreach Routine — what's been researched, what's been drafted, what's waiting on Taj to review and send. | **Last Updated:** 2026-07-20 (first run)
 
 Companion to `founder-log-calendar.md`'s "GTM action items" checklist. That doc says *what* the near-term moves are; this log tracks *actual daily progress* on the relationship-building ones specifically (earned-coverage outreach, the referral/consultant channel, event presence) — the categories that involve reaching a real person or organization, as opposed to the SEO blog backlog, which is content work tracked through the normal Founder Log/blog pipeline instead.
 
@@ -23,3 +23,4 @@ Each weekday, the Routine works one category (`(day count − 1) mod 3`), so all
 
 | Date | Category | Target (real, sourced) | Action taken | Status |
 |---|---|---|---|---|
+| 2026-07-20 | Earned-coverage outreach | None confidently identified. A LinkedIn Pulse post titled "DCMA's Project Schedule Assessment" by a "Mohamed Salih, PMP" surfaced ([source](https://www.linkedin.com/pulse/dcmas-project-schedule-assessment-mohamed-salih-pmp)) as an on-topic real article, but a follow-up search found multiple distinct LinkedIn profiles under that name (a real-estate agent, an operations consultant, a TxDOT transportation engineer, others) with no way to confirm which one actually wrote it. A second candidate, Saleh Mubarak (LinkedIn Pulse, "Project Planning versus Scheduling"), had only the one article with nothing to verify an active, ongoing content presence worth pitching. | Researched only — 3 searches, no draft | No confident target. Flagging rather than guessing: name-collision risk on the first candidate, thin verification on the second. Next run should try a different angle (e.g. named YouTube channels/newsletters directly, not LinkedIn Pulse authorship) rather than repeating this search. |
