@@ -6,7 +6,7 @@ Full LinkedIn caption text for each rendered graphic in this batch (graphics: `.
 
 Days 006 and 008 are intentionally **not** drafted in this batch — see "Skipped days" below.
 
-**Correction (2026-07-20):** the Day 003 post went live on LinkedIn (personal profile + Ordo7 page + Level 7 Consulting page) without the blog link — caught after publishing. Fixed here for 004/005/007/009 and for any repost/edit of 003. See `../../docs/brand-narrative.md` for the corrected standing formula.
+**Correction (2026-07-20):** the Day 003 post went live on LinkedIn (personal profile + Ordo7 page + Level 7 Consulting page) missing two things: the blog link (added afterward as a comment on all 3 posts) and the `#Ordo7` hashtag (not corrected on the live post — LinkedIn's API doesn't support editing hashtags after publish; the comment already added covers the blog link, but the hashtag gap on Day 003 specifically stands uncorrected). Both are fixed here for 004/005/007/009 and baked into the standing formula in `../../docs/brand-narrative.md` going forward.
 
 ---
 
@@ -36,7 +36,7 @@ That's part of why I'm building Ordo7 to work across industries, not just constr
 Read the full post → https://www.ordo7.pro/blog/founder-log-004-utility-safety
 Follow the journey → https://ordo7.pro
 
-#BuildInPublic #ProjectControls #UtilityIndustry #Scheduling #FounderJourney
+#BuildInPublic #ProjectControls #UtilityIndustry #FounderJourney #Ordo7
 
 ---
 
@@ -51,7 +51,7 @@ That's not a knock on the software. It's a gap. Ordo7 is my attempt to close it 
 Read the full post → https://www.ordo7.pro/blog/founder-log-005-eight-years
 Follow the journey → https://ordo7.pro
 
-#BuildInPublic #ProjectControls #PMP #FounderJourney #Scheduling
+#BuildInPublic #ProjectControls #PMP #FounderJourney #Ordo7
 
 ---
 
@@ -66,7 +66,7 @@ Right now the ask isn't "buy this." It's "follow along." That changes once there
 Read the full post → https://www.ordo7.pro/blog/founder-log-007-building-in-public
 Follow the journey → https://ordo7.pro
 
-#BuildInPublic #Bootstrapped #FounderJourney #ProjectControls #SaaS
+#BuildInPublic #Bootstrapped #FounderJourney #ProjectControls #Ordo7
 
 ---
 
@@ -81,7 +81,7 @@ Ordo7 exists for that person — plain-language schedule health without needing 
 Read the full post → https://www.ordo7.pro/blog/founder-log-009-staffing-shortage
 Follow the journey → https://ordo7.pro
 
-#BuildInPublic #ProjectControls #ConstructionTech #FounderJourney #Scheduling
+#BuildInPublic #ProjectControls #ConstructionTech #FounderJourney #Ordo7
 
 ---
 
