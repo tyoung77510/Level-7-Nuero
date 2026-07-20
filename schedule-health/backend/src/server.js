@@ -38,6 +38,7 @@ const oauth = require('./oauth');
 const blogContent = require('./blog-content');
 const rateLimit = require('./rate-limit');
 const webhook = require('./webhook');
+const mailerlite = require('./mailerlite');
 
 store.deleteExpiredSessions();
 store.pruneOldErrors();
@@ -355,6 +356,23 @@ route('POST', '/api/auth/signup', async (req, res) => {
     knock.sendVerificationEmail(user, verificationUrl(req, verifyToken)).catch(() => {});
   }
   sendJSON(res, 200, { user: publicUser(user) });
+});
+
+// Public, unauthenticated — a blog reader isn't necessarily an Ordo7 account holder. Backed by
+// MailerLite (see mailerlite.js); returns a disclosed 503 rather than silently pretending to
+// subscribe anyone when MAILERLITE_API_KEY isn't set, same graceful-degradation pattern used for
+// every other optional integration in this app.
+route('POST', '/api/blog/subscribe', async (req, res) => {
+  if (rateLimited(res, 'blog-subscribe', req, 5, 60 * 60 * 1000)) return; // 5/hour per IP — spam prevention
+  if (!mailerlite.mailerliteConfigured()) return sendJSON(res, 503, { error: 'Newsletter signup is not configured yet' });
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const email = String(payload.email || '').trim().toLowerCase();
+  if (!auth.EMAIL_RE.test(email)) return sendJSON(res, 400, { error: 'Enter a valid email address' });
+  const result = await mailerlite.subscribeToBlog(email);
+  if (!result.ok) return sendJSON(res, 502, { error: 'Could not subscribe right now — try again shortly' });
+  sendJSON(res, 200, { subscribed: true });
 });
 
 route('GET', '/api/referral', async (req, res, params, user) => {
@@ -1879,6 +1897,40 @@ if (navigator.share) {
   });
 }
 
+// Newsletter signup — posts to /api/blog/subscribe (MailerLite-backed, see mailerlite.js).
+// Global function (not an IIFE) because the form's onsubmit calls it by name directly.
+function submitNewsletterForm(event, form) {
+  event.preventDefault();
+  var input = form.querySelector('input[type=email]');
+  var btn = form.querySelector('button');
+  var email = input.value.trim();
+  var original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Subscribing\\u2026';
+  fetch('/api/blog/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email })
+  }).then(function (res) {
+    return res.json().catch(function () { return {}; }).then(function (data) { return { ok: res.ok, data: data }; });
+  }).then(function (result) {
+    if (result.ok) {
+      btn.textContent = 'Subscribed \\u2713';
+      input.value = '';
+      input.disabled = true;
+    } else {
+      btn.textContent = (result.data && result.data.error) || 'Something went wrong';
+      btn.disabled = false;
+      setTimeout(function () { btn.textContent = original; }, 3500);
+    }
+  }).catch(function () {
+    btn.textContent = 'Network error — try again';
+    btn.disabled = false;
+    setTimeout(function () { btn.textContent = original; }, 3500);
+  });
+  return false;
+}
+
 // Category chip filtering — only present on the index page, so this whole block is a silent
 // no-op (chipBar is null) on the article page rather than needing a separate script include.
 (function () {
@@ -2126,7 +2178,7 @@ function serveBlogIndex(req, res) {
           <h3>Schedule tips, twice a month.</h3>
           <p>Plain-language writing on reading, fixing and defending construction schedules. No spam.</p>
         </div>
-        <form class="newsletter-form" onsubmit="event.preventDefault(); this.querySelector('button').textContent='Coming soon';">
+        <form class="newsletter-form" onsubmit="return submitNewsletterForm(event, this);">
           <input type="email" placeholder="you@company.com" required>
           <button type="submit" class="cta-pill" style="border:none; cursor:pointer;">Subscribe</button>
         </form>
@@ -2347,6 +2399,7 @@ const server = http.createServer(async (req, res) => {
     // GET /api/team/invite/:token is deliberately public — an invitee needs to see who invited
     // them before they've logged in or even have an account yet (see the accept flow's UI).
     const isPublicRoute = pathname.startsWith('/api/auth/') || pathname === '/api/billing/webhook' || pathname.startsWith('/api/public/') || pathname === '/api/health' ||
+      pathname === '/api/blog/subscribe' ||
       (req.method === 'GET' && /^\/api\/team\/invite\/[^/]+$/.test(pathname));
     const cookies = auth.parseCookies(req);
     const user = auth.getUserForToken(cookies.session);
