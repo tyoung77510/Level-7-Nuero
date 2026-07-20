@@ -30,7 +30,7 @@ A high-fidelity design handoff (the "Nocturne" system, see below) locked final c
 
 This entry establishes the template for every future Founder Log post: numbered sequentially (003, 004, ...), each one documenting a real build milestone, decision, or problem encountered — not generic motivational content. Per the design handoff's own recipe: each new episode only needs a new number, a new headline (key phrase in accent color), a 2–3 sentence body, and optionally a portrait side-swap — everything else in the system stays fixed.
 
-**LinkedIn caption formula** (from the design handoff): hook line → the problem/story → what Ordo7 does → `Follow the journey → https://ordo7.pro` → 4–5 hashtags. Suggested hashtag set: `#BuildInPublic #ProjectControls #Scheduling #SaaS #FounderJourney`.
+**LinkedIn caption formula** (from the design handoff): hook line → the problem/story → what Ordo7 does → `Read the full post → https://www.ordo7.pro/blog/<slug>` → `Follow the journey → https://ordo7.pro` → 4–5 hashtags. Suggested hashtag set: `#BuildInPublic #ProjectControls #Scheduling #SaaS #FounderJourney`. **Every Founder Log post has a matching blog entry (`backend/src/blog-content.js`) — the caption must link to it.** This was missed on the first live batch (see `founder-log-calendar.md`'s note); don't repeat it.
 
 ## Visual design system ("Nocturne")
 
