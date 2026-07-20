@@ -299,6 +299,9 @@ function publicUser(user) {
     emailVerified: !!user.email_verified,
     referralCode: user.referral_code,
     onboarded: !!user.onboarded_at,
+    portfolioSizeBucket: user.portfolio_size_bucket || null,
+    migratedFrom: user.migrated_from || null,
+    profileSurveyDismissed: !!user.profile_survey_dismissed_at,
     isAdmin: isAdmin(user),
     webhookUrl: user.webhook_url || null
   };
@@ -1201,6 +1204,33 @@ route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
   res.end(CHAT_STREAM_META_MARKER + JSON.stringify({ creditsUsed: credits, creditBalance: updatedBillingUser.credit_balance }));
 });
 
+// Fixed enums, not free text — keeps later aggregate stats ("X% of users manage 6-15 projects",
+// "X% moved from SmartPM") countable against a known set instead of a pile of inconsistent
+// strings. migratedFrom's option list doubles as the same competitor set tracked in the private
+// competitive-intelligence repo, so a real answer here also validates (or corrects) those
+// assumptions with first-party data.
+const PORTFOLIO_SIZE_BUCKETS = ['1', '2-5', '6-15', '16-50', '50+'];
+const MIGRATED_FROM_OPTIONS = ['primavera_p6', 'acumen_fuse', 'smartpm', 'schedulereader', 'ecosys_hexagon', 'excel_spreadsheets', 'nothing_first_tool', 'other'];
+
+// Optional, skippable — see the profile_survey_dismissed_at column comment in db.js. Called with
+// both fields null/absent when the user clicks Skip or closes the prompt without answering; that
+// still marks it dismissed so it never shows again.
+route('POST', '/api/profile/survey', async (req, res, params, user) => {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const portfolioSizeBucket = payload.portfolioSizeBucket ? String(payload.portfolioSizeBucket) : null;
+  const migratedFrom = payload.migratedFrom ? String(payload.migratedFrom) : null;
+  if (portfolioSizeBucket && !PORTFOLIO_SIZE_BUCKETS.includes(portfolioSizeBucket)) {
+    return sendJSON(res, 400, { error: 'Unknown portfolio size option' });
+  }
+  if (migratedFrom && !MIGRATED_FROM_OPTIONS.includes(migratedFrom)) {
+    return sendJSON(res, 400, { error: 'Unknown migrated-from option' });
+  }
+  const updated = store.saveProfileSurvey(user.id, portfolioSizeBucket, migratedFrom);
+  sendJSON(res, 200, { user: publicUser(updated) });
+});
+
 route('POST', '/api/feedback', async (req, res, params, user) => {
   const body = await readBody(req);
   let payload;
@@ -1499,9 +1529,16 @@ route('POST', '/api/analyze', async (req, res, params, user) => {
     });
   }
 
+  // A count of 1 at this point means the row saveSnapshot just inserted was this user's first
+  // ever — drives the frontend's one-time, skippable profile-survey prompt (see
+  // /api/profile/survey below). Checked here rather than via a separate "have they analyzed
+  // before" flag so it can't drift out of sync with the actual snapshot rows.
+  const isFirstAnalysis = store.countSnapshotsForUser(user.id) === 1;
+
   sendJSON(res, 200, {
     project, snapshot, issues, activities: result.activities || [], hasDates: !!result.hasDates,
-    earnedSchedule, budgetAtCompletion: project.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null
+    earnedSchedule, budgetAtCompletion: project.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null,
+    isFirstAnalysis
   });
 });
 

@@ -364,6 +364,16 @@ ensureColumn('blog_posts', 'headline', 'TEXT');
 // matches "smart defaults over configuration": most accounts have one team/one Slack channel to
 // notify, and per-project granularity can be added later if someone actually asks for it.
 ensureColumn('users', 'webhook_url', 'TEXT');
+// Optional profile survey, shown once after a user's first analysis (see isFirstAnalysis in
+// server.js's /api/analyze handler). Both answer columns stay null if the user skips or closes
+// the prompt without answering — profile_survey_dismissed_at is what actually stops it from
+// showing again, independent of whether they answered anything. Values are validated server-side
+// against a fixed enum (PORTFOLIO_SIZE_BUCKETS / MIGRATED_FROM_OPTIONS in server.js) rather than
+// accepting free text, so later aggregate stats ("X% moved from Y") are countable, not a pile of
+// inconsistent strings to clean up first.
+ensureColumn('users', 'portfolio_size_bucket', 'TEXT');
+ensureColumn('users', 'migrated_from', 'TEXT');
+ensureColumn('users', 'profile_survey_dismissed_at', 'TEXT');
 
 // Backfill referral codes for any pre-existing users (fresh databases already get one via
 // createUser at signup; this only runs once, for accounts created before this feature existed).
@@ -440,6 +450,16 @@ function setEmailVerified(userId) {
 
 function markOnboarded(userId) {
   db.prepare("UPDATE users SET onboarded_at = datetime('now') WHERE onboarded_at IS NULL AND id = ?").run(userId);
+  return getUserById(userId);
+}
+
+// Saves the optional profile-survey answers and marks the prompt dismissed either way, so it
+// never asks again regardless of whether the user actually answered or just skipped/closed it.
+function saveProfileSurvey(userId, portfolioSizeBucket, migratedFrom) {
+  db.prepare(`
+    UPDATE users SET portfolio_size_bucket = ?, migrated_from = ?, profile_survey_dismissed_at = datetime('now')
+    WHERE id = ?
+  `).run(portfolioSizeBucket || null, migratedFrom || null, userId);
   return getUserById(userId);
 }
 
@@ -722,6 +742,14 @@ function saveSnapshot(userId, projectName, result, sourceFilename) {
   return { project, snapshot };
 }
 
+// Used to detect "this was the user's first-ever analysis" right after saveSnapshot — a count of
+// 1 at that point means the row just inserted was it, without needing a separate tracking column.
+function countSnapshotsForUser(userId) {
+  return db.prepare(`
+    SELECT COUNT(*) AS n FROM snapshots s JOIN projects p ON p.id = s.project_id WHERE p.user_id = ?
+  `).get(userId).n;
+}
+
 function getHistory(userId, projectName) {
   const project = db.prepare('SELECT * FROM projects WHERE user_id = ? AND name = ?').get(userId, projectName);
   if (!project) return [];
@@ -989,6 +1017,7 @@ module.exports = {
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
   getOrCreateShareToken, getPublicSnapshotByShareToken,
   createUser, getUserByEmail, getUserById, setEmailVerified, markOnboarded,
+  saveProfileSurvey, countSnapshotsForUser,
   getUserByOAuthAccount, linkOAuthAccount, createOAuthUser,
   createPendingOAuthSignup, consumePendingOAuthSignup,
   getUserByReferralCode, getReferralStats,

@@ -834,6 +834,43 @@
       </div>
     </div>
 
+    <div id="modal-profile-survey" class="modal-overlay no-print" style="display:none;">
+      <div class="modal-box">
+        <button class="modal-close" id="profileSurveyModalClose" aria-label="Close">&times;</button>
+        <h2 style="margin:0 0 8px; font-size:17px;">Quick question — helps us build the right thing</h2>
+        <p style="font-size:13px; color:var(--muted); margin:0 0 16px;">Totally optional, two questions, takes 10 seconds.</p>
+        <div style="margin-bottom:14px;">
+          <label for="profileSurveyPortfolioSize" style="display:block; font-size:12px; color:var(--muted); margin-bottom:6px;">How many projects are in your portfolio?</label>
+          <select id="profileSurveyPortfolioSize" style="width:100%;">
+            <option value="">Prefer not to say</option>
+            <option value="1">Just 1</option>
+            <option value="2-5">2–5</option>
+            <option value="6-15">6–15</option>
+            <option value="16-50">16–50</option>
+            <option value="50+">50+</option>
+          </select>
+        </div>
+        <div style="margin-bottom:18px;">
+          <label for="profileSurveyMigratedFrom" style="display:block; font-size:12px; color:var(--muted); margin-bottom:6px;">What are you moving from, if anything?</label>
+          <select id="profileSurveyMigratedFrom" style="width:100%;">
+            <option value="">Prefer not to say</option>
+            <option value="primavera_p6">Primavera P6</option>
+            <option value="acumen_fuse">Deltek Acumen Fuse</option>
+            <option value="smartpm">SmartPM</option>
+            <option value="schedulereader">ScheduleReader</option>
+            <option value="ecosys_hexagon">Hexagon / EcoSys</option>
+            <option value="excel_spreadsheets">Excel / spreadsheets</option>
+            <option value="nothing_first_tool">Nothing — this is my first tool</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="row" style="justify-content:flex-end; gap:10px; margin-top:0;">
+          <button class="btn" id="profileSurveySkipBtn">Skip</button>
+          <button class="btn primary" id="profileSurveySubmitBtn">Submit</button>
+        </div>
+      </div>
+    </div>
+
     <div class="telemetry-shell">
       <nav id="panel-left-sidebar" class="no-print">
         <div class="sidebar-nav">
@@ -1868,6 +1905,46 @@ document.getElementById('referralModalCopyBtn').addEventListener('click', async 
   btn.textContent = 'Copied!';
   setTimeout(() => { btn.textContent = original; }, 1500);
 });
+
+// --- Profile survey (portfolio size / migrated-from) ---
+// One-time, skippable prompt shown after a user's first-ever analysis (see isFirstAnalysis in
+// submitAnalysis below). Every way of dismissing it — Skip, the X button, clicking the overlay —
+// calls submitProfileSurvey with nulls, which still marks it dismissed server-side so it never
+// shows again regardless of whether the user actually answered anything.
+
+document.getElementById('profileSurveyModalClose').addEventListener('click', dismissProfileSurveyModal);
+document.getElementById('profileSurveySkipBtn').addEventListener('click', dismissProfileSurveyModal);
+document.getElementById('modal-profile-survey').addEventListener('click', (e) => {
+  if (e.target.id === 'modal-profile-survey') dismissProfileSurveyModal();
+});
+document.getElementById('profileSurveySubmitBtn').addEventListener('click', () => {
+  const portfolioSizeBucket = document.getElementById('profileSurveyPortfolioSize').value || null;
+  const migratedFrom = document.getElementById('profileSurveyMigratedFrom').value || null;
+  submitProfileSurvey(portfolioSizeBucket, migratedFrom);
+});
+
+function openProfileSurveyModal(){
+  document.getElementById('modal-profile-survey').style.display = 'flex';
+}
+
+function dismissProfileSurveyModal(){
+  submitProfileSurvey(null, null);
+}
+
+async function submitProfileSurvey(portfolioSizeBucket, migratedFrom){
+  document.getElementById('modal-profile-survey').style.display = 'none';
+  try {
+    const result = await api('/api/profile/survey', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ portfolioSizeBucket, migratedFrom })
+    });
+    currentUser = result.user;
+    if (portfolioSizeBucket || migratedFrom) showToast('Thanks — that helps.');
+  } catch (e) {
+    // Non-critical — fail silently rather than interrupting the analysis result on screen.
+  }
+}
 
 // --- Share Private Risk Audit ---
 // Copies a real, working link — POST /api/snapshots/:id/share generates (or reuses) a public
@@ -3454,6 +3531,9 @@ async function submitAnalysis(projectName, filename, content){
     updateBreadcrumb();
     renderChat();
     setView('health');
+    if (result.isFirstAnalysis && currentUser && !currentUser.profileSurveyDismissed) {
+      openProfileSurveyModal();
+    }
   } catch (e) {
     dzIdle.style.display = '';
     dzAnalyzing.style.display = 'none';
