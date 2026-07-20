@@ -157,4 +157,5 @@ The Founder Log runs as a daily series (LinkedIn + blog, same story every day) f
 - [[../CLAUDE.md]] — product overview and architecture
 - [[design-notes.md]] — product thesis and UX principles this narrative should stay consistent with
 - [[founder-log-calendar.md]] — the 90-day day-by-day topic calendar
+- [[tedx-talk-draft.md]] — the spark thesis reshaped as a TEDx talk, with sourced labor-shortage/capital-boom data behind it
 - [[../marketing-assets/README.md]] — asset inventory this content plan feeds
