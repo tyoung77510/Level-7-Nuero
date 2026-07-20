@@ -1548,6 +1548,8 @@ function buildShareLinks(url, title) {
     li: `https://www.linkedin.com/sharing/share-offsite/?url=${enc(url)}`,
     x: `https://twitter.com/intent/tweet?text=${enc(title)}&url=${enc(url)}`,
     fb: `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}`,
+    reddit: `https://www.reddit.com/submit?url=${enc(url)}&title=${enc(title)}`,
+    telegram: `https://t.me/share/url?url=${enc(url)}&text=${enc(title)}`,
     wa: `https://wa.me/?text=${enc(title + ' ' + url)}`,
     mail: `mailto:?subject=${enc(title)}&body=${enc(url)}`
   };
@@ -1801,6 +1803,22 @@ document.querySelectorAll('[data-copy-url]').forEach(function (btn) {
   });
 });
 
+// Native share (Web Share API): hidden by default in the markup since most desktop browsers
+// don't support it. Where it IS supported, it hands off to the OS-level share sheet — every app
+// installed on the device, the one platform list we don't have to maintain by hand.
+if (navigator.share) {
+  document.querySelectorAll('.share-native').forEach(function (btn) {
+    btn.style.display = 'flex';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      navigator.share({
+        title: btn.getAttribute('data-share-title'),
+        url: btn.getAttribute('data-share-url')
+      }).catch(function () {});
+    });
+  });
+}
+
 // Category chip filtering — only present on the index page, so this whole block is a silent
 // no-op (chipBar is null) on the article page rather than needing a separate script include.
 (function () {
@@ -1874,23 +1892,32 @@ function blogFooter() {
   </footer>`;
 }
 
-// Icon labels are plain text glyphs (in / 𝕏 / f / ✆ / ✉ / ⧉), same as the design handoff — it
-// calls out swapping these for a real icon set (Phosphor) as a follow-up, not required for
-// launch fidelity.
-function shareRow(share, { size = 32, withCopy = false, copyUrl = '', leading = true } = {}) {
+// Icon labels are plain text glyphs (in / 𝕏 / f / R / ➤ / ✆ / ✉ / ⧉ / ⤴), same as the design
+// handoff — it calls out swapping these for a real icon set (Phosphor) as a follow-up, not
+// required for launch fidelity.
+//
+// Every post gets the full platform set, everywhere a share row appears (index headline rows,
+// the featured card, related cards, and both spots on the article page) — "share on every
+// platform" means the row shouldn't shrink depending on where you're standing. The one open-ended
+// entry is the native-share button (".share-native"): it's hidden by default and only revealed by
+// BLOG_SCRIPT when the browser supports the Web Share API, at which point it hands off to the
+// OS-level share sheet — every app installed on the device, not just the platforms we've
+// enumerated by hand.
+function shareRow(share, { size = 32, leading = true, copyUrl = '', shareTitle = '' } = {}) {
   const btn = (href, label, glyph, extra = '') => `<a href="${href}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ghost" title="${label}" style="width:${size}px; height:${size}px;" ${extra}>${glyph}</a>`;
-  const copy = withCopy
-    ? `<a href="#" class="ghost" title="Copy link" data-copy-url="${escapeHtml(copyUrl)}" onclick="event.stopPropagation()" style="width:${size}px; height:${size}px;">⧉</a>`
-    : '';
-  const wa = withCopy ? btn(share.wa, 'Share on WhatsApp', '✆') : '';
+  const copy = `<a href="#" class="ghost" title="Copy link" data-copy-url="${escapeHtml(copyUrl)}" onclick="event.stopPropagation()" style="width:${size}px; height:${size}px;">⧉</a>`;
+  const nativeShare = `<a href="#" class="ghost share-native" title="More" data-share-url="${escapeHtml(copyUrl)}" data-share-title="${escapeHtml(shareTitle)}" onclick="event.stopPropagation()" style="width:${size}px; height:${size}px; display:none;">⤴</a>`;
   return `<div class="share-row">
     ${leading ? '<span class="share-label">SHARE</span>' : ''}
     ${btn(share.li, 'LinkedIn', 'in')}
     ${btn(share.x, 'X', '𝕏')}
     ${btn(share.fb, 'Facebook', 'f')}
-    ${wa}
+    ${btn(share.reddit, 'Reddit', 'R')}
+    ${btn(share.telegram, 'Telegram', '➤')}
+    ${btn(share.wa, 'WhatsApp', '✆')}
     ${btn(share.mail, 'Email', '✉')}
     ${copy}
+    ${nativeShare}
   </div>`;
 }
 
@@ -1904,7 +1931,7 @@ function postRowHtml(vm) {
       </div>
       <a href="/blog/${escapeHtml(vm.slug)}" class="postrow-title">${escapeHtml(vm.headline)}</a>
       <div class="postrow-excerpt">${escapeHtml(vm.description)}</div>
-      <div class="card-interactive">${shareRow(vm.share, { size: 29, leading: true })}</div>
+      <div class="card-interactive">${shareRow(vm.share, { size: 29, leading: true, copyUrl: vm.url, shareTitle: vm.headline })}</div>
     </div>
     <span class="arrow">→</span>
   </div>`;
@@ -1916,7 +1943,7 @@ function relatedCardHtml(vm) {
     <span class="tag-pill" style="color:${vm.cat.color}; background:${vm.cat.bg};">${escapeHtml(vm.cat.label)}</span>
     <a href="/blog/${escapeHtml(vm.slug)}" class="related-card-title">${escapeHtml(vm.headline)}</a>
     <div class="related-card-excerpt">${escapeHtml(vm.description)}</div>
-    <div class="card-interactive">${shareRow(vm.share, { size: 29, leading: false })}</div>
+    <div class="card-interactive">${shareRow(vm.share, { size: 29, leading: false, copyUrl: vm.url, shareTitle: vm.headline })}</div>
   </div>`;
 }
 
@@ -2019,7 +2046,7 @@ function serveBlogIndex(req, res) {
             <div class="avatar" style="width:34px; height:34px; font-size:14px;">O7</div>
             <div class="byline-text"><b>Ordo7 Team</b> · ${featured.dateShort} · ${featured.readMins} min read</div>
           </div>
-          <div class="card-interactive" style="margin-top:22px;">${shareRow(featured.share, { size: 32 })}</div>
+          <div class="card-interactive" style="margin-top:22px;">${shareRow(featured.share, { size: 32, copyUrl: featured.url, shareTitle: featured.headline })}</div>
         </div>
         <div class="featured-right">
           <schedule-net></schedule-net>
@@ -2110,7 +2137,7 @@ function serveBlogPost(req, res, slug) {
           <div class="byline-sub">${post.dateLong} · Powered by <a href="https://level7data.com/" target="_blank" rel="noopener">Level 7</a></div>
         </div>
         <div class="article-share">
-          ${shareRow(post.share, { size: 36, withCopy: true, copyUrl: post.url })}
+          ${shareRow(post.share, { size: 36, copyUrl: post.url, shareTitle: post.headline })}
         </div>
       </div>
     </div>
@@ -2131,7 +2158,7 @@ function serveBlogPost(req, res, slug) {
         ${tocHtml}
         <div class="toc-share-block">
           <div class="share-caption">Share this article</div>
-          ${shareRow(post.share, { size: 34, withCopy: true, copyUrl: post.url, leading: false })}
+          ${shareRow(post.share, { size: 34, copyUrl: post.url, shareTitle: post.headline, leading: false })}
           <a href="https://level7data.com/" target="_blank" rel="noopener" class="toc-book-cta">Book a consultation →</a>
         </div>
       </aside>
