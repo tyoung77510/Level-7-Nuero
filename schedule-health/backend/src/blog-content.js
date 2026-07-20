@@ -14,6 +14,24 @@
 //              callout treatment; a plain post can just use <p>/<h2> with no .flag markup at all.
 module.exports = [
   {
+    slug: 'founder-log-014-ask-ordo',
+    title: "Founder Log 014: We Already Built 'Chat With Your Schedule'",
+    headline: "Founder Log 014 — A Well-Funded Competitor Just Validated 'Chat With Your Schedule.' Ordo7's Had It Since Day One.",
+    description: "A well-funded, enterprise-priced competitor in this category just shipped an AI feature that answers plain-language questions about your schedule. Ask Ordo has done exactly that since the early build, on every plan including Free.",
+    category: 'Founder Log',
+    contentHtml: `
+<p class="lead">A well-funded competitor in this category just shipped a headline AI feature: ask your schedule questions in plain language, get an answer back. New VP hires, an enterprise sales cycle, the whole rollout. I'm glad to see it — it's a real signal the market wants exactly what I've been building.</p>
+<p>Here's the thing: Ordo7 already does this. Ask Ordo has been live since early in the build, and it's on every plan, including Free.</p>
+<h2>What Ask Ordo actually does</h2>
+<p>It's a permanently-docked chat panel, grounded in the real numbers of whatever schedule you've uploaded — score, open issues, float, dates. Ask it "why is my score low" or "what's driving the critical path" and it answers using your actual data, not a canned response. But it doesn't stop at the file you loaded: ask it a general project-controls question — how EVM works, what a DCMA check is checking for, how to read a critical path, PMBOK terminology — and it answers that too, the way a working PMO analyst would.</p>
+<h2>Why this matters more than the feature itself</h2>
+<p>The interesting part isn't that Ordo7 has AI chat. It's <em>how</em> you get to use it. The competitor I mentioned sells this through an enterprise sales cycle, gated behind procurement, priced for teams with a budget line for it. Months after launch, it has zero public reviews — which tells you it's landing with a handful of large accounts, not with the person actually doing the work.</p>
+<p>Ask Ordo doesn't require any of that. Upload a schedule, open the chat panel, ask your question. No sales call, no contract, no new headcount to justify the spend. That's not a smaller version of what the enterprise players are building toward — it's the same capability, available to the PM who doesn't have an enterprise budget or a procurement department behind them.</p>
+<h2>Why I'm saying this now</h2>
+<p>I'm not writing this to take a shot at anyone. I'm writing it because when a well-funded, well-staffed competitor validates that "plain-language AI conversation with your schedule" is what the market actually wants, and you already built that — the market deserves to know. This has been one of the most underused facts about Ordo7 so far, and that's on me for not saying it sooner.</p>
+`.trim()
+  },
+  {
     slug: 'founder-log-003-logic',
     title: "Founder Log 003: Why 'Logic' Is DCMA Check #1",
     headline: "Founder Log 003 — An Activity With No Predecessor Isn't a Schedule, It's a Guess",

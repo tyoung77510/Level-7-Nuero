@@ -10,6 +10,6 @@
 | 002 | B | prior session (exact date not recorded) | — | — | — | — |
 | 003 | C | 2026-07-20 | [post](https://www.linkedin.com/feed/update/urn:li:share:7484826077920534528/) | [post](https://www.linkedin.com/feed/update/urn:li:share:7484826137731170305/) | [post](https://www.linkedin.com/feed/update/urn:li:share:7484826216848326656/) | [founder-log-003-logic](https://www.ordo7.pro/blog/founder-log-003-logic) |
 
-**Not yet posted, but fully drafted and ready** (copy in `batch-01-linkedin-captions.md`, graphics rendered in `../renders/`, blog post already in `backend/src/blog-content.js`): 004, 005, 007, 009.
+**Not yet posted, but fully drafted and ready:** 004, 005, 007, 009 (copy in `batch-01-linkedin-captions.md`); 014 (copy in `batch-02-linkedin-captions.md`, timely insert — see `../../docs/founder-log-calendar.md`'s 2026-07-20 changelog). Graphics for all of these are rendered in `../renders/`; blog posts are already in `backend/src/blog-content.js`.
 
 **Skipped, live-only, no real content yet — do not fabricate:** 006 (Slot F, user feedback), 008 (Slot A, build log). Post these out of order whenever real material exists; until then the Routine skips past them.

@@ -4,6 +4,8 @@
 
 Companion to `brand-narrative.md`, which holds the locked voice rules and the "don't fabricate" standard this calendar is built to honor. This doc is the day-by-day topic bank; `render/` (in `marketing-assets/linkedin-founder-log/`) is the graphic pipeline; `backend/src/blog-content.js` is where the matching blog post for each day gets appended.
 
+**Changelog (2026-07-20):** swapped two Slot G days to cover real product capabilities the market hasn't heard about yet, per `brand-narrative.md`'s new "Product capabilities" section — Day 014 (was "audience before ask," now redundant with Day 044's near-identical angle) → **Ask Ordo spotlight**, timely because a well-funded competitor just validated the same feature category; Day 077 (was "scope cuts") → **what-if sandbox spotlight**. Reserved, not yet assigned a day: **Portfolio Overview / Multi-Project Leaderboard**, **printable status report**, **Team seats**, **shareable snapshot links** — all real, all currently undocumented in any Founder Log content. These don't have a natural home in the current 7-slot wheel without displacing more reflective/meta topics than is worth it in one pass — flag for a decision on where they go (a short feature-spotlight sub-series, or folded into the next 90-day cycle) rather than cramming them in unilaterally.
+
 ## The structure: a 7-slot weekly wheel
 
 Every day maps to one of 7 recurring content categories, so the calendar has rhythm (same 7 categories every week — the "consistent theme, feel") while every single day covers a different specific topic (the "different topic every day"). Slot assignment is just `(day number − 1) mod 7`:
@@ -47,7 +49,7 @@ Days 001–002 are already published (see `../marketing-assets/linkedin-founder-
 | 011 | D | Manufacturing's capital boom, seen from the inside — project controls stretched thin |
 | 012 | E | Improved schedule baseline accuracy 17% on a $1M–$25M energy portfolio — what that took |
 | 013 | F | *Placeholder — real user comment/request, anonymized.* |
-| 014 | G | What "audience before ask" means, and why there's no hard sell yet |
+| 014 | G | A well-funded competitor just shipped "chat with your schedule." Ordo7's had it since day one — Ask Ordo spotlight |
 | 015 | A | *Placeholder — real build milestone from the week.* |
 | 016 | B | The CA→TX/AZ migration, and why infrastructure can't keep up — the org-capacity parallel |
 | 017 | C | Lags — when "wait time" hides schedule risk |
@@ -110,7 +112,7 @@ Days 001–002 are already published (see `../marketing-assets/linkedin-founder-
 | 074 | D | What a utility maintenance backlog actually costs, beyond the obvious |
 | 075 | E | What a 4:45pm status-meeting scramble actually looks like — and why it keeps happening |
 | 076 | F | *Placeholder — real user comment/request, anonymized.* |
-| 077 | G | What I'm still not building — the deliberate scope cuts |
+| 077 | G | The what-if sandbox — test a schedule fix before you commit to it |
 | 078 | A | *Placeholder — real build milestone from the week.* |
 | 079 | B | Building for the person who inherited the controls job, not chose it |
 | 080 | C | The Critical Path Test — does your "critical" path actually drive the finish date? |

@@ -79,6 +79,31 @@ This is the real "why now," and it's a market observation, not just a personal a
 
 This reframes Ordo7's pitch: it's not just "the existing tools are clunky," it's "there's a genuine labor shortage in project controls right now, driven by a real construction/data-center/manufacturing boom, and the people absorbing that gap (PMs wearing two jobs) need something built for them specifically."
 
+## Product capabilities (content bank — verified against the actual code, not the marketing copy)
+
+The market has only really heard two things about Ordo7 so far: the health score and the DCMA checks. That's a fraction of what's actually shipped. Every item below is real and live in `backend/public/index.html` / `backend/src/` today — verified by reading the code, not assumed from memory. Use this as the source list for feature-spotlight content; don't describe a capability that isn't in this list, and don't undersell one that is.
+
+- **Schedule health scoring** — a 0–100 score broken into sub-scores (logic quality, float distribution, constraint hygiene, milestone hygiene), not one opaque number.
+- **DCMA-style issue detection** — negative float, missing logic, out-of-sequence work, and the rest of the 14-point checklist, flagged automatically on upload. Included on every plan, including Free.
+- **Ask Ordo** — a permanently-docked, multi-turn AI chat, grounded in the actual uploaded schedule's real numbers, that *also* answers general project-controls/scheduling questions (DCMA, EVM, critical path, PMBOK concepts) even when unrelated to the loaded file. Built into every plan. See "Ask Ordo vs. the market" below — this is the single most underused fact in Ordo7's current marketing.
+- **What-if sandbox** — adjust float and duration and watch the health score recalculate instantly, before committing to a real schedule revision.
+- **Earned value tracking** — real progress-vs-baseline via Earned Schedule analysis, plus optional cost variance (CPI, CV) *only* once the user enters their own budget data. Never estimated or fabricated — if the cost data isn't there, Ordo7 says so instead of guessing.
+- **Portfolio Overview / Multi-Project Leaderboard** — trend tracking and rollup across every schedule a user has uploaded, not just a single-file tool.
+- **Printable, ready-to-send status report** — no formatting decisions left for the user; per `design-notes.md`, automating this "single most-hated recurring task" is treated as one of the highest-leverage features in the product.
+- **Zero setup, one upload** — drop in a `.xer`, MS Project XML, or CSV export; no project setup wizard, no field mapping, no account configuration before the first result.
+- **Team seats** — invite teammates onto a plan (Teams tier), shared visibility into the same projects.
+- **Shareable snapshot links** — a schedule health snapshot can be shared via a link without giving someone a login.
+
+## Ask Ordo vs. the market (use this — it's a live, ready-to-use contrast)
+
+A well-funded, enterprise-priced competitor in this category recently launched (and staffed up around, with new VP-level hires) a "chat with your schedule in plain language" AI feature as a headline announcement — sold through an enterprise sales cycle, gated behind procurement, with zero public reviews months after GA (per `ordo7-competitive-intel`'s tracking — never name the competitor in public content, reference generically: "a well-funded competitor," "an enterprise player in this space").
+
+**Ordo7 already had this.** Ask Ordo has been live since the product's early build, on every plan including Free, with no sales call required. This is a genuinely rare position: the market just validated that "plain-language AI conversation with your schedule" is the feature buyers want, and Ordo7 doesn't need to build anything to answer that — it needs to *say so*. This is a standing content angle, not a one-off: any time the gap between Ordo7's real capability and its current market awareness needs closing, Ask Ordo is the sharpest, truest example available.
+
+## How Ordo7 listens and evolves
+
+"Ordo7 is not static; it's evolving" isn't just a tagline — there's a real mechanism behind it, and it's worth naming specifically rather than gesturing at vaguely: in-app feedback submission is wired to notify the team directly (via Knock) the moment someone submits it, and every submission is saved regardless of whether notifications are configured. That's a real, standing commitment: a user's frustration or feature request doesn't go into a void, it reaches Taj directly. Content on this theme should point to that mechanism specifically ("there's a feedback button in the product, and I read what comes through it") rather than a generic "we love feedback!" claim.
+
 ## Target audience — education / K-12 bond programs
 
 **This is a real, credibility-backed vertical, not a cold pitch.** Taj has direct hands-on experience delivering a K-12 capital/bond modernization program — this is the strongest, most specific story hook available for this audience, and should be used, not buried.
