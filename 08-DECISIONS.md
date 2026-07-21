@@ -29,6 +29,7 @@
 | Apollo.io prospecting for Ordo7 | Search endpoint is plan-gated on the current free tier | Upgrade Apollo plan |
 | Level 7 outreach — 8 remaining contacts | EnPro, Franklin Electric, Rogers, Watts Water, Archrock, HNTB, CDM Smith, Valmont still need enrichment/verified emails | Run apollo_people_bulk_match once ready |
 | Mobbin design reference tool | Connected, but every search (screens/flows/sections) is gated behind a paid plan — useful for benchmarking Ordo7's UI (upload flow, health-score visualization) against real app patterns | Upgrade at mobbin.com/pricing if worth the cost |
+| Ordo7 enterprise/government compliance readiness | SOC 2 is the enterprise trust baseline; government use (FedRAMP / CMMC / StateRAMP) is a separate, larger lift, and the target-segment choice drives hosting decisions that are costly to redo | Pick the government segment (federal / defense contractors / state+education), then start SOC 2 Type II — see `schedule-health/docs/infrastructure-roadmap.md` item 8 |
 
 ## Decision Principles
 1. **Default to documented** — If not written down, it didn't happen

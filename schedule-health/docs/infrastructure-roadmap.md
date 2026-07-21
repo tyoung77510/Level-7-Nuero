@@ -102,12 +102,82 @@ on use. See `backend/README.md` for details on each.
   actually requiring them — SOC 2 in particular is an ongoing compliance program, not a one-time
   build task, and not worth starting before it's a sales blocker.
 
+The rest of this section is the map for *when* one of those becomes a sales blocker. It splits
+into two very different bars — SOC 2 (a commercial trust baseline) and government use (a much
+larger, different lift). Neither is a one-time build, and both stay deferred until a specific deal
+requires them. But several of the architecture choices below should be made *before* that deal so
+hosting and data-flow decisions aren't redone under pressure.
+
+### 8a. SOC 2 — the commercial trust baseline
+An attestation issued by a CPA firm, not a certification. Type I (controls exist at a point in
+time) then Type II (controls operate effectively over a 3–12 month window). It needs:
+- **Program:** a named security owner; written policies (infosec, access control, incident
+  response, change management, vendor/subprocessor management, BCP/DR, risk assessment);
+  security-awareness training; background checks; a compliance-automation platform
+  (Vanta / Drata / Secureframe) to collect evidence continuously.
+- **Technical controls:** encryption in transit (TLS — have it) *and at rest* (see the blockers
+  below); MFA; audit logging; least-privilege + RBAC (the same gap as item 2's missing roles);
+  vulnerability scanning + an annual third-party pen test; tested backup/restore; endpoint/MDM on
+  employee laptops.
+- **Vendor governance:** a subprocessor register + DPAs for every data-touching vendor — Stripe,
+  Anthropic, Knock, the OAuth providers, and the host.
+- **Rough cost/timeline:** ~6–12 months, ~$25–60k/yr (tooling + audit). Do this first: ~70% of its
+  controls are prerequisites for the government path anyway, and it unblocks the enterprise/Teams
+  tier.
+
+### 8b. Government use — depends entirely on *which* government
+There is no single "government compliant." The gate differs by buyer:
+- **Federal agencies (direct):** FedRAMP ATO (NIST SP 800-53; Low/Moderate/High baselines), a 3PAO
+  assessment, an agency sponsor, and hosting on FedRAMP-authorized IaaS (**AWS GovCloud / Azure
+  Government**). 12–24 months, **$500k–$2M+** — only worth starting with a committed sponsor and a
+  real deal in hand.
+- **Defense contractors** (the A&D firms already in the Tier-2 outreach): **CMMC 2.0 Level 2 ≈
+  NIST SP 800-171** (110 controls) for handling CUI. Much lighter than FedRAMP and the most
+  realistic near-term government-adjacent target.
+- **State/local & education** (the K-12 bond-program vertical): **StateRAMP**, which mirrors
+  FedRAMP Moderate at a lower entry cost.
+- **Any federal use also implies:** Section 508 / WCAG accessibility, US data residency, and often
+  US-persons-only access.
+
+### 8c. The three Ordo7-specific blockers (settle these before any government deal)
+1. **The AI narrative sends schedule content to Anthropic** (an external subprocessor). For
+   CUI/defense/ITAR schedules this is a showstopper as-built. It needs either a per-tenant toggle
+   to disable AI for government tenants, or a government-compliant inference path (e.g., Claude via
+   AWS Bedrock in GovCloud — verify current availability) with the right agreements in place. **If
+   A&D/defense is a target, schedules may carry ITAR-controlled technical data → US-persons-only
+   access, US-only hosting, no foreign support staff.** That one fact reshapes hosting, staffing,
+   and the AI feature, so decide it early.
+2. **SQLite single file** (item 1) → managed **Postgres** with encryption at rest, automated
+   encrypted backups + point-in-time recovery, and HA. SQLite makes encryption-at-rest, backups,
+   and audit evidence materially harder to demonstrate to an assessor.
+3. **Audit logging + AuthN gaps:** a comprehensive, tamper-evident audit trail (auth events, data
+   access, admin actions, exports — today it's error logging + snapshot variance only) and **MFA +
+   enterprise SSO (SAML/SCIM)**. Item 2's missing RBAC is this same gap from the access-control
+   angle.
+
+One genuine tailwind: the **zero-dependency architecture is a compliance asset** — a tiny
+supply-chain attack surface and no npm-CVE churn is exactly what assessors want to see. The
+hand-rolled auth (scrypt + server-side sessions) is sound but will be scrutinized, so keep it
+documented and get it into the pen-test scope.
+
+### 8d. Recommended sequence
+1. **SOC 2 Type II first** — the trust baseline; it pre-builds most government controls and
+   unblocks enterprise revenue.
+2. **In parallel, close the both-bars architecture gaps:** encryption at rest, managed Postgres,
+   audit logging, MFA/SSO, subprocessor governance, and the AI-feature tenant toggle.
+3. **Then pick the government wedge deliberately** (it drives hosting, which is expensive to
+   redo): defense contractors via NIST 800-171/CMMC (cheapest, matches current outreach) →
+   state/local + education via StateRAMP → direct-to-federal via FedRAMP (only with a sponsor).
+
 ## Open questions for whoever picks this up
 
 - Which ERP/cost systems are the actual target customers using? This determines the first
   integration to build in item 4, if/when automatic cost feeds become worth building.
-- Is government/defense a target segment? This determines how early FedRAMP planning needs to
-  start, since it affects hosting choices made much earlier than item 8.
+- **Which** government segment, if any — federal agencies (FedRAMP), defense contractors
+  (CMMC / NIST 800-171), or state/local + education (StateRAMP)? See the expanded item 8. This is
+  the pivotal decision: it sets whether hosting must be GovCloud + US-persons-only from the start
+  (federal / ITAR) or can stay on mainstream compliant cloud (contractors / state) — and hosting
+  is expensive to redo, so it should be decided before, not after, the compliance work begins.
 - Direct P6 API integration vs. file upload as the primary ingestion method — the former is a
   much bigger lift but removes the single biggest point of friction (remembering to export and
   upload). This is now the single highest-leverage item left on this list (item 5).
