@@ -1,6 +1,6 @@
 # Level 7 Consulting — Key Decisions Log
 > **Purpose:** Track every significant decision, its rationale, who made it, and why.
-> **Status:** ✅ Active | **Last Updated:** 2026-07-19
+> **Status:** ✅ Active | **Last Updated:** 2026-07-21
 
 ## Decision Log
 | Date | Decision | Rationale | Made By | Status |
@@ -20,13 +20,14 @@
 | 2026-07-11 | Added README.md, LICENSE, .gitignore; standardized "Last Updated" metadata across all brain files | Repo had no GitHub-native orientation and no consistent freshness tracking — audit gap closed | Data Agent | ✅ |
 | 2026-07-11 | Documented Knock (linked to cto.new) as notification infrastructure in tech-stack.md | Was connected but undocumented; workflows not yet built | Owner | ✅ |
 | 2026-07-19 | Stripe activated via cto.new — live path to collect payment now exists | Business filings completed, unblocking payment processing | Owner | ✅ |
+| 2026-07-21 | Launched "Ordo7 Cold Outreach — Tier 1 ICP" Apollo sequence — 15 verified project-controls/ops leaders enrolled, 2-step auto-email (Day 0 + Day 3 follow-up), sending from dedicated `outreach@ordo7.pro` mailbox on a Mon–Fri 8–5 (contact-local) business-hours schedule | First live cold-outreach motion for Ordo7; a dedicated sending domain isolates deliverability risk from the Level 7 `admin@level7data.com` inbox | Owner + Sales | ✅ |
 
 ## Open Action Items
 | Item | Why It Matters | Owner Action Needed |
 |------|-----------------|----------------------|
 | Digital Brain ↔ shared filesystem sync | This repo mirrors `/home/team/shared/digital-brain/` but nothing enforces they stay in sync | Decide: GitHub becomes canonical, or set up a scheduled sync |
 | DocuSign SOW template | Draft SOW built; needs signature/date tabs placed in DocuSign's template editor | Owner walks through tab placement with Claude |
-| Apollo.io prospecting for Ordo7 | Search endpoint is plan-gated on the current free tier | Upgrade Apollo plan |
+| Ordo7 sequence — monitor & scale past Tier 1 | Tier-1 sequence (15 verified contacts) went live 2026-07-21; enrichment credits are now available (~2,500 remaining) | Watch open/reply rates over the first Day-0/Day-3 cycle, then source & enrich a Tier-2 batch |
 | Level 7 outreach — 8 remaining contacts | EnPro, Franklin Electric, Rogers, Watts Water, Archrock, HNTB, CDM Smith, Valmont still need enrichment/verified emails | Run apollo_people_bulk_match once ready |
 | Mobbin design reference tool | Connected, but every search (screens/flows/sections) is gated behind a paid plan — useful for benchmarking Ordo7's UI (upload flow, health-score visualization) against real app patterns | Upgrade at mobbin.com/pricing if worth the cost |
 
