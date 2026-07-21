@@ -11,7 +11,7 @@ NODE_PATH=/opt/node22/lib/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
 
 Renders every entry in the data file to `../renders/founder-log-<episode>-<type>-<size>.jpg`. Pass `--only=003,007` to render a subset by episode number.
 
-`example-data.json` reproduces Founder Log 001 (portrait left, feed + cover) and 002 (portrait right, feed only) — the two hand-built reference posts — as a regression check: re-run it any time the templates change and diff the output against what's already committed in `../renders/`.
+`example-data.json` reproduces Founder Log 001 (portrait left, feed + cover) and 002 (portrait right, feed only) — the two hand-built reference posts — as a regression check: re-run it any time the templates change and diff the output against what's already committed in `../renders/`. **Caveat as of 2026-07-20:** the CTA button text changed from "Follow the journey" to "Try It For Free" in the templates (see `../../../docs/brand-narrative.md`'s changelog), so re-running this against 001/002's committed renders will now show that one intentional diff — not a regression. Days 001–003's actual published renders correctly still show the old CTA, since those are locked historical record.
 
 ## Data file format
 

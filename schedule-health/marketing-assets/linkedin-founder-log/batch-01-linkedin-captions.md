@@ -2,7 +2,9 @@
 
 > **Status:** ✅ Ready to post | **Last Updated:** 2026-07-20
 
-Full LinkedIn caption text for each rendered graphic in this batch (graphics: `../renders/founder-log-00N-feed-1200x1500.jpg`, blog companions live in `backend/src/blog-content.js`). Caption formula per `../../docs/brand-narrative.md`: hook line → problem/story → what Ordo7 does → `Read the full post → blog link` → `Follow the journey → https://ordo7.pro` → 4–5 hashtags.
+Full LinkedIn caption text for each rendered graphic in this batch (graphics: `../renders/founder-log-00N-feed-1200x1500.jpg`, blog companions live in `backend/src/blog-content.js`). Caption formula per `../../docs/brand-narrative.md`: hook line → problem/story → what Ordo7 does → `Read the full post → blog link` → `Try It For Free → https://ordo7.pro` → 4–5 hashtags.
+
+**Note (2026-07-20):** the CTA changed from "Follow the journey" to "Try It For Free" after Day 003 went live — see `../../docs/brand-narrative.md`'s changelog. Day 003 below keeps its original live copy; Days 004+ use the new CTA.
 
 Days 006 and 008 are intentionally **not** drafted in this batch — see "Skipped days" below.
 
@@ -34,7 +36,7 @@ I spent time on a water utility maintenance program early in my career. Complian
 That's part of why I'm building Ordo7 to work across industries, not just construction. The DCMA checks are the same math everywhere. The stakes aren't.
 
 Read the full post → https://www.ordo7.pro/blog/founder-log-004-utility-safety
-Follow the journey → https://ordo7.pro
+Try It For Free → https://ordo7.pro
 
 #BuildInPublic #ProjectControls #UtilityIndustry #FounderJourney #Ordo7
 
@@ -49,7 +51,7 @@ PMP-certified. Deep in Primavera P6, Excel, and Earned Value Management. I've su
 That's not a knock on the software. It's a gap. Ordo7 is my attempt to close it — plain-language schedule health, from one upload, no analyst required.
 
 Read the full post → https://www.ordo7.pro/blog/founder-log-005-eight-years
-Follow the journey → https://ordo7.pro
+Try It For Free → https://ordo7.pro
 
 #BuildInPublic #ProjectControls #PMP #FounderJourney #Ordo7
 
@@ -64,7 +66,7 @@ I'm not raising a round or hiring a team before Ordo7 has a single real user. I'
 Right now the ask isn't "buy this." It's "follow along." That changes once there's something real to stand behind — and I'll say so plainly when it does.
 
 Read the full post → https://www.ordo7.pro/blog/founder-log-007-building-in-public
-Follow the journey → https://ordo7.pro
+Try It For Free → https://ordo7.pro
 
 #BuildInPublic #Bootstrapped #FounderJourney #ProjectControls #Ordo7
 
@@ -79,7 +81,7 @@ Staffing agencies can't fill project controls and scheduling roles fast enough t
 Ordo7 exists for that person — plain-language schedule health without needing to become a Primavera analyst first.
 
 Read the full post → https://www.ordo7.pro/blog/founder-log-009-staffing-shortage
-Follow the journey → https://ordo7.pro
+Try It For Free → https://ordo7.pro
 
 #BuildInPublic #ProjectControls #ConstructionTech #FounderJourney #Ordo7
 

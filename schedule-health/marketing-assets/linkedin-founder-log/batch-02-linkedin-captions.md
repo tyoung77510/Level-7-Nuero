@@ -17,6 +17,6 @@ Ordo7's had this since the early build. Ask Ordo is grounded in your actual uplo
 I'm not saying this to take a shot at anyone. I'm saying it because when a well-funded competitor validates that this is what the market wants, and you already built it, the market deserves to know.
 
 Read the full post → https://www.ordo7.pro/blog/founder-log-014-ask-ordo
-Follow the journey → https://ordo7.pro
+Try It For Free → https://ordo7.pro
 
 #BuildInPublic #ProjectControls #AI #FounderJourney #Ordo7

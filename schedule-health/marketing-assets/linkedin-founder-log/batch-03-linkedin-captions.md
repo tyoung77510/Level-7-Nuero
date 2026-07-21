@@ -19,6 +19,6 @@ This is exactly why Ordo7 doesn't guess. True cost-based EVM isn't shown because
 An industry report just spent 80 pages proving that self-reported schedule health can't be trusted. That's not a knock on anyone — it's the whole reason an objective read matters.
 
 Read the full post → https://www.ordo7.pro/blog/founder-log-035-no-fabrication
-Follow the journey → https://ordo7.pro
+Try It For Free → https://ordo7.pro
 
 #Ordo7 #BuildInPublic #ProjectControls #DataIntegrity #Scheduling
