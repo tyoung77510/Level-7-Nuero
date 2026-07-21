@@ -1,5 +1,5 @@
 # 04-MOC-SALES — Sales & Marketing Map of Content
-> **Status:** ✅ Active | **Purpose:** Index for outreach, targeting, content, and sales materials | **Last Updated:** 2026-07-11
+> **Status:** ✅ Active | **Purpose:** Index for outreach, targeting, content, and sales materials | **Last Updated:** 2026-07-21
 
 ## 🔗 Key Notes in This Section
 
@@ -9,6 +9,7 @@
 | [[04-SALES-MARKETING/target-clients.md]] | Target companies, decision-maker profiles, industry associations, outreach channels, state networks |
 | [[04-SALES-MARKETING/linkedin-strategy.md]] | Content pillars, engagement hooks, 30 post drafts, posting cadence |
 | [[04-SALES-MARKETING/sales-materials.md]] | One-pager, sales deck structure, case study template, assessment survey |
+| [[04-SALES-MARKETING/ordo7-blog-nurture.md]] | Ordo7 blog welcome + content drip — email copy and MailerLite automation/form setup |
 
 ## Quick Summary
 - **3-channel strategy:** Email (volume) + Assessment-Led (quality) + LinkedIn/Referral (warmth)
