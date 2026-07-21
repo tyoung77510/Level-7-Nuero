@@ -16,7 +16,7 @@ node src/server.js          # API + frontend at http://localhost:3000
 ```
 
 - **No build step and no `npm install`.** The backend is intentionally **zero-dependency**: only Node's built-in `http` and `node:sqlite`. Requires **Node ≥ 22.5** (for `node:sqlite`).
-- **No automated test suite yet.** Verification to date is manual/end-to-end (curl + real-browser/Playwright) — documented exhaustively in `backend/README.md` under "Tested." Adding a real test runner is a reasonable next step; until then, verify changes by driving the actual flow.
+- **Automated tests are just getting started** — run `npm test` (Node's built-in `node --test`, zero dependencies). Coverage today is a regression test for the Microsoft Project (MSPDI/XML) analysis path in `test/analyze-msp.test.js`; the rest of the app is still verified manually/end-to-end (curl + real-browser/Playwright), documented in `backend/README.md` under "Tested." Add a `test/*.test.js` file alongside any parser/rules-engine change you want protected, and drive the actual flow for everything not yet covered.
 - Config: copy `backend/.env.example` → `backend/.env` (gitignored). Every external integration **degrades gracefully** when its env vars are unset — the app runs fully on email/password auth alone with billing, OAuth, notifications, and AI all inert. Don't add hard dependencies on any integration being configured.
 
 ## Which frontend is real
