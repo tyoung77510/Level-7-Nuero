@@ -1866,6 +1866,8 @@ function blogFooter() {
       <div class="blog-footer-links">
         <a href="/" class="navlink" style="color:#8695a8;">Product</a>
         <a href="/" class="navlink" style="color:#8695a8;">Pricing</a>
+        <a href="/privacy" class="navlink" style="color:#8695a8;">Privacy</a>
+        <a href="/terms" class="navlink" style="color:#8695a8;">Terms</a>
         <a href="https://level7data.com/" target="_blank" rel="noopener" class="navlink" style="color:#8695a8;">Powered by Level 7</a>
         <a href="https://level7data.com/" target="_blank" rel="noopener" class="cta-pill">Book a consultation →</a>
       </div>
