@@ -15,6 +15,16 @@ New subscribers sign up on the **Ordo7 blog**, land in the MailerLite **Ordo7 Bl
 
 **Sequence:** Welcome (immediate) → 3-day delay → Drip 1 → 5-day delay → Drip 2 → 7-day delay → Drip 3
 
+### Form URLs
+
+| Link | Use |
+|------|-----|
+| [Form overview](https://dashboard.mailerlite.com/forms/193562339772990497/overview) | Design the form, then copy the embed/JavaScript code (only generated once the form has content and is active) |
+| [Preview](https://dashboard.mailerlite.com/preview/2520653/forms/193562339772990497?fresh=1) | Preview the form design |
+| [Hosted share URL](https://preview.mailerlite.io/forms/2520653/193562339772990497/share) | Standalone hosted form — link to it from the blog as a stopgap before embedding |
+
+> The embed snippet is not available until the form is designed in the editor (currently `has_content: false`, `active: false`). Build the form first, then grab the code from the overview page.
+
 > **To go live:** design each email body in the MailerLite visual editor, confirm the verified sender (`admin@level7data.com`), embed the form on the blog, then activate the automation. The API creates the steps and subject lines but cannot author email HTML.
 
 ## Email Copy
@@ -129,6 +139,17 @@ If your data has been telling you comfortable stories, it might be time to hear 
 
 — The Level 7 Team
 *Bringing order to operational chaos.*
+
+## Subject Line A/B Variants
+
+All variants validated against MailerLite's spam/length checks. Native A/B split testing is a **campaign** feature — automation email steps don't A/B subject lines automatically, so pick the stronger option per email (or run a one-off A/B campaign later and apply the winner).
+
+| Email | Variant A (current) | Variant B (alternate) |
+|-------|---------------------|-----------------------|
+| Welcome | Welcome to Ordo7 — order out of operational chaos | You're in. Here's what Ordo7 actually does. |
+| Drip 1 | The hidden cost of operational chaos (and how to spot it) ⚠️ 57 chars — may clip on mobile | **Your chaos has a price tag. Here's how to read it.** (recommended — 50 chars) |
+| Drip 2 | From firefighting to control: the PMO shift | Why your best people are stuck putting out fires |
+| Drip 3 | Your data is lying to you — here's how to fix it | The dashboards look great. The data doesn't. |
 
 ## Notes
 - Personalization tag shown as `{$name}` — confirm the account's merge tag (`{$name}` vs `{$first_name}`) in the editor and adjust.
