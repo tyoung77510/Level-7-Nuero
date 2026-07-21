@@ -35,6 +35,7 @@ const knock = require('./knock');
 const ai = require('./ai');
 const pricing = require('./pricing');
 const oauth = require('./oauth');
+const mailerlite = require('./mailerlite');
 const blogContent = require('./blog-content');
 const rateLimit = require('./rate-limit');
 const webhook = require('./webhook');
@@ -256,6 +257,23 @@ route('POST', '/api/public/consent', async (req, res, params, user) => {
   store.recordConsent(consentId, user ? user.id : null, categories);
   res.setHeader('Set-Cookie', `ordo7_consent_id=${consentId}; Path=/; Max-Age=63072000; SameSite=Lax` + (isSecureRequest(req) ? '; Secure' : ''));
   sendJSON(res, 200, { consentId });
+});
+
+// Blog newsletter signup — adds the email to the MailerLite blog group, which starts the welcome +
+// content-drip automation. Public: blog readers aren't logged in. Degrades gracefully to a disclosed
+// 503 when MAILERLITE_API_KEY isn't set (same pattern as the forgot-password route), so the form
+// stays honest rather than pretending to subscribe someone into a void.
+route('POST', '/api/public/blog-subscribe', async (req, res) => {
+  if (rateLimited(res, 'blog-subscribe', req, 10, 60 * 60 * 1000)) return; // 10/hour per IP
+  if (!mailerlite.mailerliteConfigured()) return sendJSON(res, 503, { error: 'Newsletter signups are not configured yet' });
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const email = String(payload.email || '').trim().toLowerCase();
+  if (!auth.EMAIL_RE.test(email)) return sendJSON(res, 400, { error: 'Enter a valid email address' });
+  const result = await mailerlite.addBlogSubscriber(email);
+  if (!result) return sendJSON(res, 502, { error: "Couldn't sign you up just now — please try again in a moment" });
+  sendJSON(res, 200, { subscribed: true });
 });
 
 function matchRoute(method, pathname) {
@@ -1835,6 +1853,46 @@ document.querySelectorAll('[data-copy-url]').forEach(function (btn) {
     });
   });
 })();
+
+// Newsletter signup — posts the email to the MailerLite-backed /api/public/blog-subscribe route.
+// Only present on the index page, so this is a silent no-op (form is null) on the article page.
+(function () {
+  var form = document.getElementById('newsletterForm');
+  if (!form) return;
+  var input = form.querySelector('input[type=email]');
+  var btn = form.querySelector('button');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var email = (input.value || '').trim();
+    if (!email) return;
+    var original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Subscribing\\u2026';
+    input.setCustomValidity('');
+    fetch('/api/public/blog-subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, data: d }; });
+    }).then(function (res) {
+      if (res.ok) {
+        form.innerHTML = '<p style="margin:0; color:#5eead4; font-size:14px; font-weight:600;">You\\u2019re on the list \\u2014 check your inbox to confirm \\u2713</p>';
+      } else {
+        btn.disabled = false;
+        btn.textContent = original;
+        input.setCustomValidity((res.data && res.data.error) || 'Something went wrong \\u2014 please try again');
+        input.reportValidity();
+      }
+    }).catch(function () {
+      btn.disabled = false;
+      btn.textContent = original;
+      input.setCustomValidity('Network error \\u2014 please try again');
+      input.reportValidity();
+    });
+  });
+  input.addEventListener('input', function () { input.setCustomValidity(''); });
+})();
 `;
 
 function blogHeader(active) {
@@ -2038,8 +2096,8 @@ function serveBlogIndex(req, res) {
           <h3>Schedule tips, twice a month.</h3>
           <p>Plain-language writing on reading, fixing and defending construction schedules. No spam.</p>
         </div>
-        <form class="newsletter-form" onsubmit="event.preventDefault(); this.querySelector('button').textContent='Coming soon';">
-          <input type="email" placeholder="you@company.com" required>
+        <form class="newsletter-form" id="newsletterForm">
+          <input type="email" name="email" placeholder="you@company.com" autocomplete="email" required>
           <button type="submit" class="cta-pill" style="border:none; cursor:pointer;">Subscribe</button>
         </form>
       </div>
