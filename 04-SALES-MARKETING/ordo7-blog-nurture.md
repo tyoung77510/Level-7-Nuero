@@ -1,5 +1,5 @@
 # Ordo7 Blog — Welcome & Content Drip
-> **Status:** ✅ Active | **Purpose:** Email copy and MailerLite setup for the Ordo7 blog subscriber welcome + nurture sequence | **Last Updated:** 2026-07-21
+> **Status:** ✅ Active | **Purpose:** Email copy, MailerLite setup, and blog-form integration for the Ordo7 blog subscriber welcome + nurture sequence | **Last Updated:** 2026-07-21
 
 New subscribers sign up on the **Ordo7 blog**, land in the MailerLite **Ordo7 Blog Subscribers** group, and receive a welcome email followed by a 3-part blog-content drip. Copy is Truth-Teller voice, written for operations leaders at $20M–$500M industrial/engineering firms.
 
@@ -25,7 +25,20 @@ New subscribers sign up on the **Ordo7 blog**, land in the MailerLite **Ordo7 Bl
 
 > The embed snippet is not available until the form is designed in the editor (currently `has_content: false`, `active: false`). Build the form first, then grab the code from the overview page.
 
-> **To go live:** design each email body in the MailerLite visual editor, confirm the verified sender (`admin@level7data.com`), embed the form on the blog, then activate the automation. The API creates the steps and subject lines but cannot author email HTML.
+> **To go live:** design each email body in the MailerLite visual editor, confirm the verified sender (`admin@level7data.com`), set `MAILERLITE_API_KEY` in the blog app's environment (see below), then activate the automation. The API creates the steps and subject lines but cannot author email HTML.
+
+### Blog integration (in-app)
+
+The Ordo7 blog's newsletter signup form (the `schedule-health` app in this repo) is wired directly to the group — no MailerLite embed snippet needed. The blog's existing dark-theme form posts to a backend route that adds the email to the group via the MailerLite API, which starts this automation.
+
+| Piece | Location |
+|-------|----------|
+| API client | `schedule-health/backend/src/mailerlite.js` |
+| Route | `POST /api/public/blog-subscribe` in `schedule-health/backend/src/server.js` |
+| Form | `#newsletterForm` on the blog index (`server.js`) |
+| Env vars | `MAILERLITE_API_KEY` (required), `MAILERLITE_BLOG_GROUP_ID` (defaults to this group) — see `schedule-health/backend/.env.example` |
+
+Until `MAILERLITE_API_KEY` is set, the form degrades gracefully (returns a disclosed 503 and shows an error) rather than silently dropping signups.
 
 ## Email Copy
 
