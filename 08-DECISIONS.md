@@ -21,13 +21,15 @@
 | 2026-07-11 | Documented Knock (linked to cto.new) as notification infrastructure in tech-stack.md | Was connected but undocumented; workflows not yet built | Owner | ✅ |
 | 2026-07-19 | Stripe activated via cto.new — live path to collect payment now exists | Business filings completed, unblocking payment processing | Owner | ✅ |
 | 2026-07-21 | Launched "Ordo7 Cold Outreach — Tier 1 ICP" Apollo sequence — 15 verified project-controls/ops leaders enrolled, 2-step auto-email (Day 0 + Day 3 follow-up), sending from dedicated `outreach@ordo7.pro` mailbox on a Mon–Fri 8–5 (contact-local) business-hours schedule | First live cold-outreach motion for Ordo7; a dedicated sending domain isolates deliverability risk from the Level 7 `admin@level7data.com` inbox | Owner + Sales | ✅ |
+| 2026-07-21 | Sourced & staged a blended Tier-2 batch — 20 verified contacts in two labeled A/B cohorts: `Ordo7 Tier-2 — Practitioners` (10 project-controls managers/schedulers/PMs at E&C firms) and `Ordo7 Tier-2 — Adjacent-Vertical Buyers` (10 Director-Controls/VP-Ops/COO leaders in aerospace & defense, oil & gas, utilities). Contacts created + labeled; **not yet enrolled or sent** | Owner chose a blended batch specifically to compare which dataset drives more replies (bottom-up practitioner adoption vs. top-down buyer, new verticals) | Owner + Sales | ⏳ |
 
 ## Open Action Items
 | Item | Why It Matters | Owner Action Needed |
 |------|-----------------|----------------------|
 | Digital Brain ↔ shared filesystem sync | This repo mirrors `/home/team/shared/digital-brain/` but nothing enforces they stay in sync | Decide: GitHub becomes canonical, or set up a scheduled sync |
 | DocuSign SOW template | Draft SOW built; needs signature/date tabs placed in DocuSign's template editor | Owner walks through tab placement with Claude |
-| Ordo7 sequence — monitor & scale past Tier 1 | Tier-1 sequence (15 verified contacts) went live 2026-07-21; enrichment credits are now available (~2,500 remaining) | Watch open/reply rates over the first Day-0/Day-3 cycle, then source & enrich a Tier-2 batch |
+| Ordo7 Tier-2 batch — launch decision | 20 verified contacts sourced & staged 2026-07-21 in two labeled A/B cohorts (Practitioners vs. Adjacent-Vertical Buyers), pending enroll/activate; the two personas likely want different copy, which trades off against a clean same-copy A/B | Decide launch structure (one sequence + label-split analytics, or two persona-tailored sequences), then approve enroll + activate |
+| Ordo7 Tier-1 sequence — monitor | Tier-1 sequence (15 contacts) went live 2026-07-21 | Watch open/reply rates over the first Day-0/Day-3 cycle |
 | Level 7 outreach — 8 remaining contacts | EnPro, Franklin Electric, Rogers, Watts Water, Archrock, HNTB, CDM Smith, Valmont still need enrichment/verified emails | Run apollo_people_bulk_match once ready |
 | Mobbin design reference tool | Connected, but every search (screens/flows/sections) is gated behind a paid plan — useful for benchmarking Ordo7's UI (upload flow, health-score visualization) against real app patterns | Upgrade at mobbin.com/pricing if worth the cost |
 
