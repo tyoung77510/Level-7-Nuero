@@ -4,6 +4,14 @@
 
 This is the source of truth. Companion files: the day-by-day topic bank is `founder-log-calendar.md`; the locked voice + caption formula is `brand-narrative.md`; pre-approved copy is `../marketing-assets/linkedin-founder-log/batch-0N-linkedin-captions.md`; the graphic pipeline is `../marketing-assets/linkedin-founder-log/render/`; the dedup ledger is `../marketing-assets/linkedin-founder-log/posting-log.md`; matching blog posts live in `../backend/src/blog-content.js`.
 
+## Automation stance — fully straight-through, no approval gate
+The routine drafts **and publishes** each day end to end on its own — the blog article and all three LinkedIn surfaces — every weekday, with no human review step in the path. Do not add a "draft → wait for approval → publish" checkpoint; the owner has explicitly chosen no bottlenecks. The only things that ever halt a run are the **safety rails below, never a review queue**:
+- **Fabrication guard** — a Slot A/F day with no real content is skipped, never invented (step 1).
+- **Dead-blog-link stop** — never post a caption whose blog URL 404s (step 2).
+- **Connection-down stop** — if the LinkedIn connection is off, alert the owner and let the day re-run, rather than posting half of it (step 4).
+
+Everything else publishes without waiting on anyone.
+
 ## Cadence
 - One post per weekday (Mon–Fri), ~4pm US/Pacific, run by the **"Ordo7 Founder Log Daily Posting"** Routine (cron `0 23 * * 1-5` UTC = 4pm PDT; becomes 3pm after DST ends ~Nov 1 — flag to the owner then).
 - **Holiday check first.** Do not post on US holidays (engagement craters). Known skip dates: 2026-09-07, 2026-10-12, 2026-11-11, 2026-11-26, 2026-11-27, 2026-12-25. Past the last known date, ask the owner rather than guessing.
