@@ -51,6 +51,7 @@ PMP-certified. Deep in Primavera P6, Excel, and Earned Value Management. I've su
 That's not a knock on the software. It's a gap. Ordo7 is my attempt to close it — plain-language schedule health, from one upload, no analyst required.
 
 Read the full post → https://www.ordo7.pro/blog/founder-log-005-eight-years
+Follow Ordo7 on LinkedIn → https://www.linkedin.com/company/ordo7/
 Try It For Free → https://ordo7.pro
 
 #BuildInPublic #ProjectControls #PMP #FounderJourney #Ordo7
