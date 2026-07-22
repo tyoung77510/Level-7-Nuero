@@ -14,6 +14,23 @@
 //              callout treatment; a plain post can just use <p>/<h2> with no .flag markup at all.
 module.exports = [
   {
+    slug: 'founder-log-005-eight-years',
+    title: "Founder Log 005: Eight Years in Project Controls, One Recurring Problem",
+    headline: "Founder Log 005 — Eight Years in Project Controls Taught Me One Thing Keeps Breaking",
+    description: "PMP-certified, deep in Primavera P6 and EVM, across $100M+ in portfolios and five industries. The tools were always powerful. They were never built for the person actually running the schedule.",
+    category: 'Founder Log',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-005-cover.jpg',
+    contentHtml: `
+<p class="lead">I've spent more than eight years in project controls — PMP-certified, deep in Primavera P6, Excel, and Earned Value Management, supporting capital portfolios worth $100M+ across utility, manufacturing, pharmaceutical, oil & gas, and education projects.</p>
+<p>Different industries. Different scopes. Different stakeholders. But the same problem showed up everywhere: the tools I was using were genuinely powerful — Primavera can model almost anything — and they were never built for the person who actually has to sit down and figure out, in the next ten minutes, what's actually wrong with the schedule before a status meeting.</p>
+<h2>The gap between powerful and usable</h2>
+<p>That gap isn't a knock on the software. Primavera does what it's designed to do. But "powerful" and "built for the person doing the work at 4:45pm" are two different design goals, and most schedule tools optimize hard for the first one and barely think about the second. The result is a lot of very capable software that very few people actually enjoy opening.</p>
+<p>I'm finishing a degree in Construction Management right now, on top of the work — formal credentialing layered onto what I've already learned hands-on. But the instinct behind Ordo7 didn't come from a classroom. It came from years of being the person who had to translate a complicated schedule into something a PM, a director, or a superintendent could actually act on, over and over, for different employers and different projects, because nothing off-the-shelf did that translation for me.</p>
+<h2>What that means for Ordo7</h2>
+<p>Ordo7 isn't trying to replace Primavera or out-feature it. It's trying to be the plain-language layer on top — upload a schedule, get a health check you don't need eight years of experience to understand. That's the whole bet.</p>
+`.trim()
+  },
+  {
     slug: 'the-non-schedulers-survival-guide',
     title: "The Non-Scheduler's Guide to a Bad Baseline",
     headline: "The Non-Scheduler's Survival Guide: 5 Red Flags to Check Before You Accept a Contractor's Baseline",
