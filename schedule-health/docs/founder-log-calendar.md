@@ -145,6 +145,21 @@ The Founder Log is one channel, not the whole go-to-market plan. These are the n
 
 The three relationship-building items (earned-coverage outreach, referral channel, event presence) run on a daily automated engine — see `gtm-action-log.md` for the rotation, the research/draft-only rule, and the running log of what's been found and drafted.
 
+## Cresco — recommended inserts (SEO-sourced)
+
+> Added by **Cresco** (Growth & SEO analyst — see `cresco-growth-seo-agent.md`). Each topic targets a real, low-difficulty keyword Ordo7 can realistically rank for from a standing start. Slot into upcoming **Slot C (educational)** / product-explainer days; the posting routine can draw from here. Source: Semrush (US), Brief #1, 2026-07-22.
+
+| Priority | Topic (Ordo7 voice) | Target keyword | Vol/mo | Difficulty | Why it's winnable |
+|---|---|---|---|:--:|---|
+| 1 | The DCMA 14-point check, in plain English | dcma 14 point assessment | 320 | 14 | Highest-volume low-difficulty term in Ordo7's wheelhouse; Ordo7 runs these checks. Commercial intent. |
+| 2 | What a free XER viewer actually tells you about your schedule | xer file viewer | 40 | 0 | Ordo7 parses `.xer` directly — near-zero difficulty, commercial ($4.56 CPC). |
+| 3 | Schedule Performance Index (SPI), without the jargon | what is schedule performance index | 90 | 12 | Ordo7 computes Earned Schedule; educational, low difficulty. |
+| 4 | Which schedule dependency type is most common — and why it bites you | which type of dependency is most common in project schedules | 70 | 11 | Maps to the DCMA relationship-types educational post. |
+
+**Longer-term commercial target (harder):** *project controls software* — 320/mo, difficulty 24, $13.03 CPC. Worth a dedicated product/comparison page once the domain has authority.
+
+**Gate on all of the above:** ordo7.pro has *zero* organic footprint until Google indexes it — connect Google Search Console and submit the sitemap first (Cresco Brief #1).
+
 ## Obsidian / cross-references
 
 - [[brand-narrative.md]] — voice rules, locked copy, the "don't fabricate" standard this calendar follows
