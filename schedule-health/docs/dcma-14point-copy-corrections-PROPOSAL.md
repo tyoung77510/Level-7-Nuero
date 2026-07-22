@@ -1,4 +1,4 @@
-> **Status:** 🟡 PROPOSAL — pending founder approval | **Purpose:** Honest-coverage corrections for site copy that claims broader DCMA 14-point automation than the engine delivers (5 of 14 checks) | **Last Updated:** 2026-07-22
+> **Status:** ⚫ SUPERSEDED — resolved on `main` by commit `1aae164` ("Correct DCMA coverage claim sitewide, P-0"), which standardized on **"DCMA-style schedule checks"** and states **6 of 14** checks automated (Logic, Hard Constraints, High Float, Negative Float, High Duration, Invalid Dates, plus out-of-sequence). That sitewide fix is canonical; the "DCMA-based" wording proposed below was not adopted. Kept for history. | **Purpose:** (historical) Honest-coverage corrections for site copy claiming broader DCMA coverage than the engine delivers | **Last Updated:** 2026-07-22
 
 # DCMA "14-point coverage" copy — correction proposal
 
