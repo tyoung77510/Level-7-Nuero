@@ -99,6 +99,10 @@ for (const post of blogContent) {
     store.updateBlogPost(post.slug, post.title, post.description, post.contentHtml, post.category, post.toc, post.headline);
   }
 }
+// A post removed from blogContent (unpublished) or given a new slug (renamed) must not keep
+// serving from a stale DB row — see pruneBlogPosts in db.js. Old-slug requests are still handled
+// gracefully via BLOG_SLUG_REDIRECTS (301), not left as a broken link.
+store.pruneBlogPosts(blogContent.map(post => post.slug));
 
 const PORT = process.env.PORT || 3000;
 
@@ -1541,12 +1545,30 @@ function blogCanonicalUrl(slug) {
   return `https://www.ordo7.pro/blog/${slug}`;
 }
 
+// Old slug -> new slug (or null -> the blog index, for an unpublished post) — real 301s so nothing
+// that indexed or linked to a since-renamed/removed post URL hits a dead end. Cresco work order,
+// 2026-07-22: B5 stripped Founder Log numbering from every surviving entry's slug (visible gaps in
+// the numbering implied more entries existed than actually do); B2 unpublished 014 outright
+// (covered a competitor's feature launch — remove, don't rewrite); the survival-guide slug was
+// tightened to match its actual search intent under the new title-tag/slug convention (A5).
+const BLOG_SLUG_REDIRECTS = {
+  'founder-log-035-no-fabrication': 'why-ordo7-never-fabricates-a-metric',
+  'founder-log-014-ask-ordo': null,
+  'founder-log-003-logic': 'missing-predecessors-successors-p6-dcma-check-1',
+  'founder-log-004-utility-safety': 'utility-maintenance-schedule-discipline-safety',
+  'founder-log-005-eight-years': 'eight-years-in-project-controls',
+  'founder-log-007-building-in-public': 'building-ordo7-in-public',
+  'founder-log-009-staffing-shortage': 'project-controls-staffing-shortage',
+  'the-non-schedulers-survival-guide': 'contractor-baseline-red-flags-checklist'
+};
+
 function buildShareLinks(url, title) {
   const enc = encodeURIComponent;
+  // Facebook and X dropped per work order A2 (trim the share row to LinkedIn + email) — Facebook
+  // and X were never meaningful referral sources for this audience, and fewer inert-looking icons
+  // reads cleaner than two that rarely get clicked.
   return {
     li: `https://www.linkedin.com/sharing/share-offsite/?url=${enc(url)}`,
-    x: `https://twitter.com/intent/tweet?text=${enc(title)}&url=${enc(url)}`,
-    fb: `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}`,
     wa: `https://wa.me/?text=${enc(title + ' ' + url)}`,
     mail: `mailto:?subject=${enc(title)}&body=${enc(url)}`
   };
@@ -1556,8 +1578,14 @@ function parsePublishedAt(raw) {
   const iso = raw.includes('T') ? raw : raw.replace(' ', 'T') + 'Z';
   return new Date(iso);
 }
-function formatDateShort(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
-function formatDateLong(d) { return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); }
+// published_at is stored (and parsed just above) as a UTC instant — datetime('now')'s SQLite
+// default. Formatting it with the *server process's* local timezone (no timeZone option) shifts
+// the displayed calendar date by however far that timezone sits from UTC — a post published a few
+// hours before midnight UTC renders one day ahead for any host whose TZ is east of UTC. Pinning
+// timeZone: 'UTC' here makes the displayed date match the UTC calendar day the timestamp actually
+// falls on, regardless of what TZ the Node process happens to be running under (fixes A3).
+function formatDateShort(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }); }
+function formatDateLong(d) { return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }); }
 
 // Derives every display-ready field a template needs from a raw blog_posts row, in one place, so
 // the index and article renderers stay in sync instead of two hand-rolled copies of this math.
@@ -1849,6 +1877,7 @@ function blogHeader(active) {
         <a href="/" class="navlink">Product</a>
         <a href="/" class="navlink">Pricing</a>
         <a href="/blog" class="navlink${active === 'blog' ? ' active' : ''}">Blog</a>
+        <a href="/blog/founder-log" class="navlink${active === 'founder-log' ? ' active' : ''}">Founder Log</a>
         <a href="/" class="cta-pill">Try free →</a>
       </nav>
     </div>
@@ -1869,7 +1898,7 @@ function blogFooter() {
         <a href="/privacy" class="navlink" style="color:#8695a8;">Privacy</a>
         <a href="/terms" class="navlink" style="color:#8695a8;">Terms</a>
         <a href="https://level7data.com/" target="_blank" rel="noopener" class="navlink" style="color:#8695a8;">Powered by Level 7</a>
-        <a href="https://level7data.com/" target="_blank" rel="noopener" class="cta-pill">Book a consultation →</a>
+        <a href="/" class="cta-pill">Try Ordo7 free →</a>
       </div>
     </div>
   </footer>`;
@@ -1887,8 +1916,6 @@ function shareRow(share, { size = 32, withCopy = false, copyUrl = '', leading = 
   return `<div class="share-row">
     ${leading ? '<span class="share-label">SHARE</span>' : ''}
     ${btn(share.li, 'LinkedIn', 'in')}
-    ${btn(share.x, 'X', '𝕏')}
-    ${btn(share.fb, 'Facebook', 'f')}
     ${wa}
     ${btn(share.mail, 'Email', '✉')}
     ${copy}
@@ -1970,8 +1997,21 @@ ${jsonLd ? `<script type="application/ld+json">\n${JSON.stringify(jsonLd)}\n</sc
 `;
 }
 
+// Category chips are only worth showing for categories that actually have a published post in
+// this list — a hardcoded chip for a category with zero posts always renders the "No posts in this
+// category yet" empty state the moment someone clicks it (A1). Order follows first appearance in
+// the (already published_at DESC-ordered) posts list, so the most recently active category tends
+// to lead.
+function chipCategoriesFrom(posts) {
+  const seen = [];
+  posts.forEach(p => { if (!seen.includes(p.category)) seen.push(p.category); });
+  return seen;
+}
+
 function serveBlogIndex(req, res) {
-  const posts = store.listBlogPosts().map(postViewModel);
+  // Founder Log has its own tab (A6) — the main index only ever shows non-Founder-Log posts, so it
+  // never surfaces Founder Log as a category chip or featured/list slot here.
+  const posts = store.listBlogPosts().map(postViewModel).filter(p => p.category !== 'Founder Log');
   const featured = posts[0];
   const rest = posts.slice(1);
 
@@ -2002,10 +2042,7 @@ function serveBlogIndex(req, res) {
 
       <div class="chips rise" id="blogChips">
         <button type="button" class="chip-active" data-cat="all">All</button>
-        <button type="button" class="chip" data-cat="Fundamentals">Fundamentals</button>
-        <button type="button" class="chip" data-cat="For owners &amp; PMs">For owners &amp; PMs</button>
-        <button type="button" class="chip" data-cat="DCMA &amp; compliance">DCMA &amp; compliance</button>
-        <button type="button" class="chip" data-cat="Product">Product</button>
+        ${chipCategoriesFrom(posts).map(cat => `<button type="button" class="chip" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`).join('\n        ')}
       </div>
 
       <div class="featured rise" data-cat="${escapeHtml(featured.category)}">
@@ -2056,6 +2093,36 @@ function serveBlogIndex(req, res) {
     canonicalPath: '/blog',
     isArticle: false,
     active: 'blog',
+    bodyHtml
+  });
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end(html);
+}
+
+// Founder Log's own tab (A6) — a plain chronological list, deliberately with no featured hero and
+// no chip filter (it's a single category by definition), so it reads as an archive rather than a
+// second front page competing with the real one.
+function serveFounderLogIndex(req, res) {
+  const posts = store.listBlogPosts().map(postViewModel).filter(p => p.category === 'Founder Log');
+  const bodyHtml = `<main class="blog-main">
+      <div class="rise">
+        <div class="blog-kicker">THE FOUNDER LOG</div>
+        <h1 class="blog-h1">Building Ordo7, in public.</h1>
+        <p class="blog-sub">Real milestones, real setbacks, no highlight reel — the day-to-day of building this alone.</p>
+      </div>
+      ${posts.length ? `
+      <div class="section-label reveal" style="margin-top:36px;">ALL ENTRIES</div>
+      <div class="postlist reveal">
+        ${posts.map(postRowHtml).join('\n')}
+      </div>` : `<p style="color:#8695a8; font-size:14px; margin-top:44px;">No entries yet — check back soon.</p>`}
+    </main>`;
+
+  const html = renderBlogPage({
+    title: 'The Founder Log — Ordo7',
+    description: 'Building Ordo7 in public: real milestones, real setbacks, documented as they happen.',
+    canonicalPath: '/blog/founder-log',
+    isArticle: false,
+    active: 'founder-log',
     bodyHtml
   });
   res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -2301,7 +2368,19 @@ const server = http.createServer(async (req, res) => {
   // fetches from /api/) because its entire purpose is search-engine indexing — a client-only
   // render would leave non-JS crawlers with an empty page.
   if (pathname === '/blog' || pathname === '/blog/') return serveBlogIndex(req, res);
-  if (pathname.startsWith('/blog/')) return serveBlogPost(req, res, pathname.slice('/blog/'.length));
+  // Founder Log now lives behind its own tab (A6) — a plain nav link, not the default view and not
+  // a featured slot on the main index. Checked before the generic /blog/:slug fallback below since
+  // 'founder-log' isn't a post slug.
+  if (pathname === '/blog/founder-log' || pathname === '/blog/founder-log/') return serveFounderLogIndex(req, res);
+  if (pathname.startsWith('/blog/')) {
+    const slug = pathname.slice('/blog/'.length);
+    if (Object.prototype.hasOwnProperty.call(BLOG_SLUG_REDIRECTS, slug)) {
+      const dest = BLOG_SLUG_REDIRECTS[slug];
+      res.writeHead(301, { Location: dest === null ? '/blog' : `/blog/${dest}` });
+      return res.end();
+    }
+    return serveBlogPost(req, res, slug);
+  }
 
   serveStatic(req, res, pathname);
 });

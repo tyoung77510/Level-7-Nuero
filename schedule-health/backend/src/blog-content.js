@@ -14,46 +14,27 @@
 //              callout treatment; a plain post can just use <p>/<h2> with no .flag markup at all.
 module.exports = [
   {
-    slug: 'founder-log-035-no-fabrication',
+    slug: 'why-ordo7-never-fabricates-a-metric',
     ogImage: 'https://www.ordo7.pro/brand/founder-log-035-cover.jpg',
-    title: "Founder Log 035: An Industry Report Just Proved Why Ordo7 Won't Guess",
-    headline: "Founder Log 035 — 44% of Schedule Updates Rewrite the Truth. Here's Why Ordo7 Never Will.",
-    description: "A leading schedule-analytics platform's own 2026 industry report found nearly half of schedule updates carry risky levels of changed actual dates. Here's why Ordo7 was built to never do that.",
+    title: "Why Ordo7 Never Fabricates a Schedule Metric",
+    headline: "Why Ordo7 Will Never Fabricate a Metric It Can't Compute",
+    description: "Self-reported schedule quality and objectively measured schedule quality are two different things. Here's why Ordo7 only ever shows a number it can actually back up, and marks the rest unavailable instead of guessing.",
     category: 'Founder Log',
     contentHtml: `
-<p class="lead">A leading schedule-analytics platform just published a 2026 industry report — survey responses plus a warehouse of real historic project schedules. Two numbers in it stopped me.</p>
-<p>44% of schedule updates in the study carried risky levels of changed actual dates. 32% walked back progress already claimed. Once an activity starts or finishes, that date is supposed to be a fact. When almost half of updates quietly rewrite it, percent-complete stops reflecting field reality and starts reflecting expectations instead.</p>
-<h2>The confidence gap is just as bad</h2>
-<p>The same report found teams rate their own schedule quality roughly 3x better than the data supports — 38% believe they're "high quality," the actual measurement found 13%. A separate cut found a third of schedules were objectively poor, but only 15% of the people running them knew it. You can't fix a gap you can't see, and most teams can't see it because self-rating and objective measurement aren't the same thing.</p>
-<h2>Why this is exactly the problem Ordo7 was built around</h2>
-<p>This is the whole reason Ordo7 doesn't fabricate a metric it can't actually compute. True cost-based EVM — CPI, cost variance — isn't shown in Ordo7's reports, because a schedule-only export genuinely doesn't carry cost data. Rather than estimate one, it's marked unavailable. The schedule-only performance signal Ordo7 does show is scored directly off what's actually in your uploaded file — no retrofitting, no rounding a number up because it "should" look better by now.</p>
-<p>An industry report just spent 80 pages proving, with real data, that self-reported schedule health can't be trusted at face value. That's not a knock on anyone doing the reporting — it's the exact argument for why an objective, honestly-scoped read matters more than a confident one.</p>
+<p class="lead">Every schedule-health tool eventually hits the same fork: what do you do with a number you can't actually compute from the file in front of you? Guess at it, or say so. Ordo7 always does the second one, and I want to explain why that's not just a values statement — it's built directly into how the scoring engine works.</p>
+<h2>The gap between "looks fine" and "is fine"</h2>
+<p>Anyone who's run a status meeting knows the pattern: a schedule can look healthy on the surface — a Gantt full of green bars, a finish date that hasn't moved — while the data underneath tells a different story. Percent-complete gets nudged up because a task "should" be further along by now. That's exactly why Ordo7 doesn't take percent-complete at face value when a file doesn't actually carry one: if there's no real percent-complete field in the export, it falls back to status, and only estimates progress from elapsed time on an activity that's actually started — never for one that hasn't.</p>
+<h2>Why Ordo7 marks things "unavailable" instead of estimating them</h2>
+<p>True cost-based EVM — CPI, cost variance — isn't shown anywhere in Ordo7's reports, because a schedule-only export genuinely doesn't carry cost data. Rather than estimate one, it's marked unavailable. The schedule-only performance read Ordo7 does show, Earned Schedule, only includes activities that actually have planned start and end dates in the file — activities without them are excluded from the average, and the count excluded is shown right alongside the number, instead of being folded in silently. If nothing in the file has planned dates at all, Ordo7 says so outright instead of returning a number with no real basis.</p>
+<h2>Why this matters more than it sounds</h2>
+<p>A tool that always returns a clean, confident-looking number is easy to trust and easy to be wrong with. A tool that sometimes says "there's not enough in this file to tell you that" is a less satisfying answer in the moment, but it's the honest one. That's the trade I keep making with Ordo7, and it's the same standard I try to hold this blog to: if a claim doesn't have a real, checkable basis, it doesn't go in.</p>
 `.trim()
   },
   {
-    slug: 'founder-log-014-ask-ordo',
-    ogImage: 'https://www.ordo7.pro/brand/founder-log-014-cover.jpg',
-    title: "Founder Log 014: We Already Built 'Chat With Your Schedule'",
-    headline: "Founder Log 014 — A Well-Funded Competitor Just Validated 'Chat With Your Schedule.' Ordo7's Had It Since Day One.",
-    description: "A well-funded, enterprise-priced competitor in this category just shipped an AI feature that answers plain-language questions about your schedule. Ask Ordo has done exactly that since the early build, on every plan including Free.",
-    category: 'Founder Log',
-    contentHtml: `
-<p class="lead">A well-funded competitor in this category just shipped a headline AI feature: ask your schedule questions in plain language, get an answer back. New VP hires, an enterprise sales cycle, the whole rollout. I'm glad to see it — it's a real signal the market wants exactly what I've been building.</p>
-<p>Here's the thing: Ordo7 already does this. Ask Ordo has been live since early in the build, and it's on every plan, including Free.</p>
-<h2>What Ask Ordo actually does</h2>
-<p>It's a permanently-docked chat panel, grounded in the real numbers of whatever schedule you've uploaded — score, open issues, float, dates. Ask it "why is my score low" or "what's driving the critical path" and it answers using your actual data, not a canned response. But it doesn't stop at the file you loaded: ask it a general project-controls question — how EVM works, what a DCMA check is checking for, how to read a critical path, PMBOK terminology — and it answers that too, the way a working PMO analyst would.</p>
-<h2>Why this matters more than the feature itself</h2>
-<p>The interesting part isn't that Ordo7 has AI chat. It's <em>how</em> you get to use it. The competitor I mentioned sells this through an enterprise sales cycle, gated behind procurement, priced for teams with a budget line for it. Months after launch, it has zero public reviews — which tells you it's landing with a handful of large accounts, not with the person actually doing the work.</p>
-<p>Ask Ordo doesn't require any of that. Upload a schedule, open the chat panel, ask your question. No sales call, no contract, no new headcount to justify the spend. That's not a smaller version of what the enterprise players are building toward — it's the same capability, available to the PM who doesn't have an enterprise budget or a procurement department behind them.</p>
-<h2>Why I'm saying this now</h2>
-<p>I'm not writing this to take a shot at anyone. I'm writing it because when a well-funded, well-staffed competitor validates that "plain-language AI conversation with your schedule" is what the market actually wants, and you already built that — the market deserves to know. This has been one of the most underused facts about Ordo7 so far, and that's on me for not saying it sooner.</p>
-`.trim()
-  },
-  {
-    slug: 'founder-log-003-logic',
+    slug: 'missing-predecessors-successors-p6-dcma-check-1',
     ogImage: 'https://www.ordo7.pro/brand/founder-log-003-cover.jpg',
-    title: "Founder Log 003: Why 'Logic' Is DCMA Check #1",
-    headline: "Founder Log 003 — An Activity With No Predecessor Isn't a Schedule, It's a Guess",
+    title: "Missing Predecessors and Successors in P6: DCMA Check 1",
+    headline: "An Activity With No Predecessor Isn't a Schedule, It's a Guess",
     description: "The first of the DCMA's 14 schedule-health checks is also the simplest: every activity needs something driving it and something depending on it. Here's why that rule catches so much.",
     category: 'Founder Log',
     contentHtml: `
@@ -68,10 +49,10 @@ module.exports = [
 `.trim()
   },
   {
-    slug: 'founder-log-004-utility-safety',
+    slug: 'utility-maintenance-schedule-discipline-safety',
     ogImage: 'https://www.ordo7.pro/brand/founder-log-004-cover.jpg',
-    title: "Founder Log 004: What a Water Utility Program Taught Me About Schedule Discipline",
-    headline: "Founder Log 004 — In Utility Work, a Missed Schedule Isn't Just Late. It's a Safety Problem.",
+    title: "Schedule Discipline and Safety in Utility Maintenance Programs",
+    headline: "In Utility Work, a Missed Schedule Isn't Just Late. It's a Safety Problem.",
     description: "Compliance-driven maintenance schedules don't get extensions. A look back at a water utility program where enforcing schedule discipline cut safety incidents by 9%.",
     category: 'Founder Log',
     contentHtml: `
@@ -84,10 +65,10 @@ module.exports = [
 `.trim()
   },
   {
-    slug: 'founder-log-005-eight-years',
+    slug: 'eight-years-in-project-controls',
     ogImage: 'https://www.ordo7.pro/brand/founder-log-005-cover.jpg',
-    title: "Founder Log 005: Eight Years in Project Controls, One Recurring Problem",
-    headline: "Founder Log 005 — Eight Years in Project Controls Taught Me One Thing Keeps Breaking",
+    title: "What 8+ Years in Project Controls Taught Me About Scheduling Tools",
+    headline: "Eight Years in Project Controls Taught Me One Thing Keeps Breaking",
     description: "PMP-certified, deep in Primavera P6 and EVM, across $100M+ in portfolios and five industries. The tools were always powerful. They were never built for the person actually running the schedule.",
     category: 'Founder Log',
     contentHtml: `
@@ -101,10 +82,10 @@ module.exports = [
 `.trim()
   },
   {
-    slug: 'founder-log-007-building-in-public',
+    slug: 'building-ordo7-in-public',
     ogImage: 'https://www.ordo7.pro/brand/founder-log-007-cover.jpg',
-    title: "Founder Log 007: Why I'm Building Ordo7 in Public",
-    headline: "Founder Log 007 — No Big Team. No Funding Round. Just the Work, in Public.",
+    title: "Why I'm Building Ordo7 in Public",
+    headline: "No Big Team. No Funding Round. Just the Work, in Public.",
     description: "Building in public isn't a growth tactic here — it's the only way I know how to build something honest. Here's why the Founder Log exists, and what 'follow the journey' actually means right now.",
     category: 'Founder Log',
     contentHtml: `
@@ -117,10 +98,10 @@ module.exports = [
 `.trim()
   },
   {
-    slug: 'founder-log-009-staffing-shortage',
+    slug: 'project-controls-staffing-shortage',
     ogImage: 'https://www.ordo7.pro/brand/founder-log-009-cover.jpg',
-    title: "Founder Log 009: The Project Controls Staffing Shortage Nobody's Fixing",
-    headline: "Founder Log 009 — There Aren't Enough Project Controls Analysts. Everyone Feels It.",
+    title: "The Project Controls Staffing Shortage, Explained",
+    headline: "There Aren't Enough Project Controls Analysts. Everyone Feels It.",
     description: "A capital-projects boom is outpacing the supply of trained project controls talent — and the gap doesn't disappear, it gets absorbed by whoever's already on the project. Usually the PM.",
     category: 'Founder Log',
     contentHtml: `
@@ -133,8 +114,8 @@ module.exports = [
 `.trim()
   },
   {
-    slug: 'the-non-schedulers-survival-guide',
-    title: "The Non-Scheduler's Guide to a Bad Baseline",
+    slug: 'contractor-baseline-red-flags-checklist',
+    title: "5 Red Flags to Check in a Contractor's Baseline Schedule",
     headline: "The Non-Scheduler's Survival Guide: 5 Red Flags to Check Before You Accept a Contractor's Baseline",
     description: "You don't need a PSP certification to catch a bad baseline. Here are 5 concrete things to check in a contractor's schedule before you sign off — and why each one matters.",
     category: 'For owners & PMs',

@@ -870,6 +870,18 @@ function updateBlogPost(slug, title, description, contentHtml, category, toc, he
   return getBlogPostBySlug(slug);
 }
 
+// blog-content.js is the source of truth for which posts exist — a post removed from that array
+// (unpublished, or renamed to a new slug) must actually disappear from the DB, not just stop being
+// synced. Without this, an unpublished/renamed post's old row stays servable forever, since the
+// sync loop in server.js only ever inserts/updates by slug and never deleted anything. Called once
+// per boot with the full current slug list; anything in the table but not in that list is deleted.
+function pruneBlogPosts(keepSlugs) {
+  const keep = new Set(keepSlugs);
+  const stale = listBlogPosts().filter(row => !keep.has(row.slug));
+  stale.forEach(row => db.prepare('DELETE FROM blog_posts WHERE slug = ?').run(row.slug));
+  return stale.map(row => row.slug);
+}
+
 // --- Admin Command Center ---
 
 // Search is optional — an empty/undefined query returns every account, newest first, capped so
@@ -1002,7 +1014,7 @@ module.exports = {
   createVerificationToken, getVerificationToken, deleteVerificationToken, deleteExpiredVerificationTokens,
   createPasswordResetToken, getPasswordResetToken, deletePasswordResetToken, deleteExpiredPasswordResetTokens,
   deleteSessionsForUser, setUserPassword, setWebhookUrl,
-  listBlogPosts, getBlogPostBySlug, createBlogPost, updateBlogPost,
+  listBlogPosts, getBlogPostBySlug, createBlogPost, updateBlogPost, pruneBlogPosts,
   searchUsersForAdmin, listFeatureFlags, isFeatureEnabled, setFeatureFlag,
   logAdvisoryClick, getAdvisoryClickCount, getAdminSetting, setAdminSetting, recordConsent,
   listFeedbackForAdmin, setFeedbackReviewed, getUserCountsByTier, getFileIngestionStats, getAiSpendTotal,
