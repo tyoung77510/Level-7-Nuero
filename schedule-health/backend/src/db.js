@@ -268,7 +268,7 @@ const FEATURE_FLAG_SEEDS = [
   { id: 'sandbox-simulator', name: 'Sandbox Simulator', description: 'Interactive "What-If" schedule duration overrides.' },
   { id: 'milestone-hygiene', name: 'Milestone Hygiene', description: 'Milestone logical-anchoring check view.' },
   { id: 'critical-path-engine', name: 'Critical Path Engine', description: 'Lists activities currently on the critical path.' },
-  { id: 'dcma-14-check', name: 'DCMA 14-Point Check', description: 'Federal schedule-quality issue detection — the core scoring engine for every new analysis.' },
+  { id: 'dcma-14-check', name: 'DCMA-Based Schedule Checks', description: 'Automated detection across the DCMA checks Ordo7 implements (logic, constraints, float, durations) — the core scoring engine for every new analysis.' },
   { id: 'ask-ordo-ai', name: 'Ask Ordo AI', description: 'Claude-powered schedule Q&A in the sidebar.' },
   { id: 'earned-value-metrics', name: 'Earned Value Metrics', description: 'Earned Schedule progress tracking + optional manual-budget cost variance (CPI/CV).' }
 ];
