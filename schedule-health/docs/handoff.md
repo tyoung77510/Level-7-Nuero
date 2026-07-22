@@ -21,6 +21,23 @@ The daily Founder Log posting Routine fired today (2026-07-22, not a holiday) an
 
 **Other pre-drafted days still missing the company-page link:** 004, 007, 009 (`batch-01-linkedin-captions.md`), 014 (`batch-02-linkedin-captions.md`), 035 (`batch-03-linkedin-captions.md`) — none of these have been posted yet, so there's still time to retrofit them, but the user hasn't confirmed whether to backfill all of them or just apply the new link going forward. Ask before bulk-editing.
 
+## Pricing restructure shipped (2026-07-22)
+
+Full 5-tier→4-tier pricing overhaul implemented, verified live (curl + Playwright, not just code review), committed (`4ed3a27`) and pushed. Founder supplied a written spec (uploaded as `ordo7pricingspec.md`, not committed to the repo — ask the user to re-share if the exact original wording is needed).
+
+**What changed:** Free/Professional ($79/mo, $790/yr)/Team ($299/mo, $2,990/yr)/Enterprise (custom). New `entitlements.js` is the single source of truth for every gate (project limits, working tools, client-facing output, AI monthly caps, integrations). `legacy_plan` column + one-time migration backfill grandfathers every pre-existing account indefinitely on its original price and an upgraded feature set — verified with a simulated pre-migration database (all 4 old tiers correctly resolve to the new tier keys with unlimited projects; a signup created after migration correctly gets the new caps). Active-project tracking (90-day recency) enforces project limits at upload time. AI reworked from a flat credit pool into monthly Ask Ordo/narrative caps (credits are now a fair-use overflow, not the product). New AI-disable trust toggle, backend-enforced, free on every tier. Pricing page rewritten: 4 cards, annual/monthly toggle, feature comparison table, corrected copy, real Enterprise inquiry form (was a mailto:).
+
+**Real bugs found and fixed along the way (not part of the spec):**
+1. Fix-guidance's tier check was hardcoded to old plan_tier values (`['pro','teams']`) — would have silently broken for every new signup and every legacy Starter subscriber. Now uses `entitlements.resolveEntitlements()`.
+2. Critical Path View was gated Pro+ in the old code; the spec says it's free forever. Ungated.
+3. Admin telemetry (`getUserCountsByTier`, `priceUsdForTier`) and the invoice-renewal webhook handler all keyed off `pricing.TIERS[plan_tier]` directly — would have silently zeroed out MRR/credit-refills for every legacy subscriber once `TIERS` was narrowed to just Professional/Team. Fixed via a new `pricing.anyTierDef()` that checks both price books.
+
+**Flagged, not resolved — needs a decision before it's fully truthful on the live page:**
+- Team-tier "multi-project leaderboard / cross-project trend rollup / shared portfolios" aren't real distinct features — only a single capped(Professional)/uncapped(Team) portfolio view exists today. Not fabricated; the pricing card and comparison table only list what's actually real (portfolio overview + unrestricted view).
+- $29/seat Team billing beyond the 10 included seats is an entitlement number only — not wired to a real Stripe metered-billing flow yet.
+- The spec's own universal-rights row ("Export my data / Delete a project / Delete my account, every tier, always") has **no real implementation anywhere in this app** — not even a manual one, beyond a "contact us" line in `privacy.html`. Deliberately left off the shipped comparison table rather than advertised as a working feature. This is worth prioritizing before launch given it's a real data-rights claim, not just a nice-to-have.
+- New Stripe price IDs (`STRIPE_PRICE_ID_PROFESSIONAL_MONTHLY/ANNUAL`, `STRIPE_PRICE_ID_TEAM_MONTHLY/ANNUAL`) and the new Knock enterprise-inquiry workflow (`KNOCK_ENTERPRISE_WORKFLOW_KEY/RECIPIENT_EMAIL`) are documented in `.env.example` but need real values set before checkout/notifications work in production.
+
 ## Where things stand (as of 2026-07-20)
 
 **Branch:** `claude/new-session-8x1hcw` (tyoung77510/Level-7-Nuero) — this is the standing dev branch for all Ordo7/marketing work referenced below. Check whether it's since been merged to `main`; if merged, start fresh from `main` under a new branch rather than stacking on merged history.
