@@ -2162,6 +2162,8 @@ function blogFooter() {
       <div class="blog-footer-links">
         <a href="/" class="navlink" style="color:#8695a8;">Product</a>
         <a href="/" class="navlink" style="color:#8695a8;">Pricing</a>
+        <a href="/privacy" class="navlink" style="color:#8695a8;">Privacy</a>
+        <a href="/terms" class="navlink" style="color:#8695a8;">Terms</a>
         <a href="https://level7data.com/" target="_blank" rel="noopener" class="navlink" style="color:#8695a8;">Powered by Level 7</a>
         <a href="https://level7data.com/" target="_blank" rel="noopener" class="cta-pill">Book a consultation →</a>
       </div>
@@ -2247,6 +2249,7 @@ function renderBlogPage({ title, description, canonicalPath, ogImage, isArticle,
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(description)}">
+<meta name="twitter:image" content="${ogImage || 'https://www.ordo7.pro/brand/musk/icon-512.png'}">
 ${BLOG_FONTS_HEAD}
 ${jsonLd ? `<script type="application/ld+json">\n${JSON.stringify(jsonLd)}\n</script>\n` : ''}<style>${BLOG_STYLE}</style>
 </head>
@@ -2448,7 +2451,7 @@ function serveBlogPost(req, res, slug) {
     title: `${post.title} — Ordo7 Blog`,
     description: post.description,
     canonicalPath: `/blog/${post.slug}`,
-    ogImage: 'https://www.ordo7.pro/brand/musk/icon-512.png',
+    ogImage: (blogContent.find(p => p.slug === post.slug) || {}).ogImage || 'https://www.ordo7.pro/brand/musk/icon-512.png',
     isArticle: true,
     active: 'blog',
     bodyHtml,
@@ -2481,7 +2484,7 @@ function serveStatic(req, res, pathname) {
   fs.readFile(filePath, (err, data) => {
     if (err) { res.writeHead(404); return res.end('Not found'); }
     const ext = path.extname(filePath);
-    const type = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.txt': 'text/plain', '.xml': 'application/xml', '.png': 'image/png', '.ico': 'image/x-icon', '.svg': 'image/svg+xml' }[ext] || 'application/octet-stream';
+    const type = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.txt': 'text/plain', '.xml': 'application/xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.svg': 'image/svg+xml' }[ext] || 'application/octet-stream';
     res.writeHead(200, { 'Content-Type': type });
     res.end(data);
   });

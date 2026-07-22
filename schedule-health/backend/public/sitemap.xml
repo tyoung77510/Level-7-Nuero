@@ -8,25 +8,67 @@
   </url>
   <url>
     <loc>https://www.ordo7.pro/blog</loc>
-    <lastmod>2026-07-16</lastmod>
+    <lastmod>2026-07-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.ordo7.pro/blog/the-non-schedulers-survival-guide</loc>
-    <lastmod>2026-07-16</lastmod>
+    <loc>https://www.ordo7.pro/blog/founder-log-035-no-fabrication</loc>
+    <lastmod>2026-07-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.ordo7.pro/privacy.html</loc>
-    <lastmod>2026-07-16</lastmod>
+    <loc>https://www.ordo7.pro/blog/founder-log-014-ask-ordo</loc>
+    <lastmod>2026-07-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ordo7.pro/blog/founder-log-003-logic</loc>
+    <lastmod>2026-07-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ordo7.pro/blog/founder-log-004-utility-safety</loc>
+    <lastmod>2026-07-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ordo7.pro/blog/founder-log-005-eight-years</loc>
+    <lastmod>2026-07-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ordo7.pro/blog/founder-log-007-building-in-public</loc>
+    <lastmod>2026-07-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ordo7.pro/blog/founder-log-009-staffing-shortage</loc>
+    <lastmod>2026-07-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ordo7.pro/blog/the-non-schedulers-survival-guide</loc>
+    <lastmod>2026-07-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.ordo7.pro/privacy</loc>
+    <lastmod>2026-07-20</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://www.ordo7.pro/terms.html</loc>
-    <lastmod>2026-07-16</lastmod>
+    <loc>https://www.ordo7.pro/terms</loc>
+    <lastmod>2026-07-20</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

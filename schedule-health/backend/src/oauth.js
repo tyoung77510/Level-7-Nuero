@@ -1,4 +1,4 @@
-// oauth.js — "Sign in with X" for Google, LinkedIn, Facebook, and X (Twitter).
+// oauth.js — "Sign in with X" for Google and LinkedIn.
 // Zero-dependency: hand-rolled OAuth 2.0 authorization-code flow using node:crypto and fetch,
 // same philosophy as the rest of this app. Each provider config below is just data — the flow
 // itself (buildAuthUrl / exchangeCode / fetchProfile) is generic over all four.
@@ -47,43 +47,6 @@ const PROVIDERS = {
       email: data.email || null,
       emailVerified: Boolean(data.email_verified),
       name: data.name || 'LinkedIn user'
-    })
-  },
-  facebook: {
-    clientIdEnv: 'FACEBOOK_CLIENT_ID',
-    clientSecretEnv: 'FACEBOOK_CLIENT_SECRET',
-    authUrl: 'https://www.facebook.com/v19.0/dialog/oauth',
-    tokenUrl: 'https://graph.facebook.com/v19.0/oauth/access_token',
-    userInfoUrl: 'https://graph.facebook.com/me',
-    scope: 'email public_profile',
-    usesPkce: false,
-    extraAuthParams: {},
-    // Facebook's token endpoint takes GET with query params (not a POST body like the others).
-    tokenMethod: 'GET',
-    userInfoParams: { fields: 'id,name,email' },
-    parseProfile: (data) => ({
-      id: data.id,
-      email: data.email || null,
-      emailVerified: Boolean(data.email), // Facebook only returns an email address once it's confirmed
-      name: data.name || 'Facebook user'
-    })
-  },
-  x: {
-    clientIdEnv: 'X_CLIENT_ID',
-    clientSecretEnv: 'X_CLIENT_SECRET',
-    authUrl: 'https://x.com/i/oauth2/authorize',
-    tokenUrl: 'https://api.twitter.com/2/oauth2/token',
-    userInfoUrl: 'https://api.twitter.com/2/users/me',
-    scope: 'users.read tweet.read offline.access',
-    usesPkce: true,
-    extraAuthParams: {},
-    // X's API does not expose email addresses through this scope — accounts created via X sign-in
-    // fall back to the "finish signing up" step in server.js that asks for an email directly.
-    parseProfile: (data) => ({
-      id: data.data.id,
-      email: null,
-      emailVerified: false,
-      name: data.data.name || 'X user'
     })
   }
 };

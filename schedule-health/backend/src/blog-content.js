@@ -15,6 +15,7 @@
 module.exports = [
   {
     slug: 'founder-log-035-no-fabrication',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-035-cover.jpg',
     title: "Founder Log 035: An Industry Report Just Proved Why Ordo7 Won't Guess",
     headline: "Founder Log 035 — 44% of Schedule Updates Rewrite the Truth. Here's Why Ordo7 Never Will.",
     description: "A leading schedule-analytics platform's own 2026 industry report found nearly half of schedule updates carry risky levels of changed actual dates. Here's why Ordo7 was built to never do that.",
@@ -31,6 +32,7 @@ module.exports = [
   },
   {
     slug: 'founder-log-014-ask-ordo',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-014-cover.jpg',
     title: "Founder Log 014: We Already Built 'Chat With Your Schedule'",
     headline: "Founder Log 014 — A Well-Funded Competitor Just Validated 'Chat With Your Schedule.' Ordo7's Had It Since Day One.",
     description: "A well-funded, enterprise-priced competitor in this category just shipped an AI feature that answers plain-language questions about your schedule. Ask Ordo has done exactly that since the early build, on every plan including Free.",
@@ -49,6 +51,7 @@ module.exports = [
   },
   {
     slug: 'founder-log-003-logic',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-003-cover.jpg',
     title: "Founder Log 003: Why 'Logic' Is DCMA Check #1",
     headline: "Founder Log 003 — An Activity With No Predecessor Isn't a Schedule, It's a Guess",
     description: "The first of the DCMA's 14 schedule-health checks is also the simplest: every activity needs something driving it and something depending on it. Here's why that rule catches so much.",
@@ -66,6 +69,7 @@ module.exports = [
   },
   {
     slug: 'founder-log-004-utility-safety',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-004-cover.jpg',
     title: "Founder Log 004: What a Water Utility Program Taught Me About Schedule Discipline",
     headline: "Founder Log 004 — In Utility Work, a Missed Schedule Isn't Just Late. It's a Safety Problem.",
     description: "Compliance-driven maintenance schedules don't get extensions. A look back at a water utility program where enforcing schedule discipline cut safety incidents by 9%.",
@@ -81,6 +85,7 @@ module.exports = [
   },
   {
     slug: 'founder-log-005-eight-years',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-005-cover.jpg',
     title: "Founder Log 005: Eight Years in Project Controls, One Recurring Problem",
     headline: "Founder Log 005 — Eight Years in Project Controls Taught Me One Thing Keeps Breaking",
     description: "PMP-certified, deep in Primavera P6 and EVM, across $100M+ in portfolios and five industries. The tools were always powerful. They were never built for the person actually running the schedule.",
@@ -97,6 +102,7 @@ module.exports = [
   },
   {
     slug: 'founder-log-007-building-in-public',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-007-cover.jpg',
     title: "Founder Log 007: Why I'm Building Ordo7 in Public",
     headline: "Founder Log 007 — No Big Team. No Funding Round. Just the Work, in Public.",
     description: "Building in public isn't a growth tactic here — it's the only way I know how to build something honest. Here's why the Founder Log exists, and what 'follow the journey' actually means right now.",
@@ -112,6 +118,7 @@ module.exports = [
   },
   {
     slug: 'founder-log-009-staffing-shortage',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-009-cover.jpg',
     title: "Founder Log 009: The Project Controls Staffing Shortage Nobody's Fixing",
     headline: "Founder Log 009 — There Aren't Enough Project Controls Analysts. Everyone Feels It.",
     description: "A capital-projects boom is outpacing the supply of trained project controls talent — and the gap doesn't disappear, it gets absorbed by whoever's already on the project. Usually the PM.",
