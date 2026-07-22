@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>5 Red Flags in a Contractor's Baseline Schedule — Ordo7 Checklist</title>
+<meta name="description" content="A one-page, printable checklist: 5 red flags to check in a contractor's baseline schedule before you sign off. No scheduling certification required.">
+<style>
+  @page { size: Letter; margin: 0.42in 0.5in; }
+
+  :root {
+    --ink: #1c2b33;
+    --paper: #ffffff;
+    --line: #d8d5cc;
+    --muted: #6b6f73;
+    --good: #2f8a55;
+    --warn: #c17d1e;
+    --bad: #b23a2e;
+    --card: #fbfaf7;
+    --accent: #476ab0;  /* navy */
+    --orange: #f37443;
+    --sky: #2da2d8;
+    --gold: #f5bc3d;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    width: 7.5in;
+    min-height: 9.3in;
+    margin: 0 auto;
+    padding: 0.3in 0 0 0;
+    display: flex;
+    flex-direction: column;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  h1, h2, h3, .wordmark { font-family: 'Trebuchet MS', 'Segoe UI', -apple-system, sans-serif; }
+
+  /* ---------- Header ---------- */
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+  }
+  .brand-row { display: flex; align-items: center; gap: 8px; }
+  .brand-mark {
+    width: 17px; height: 17px; border-radius: 50%; flex-shrink: 0;
+    background: conic-gradient(var(--sky), var(--accent), var(--orange), var(--gold), var(--sky));
+  }
+  .wordmark { font-size: 23px; font-weight: 800; letter-spacing: -0.01em; color: var(--ink); }
+  .wordmark .seven { color: var(--orange); }
+  .powered-by { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .doc-title-block { text-align: right; max-width: 4.6in; }
+  .doc-kicker {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 3px 0;
+  }
+  .doc-title { font-size: 16.5px; font-weight: 700; margin: 0; line-height: 1.22; color: var(--ink); }
+
+  .intro {
+    font-size: 11.3px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin: 0 0 15px 0;
+  }
+  .intro strong { color: var(--ink); }
+
+  /* ---------- Flags ---------- */
+  .flags {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    flex: 1;
+    justify-content: space-between;
+  }
+
+  .flag {
+    display: flex;
+    gap: 11px;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--flag-color, var(--accent));
+    background: var(--card);
+    border-radius: 5px;
+    padding: 12px 14px 13px 13px;
+  }
+
+  .flag-1 { --flag-color: var(--bad); }
+  .flag-2 { --flag-color: var(--orange); }
+  .flag-3 { --flag-color: var(--warn); }
+  .flag-4 { --flag-color: var(--sky); }
+  .flag-5 { --flag-color: var(--accent); }
+
+  .checkbox {
+    width: 16px; height: 16px; flex-shrink: 0;
+    border: 1.8px solid var(--ink);
+    border-radius: 3px;
+    margin-top: 2px;
+    background: #fff;
+  }
+
+  .flag-body { flex: 1; min-width: 0; }
+
+  .flag-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 3px;
+  }
+  .flag-num {
+    font-size: 10.5px; font-weight: 800; color: #fff;
+    background: var(--flag-color, var(--accent));
+    width: 17px; height: 17px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .flag-name { font-size: 13.3px; font-weight: 700; color: var(--ink); }
+
+  .flag-lines { font-size: 10.6px; line-height: 1.44; color: var(--ink); }
+  .flag-lines .look { margin: 0 0 2px 0; }
+  .flag-lines .why { margin: 0; color: var(--muted); }
+  .flag-lines b { color: var(--ink); font-weight: 700; }
+
+  .notes-line {
+    margin-top: 6px;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 8.6px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .notes-line .rule {
+    flex: 1;
+    border-bottom: 1px dotted var(--line);
+    height: 1px;
+  }
+
+  /* ---------- CTA ---------- */
+  .cta {
+    margin-top: 15px;
+    border: 1.5px dashed var(--accent);
+    border-radius: 6px;
+    padding: 11px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    background: #f4f7fb;
+  }
+  .cta-text { font-size: 11.3px; color: var(--ink); line-height: 1.4; }
+  .cta-text strong { color: var(--accent); }
+  .cta-url {
+    font-size: 12px; font-weight: 800; color: #fff;
+    background: var(--accent); padding: 6px 13px; border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  /* ---------- Footer ---------- */
+  .footer {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="brand-row">
+        <span class="brand-mark"></span>
+        <span class="wordmark">Ordo<span class="seven">7</span></span>
+      </div>
+      <div class="powered-by">Powered by Level 7 &middot; ordo7.pro</div>
+    </div>
+    <div class="doc-title-block">
+      <p class="doc-kicker">Baseline Review Checklist</p>
+      <p class="doc-title">5 Red Flags in a Contractor's Baseline Schedule</p>
+    </div>
+  </div>
+
+  <p class="intro">
+    You don't need a scheduling certification to catch a bad baseline before you sign off on it.
+    A bad baseline doesn't look bad &mdash; it has thousands of activities, clean Gantt bars, and a
+    finish date that matches what you were told. Check these <strong>5 things</strong> first. Print
+    this, take it into the review.
+  </p>
+
+  <div class="flags">
+
+    <div class="flag flag-1">
+      <span class="checkbox"></span>
+      <div class="flag-body">
+        <div class="flag-head">
+          <span class="flag-num">1</span>
+          <span class="flag-name">Negative float that's already baked in</span>
+        </div>
+        <div class="flag-lines">
+          <p class="look"><b>Look for:</b> Any activity showing negative total float on day one of the baseline.</p>
+          <p class="why"><b>Why it matters:</b> Negative float on a freshly submitted schedule means it's already behind before a shovel hits the ground &mdash; either an unrealistic plan, or a hard date fighting the logic underneath it.</p>
+          <div class="notes-line"><span>Notes</span><span class="rule"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flag flag-2">
+      <span class="checkbox"></span>
+      <div class="flag-body">
+        <div class="flag-head">
+          <span class="flag-num">2</span>
+          <span class="flag-name">Hard constraints doing the logic's job</span>
+        </div>
+        <div class="flag-lines">
+          <p class="look"><b>Look for:</b> A stack of "Must Finish On" or "Start On" constraints pinning dates instead of activity relationships.</p>
+          <p class="why"><b>Why it matters:</b> A few constraints are normal. Dozens usually means the schedule can't support its own dates on logic alone, so someone nailed them in place to hit the number the contract needed.</p>
+          <div class="notes-line"><span>Notes</span><span class="rule"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flag flag-3">
+      <span class="checkbox"></span>
+      <div class="flag-body">
+        <div class="flag-head">
+          <span class="flag-num">3</span>
+          <span class="flag-name">Open ends and dangling activities</span>
+        </div>
+        <div class="flag-lines">
+          <p class="look"><b>Look for:</b> Activities with no predecessor, no successor, or both &mdash; not tied into the rest of the network.</p>
+          <p class="why"><b>Why it matters:</b> A delay to a dangling activity never ripples through to the finish date. Large parts of the schedule can look "on track" simply because they aren't connected to anything.</p>
+          <div class="notes-line"><span>Notes</span><span class="rule"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flag flag-4">
+      <span class="checkbox"></span>
+      <div class="flag-body">
+        <div class="flag-head">
+          <span class="flag-num">4</span>
+          <span class="flag-name">Activities that run for months</span>
+        </div>
+        <div class="flag-lines">
+          <p class="look"><b>Look for:</b> Any single activity with a duration over roughly 44 working days and no interim milestones inside it.</p>
+          <p class="why"><b>Why it matters:</b> A long, unbroken activity is a black box &mdash; it can report "in progress" for months without ever being provably behind. That's where slippage hides.</p>
+          <div class="notes-line"><span>Notes</span><span class="rule"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flag flag-5">
+      <span class="checkbox"></span>
+      <div class="flag-body">
+        <div class="flag-head">
+          <span class="flag-num">5</span>
+          <span class="flag-name">A critical path that doesn't make sense</span>
+        </div>
+        <div class="flag-lines">
+          <p class="look"><b>Look for:</b> Trace the critical (longest) path end to end &mdash; does it run through structure and MEP, or through landscaping and signage?</p>
+          <p class="why"><b>Why it matters:</b> The critical path determines your finish date. If the chain protecting that date doesn't match how the job actually gets built, the date it's protecting is fiction.</p>
+          <div class="notes-line"><span>Notes</span><span class="rule"></span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="cta">
+    <div class="cta-text">
+      Ran out of time to check all five by hand? <strong>Ordo7</strong> runs these checks automatically
+      from a plain-language upload &mdash; no Primavera expertise required.
+    </div>
+    <div class="cta-url">ordo7.pro</div>
+  </div>
+
+  <div class="footer">
+    <span>The Non-Scheduler's Survival Guide &middot; Ordo7 by Level 7</span>
+    <span>ordo7.pro</span>
+  </div>
+
+</body>
+</html>
