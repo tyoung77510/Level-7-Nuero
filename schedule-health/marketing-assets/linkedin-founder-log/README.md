@@ -41,7 +41,7 @@ The files in this bundle are **design references created in HTML** — a prototy
 - Full Nocturne design system lives at `_ds/nocturne-59babb18-6293-4a31-97ad-0e5ef6b4459e/` in the source project — the prototype links its `styles.css` + `_ds_bundle.js`.
 
 ## Recreating / extending the series (future logs 003, 004…)
-Each new episode only needs: a new episode number, a new headline (keep the key phrase in `#d2cefd`), a 2–3 sentence body, and optionally a portrait side-swap. Everything else stays fixed. Suggested caption formula: hook line → the problem/story → what Ordo7 does → `Follow the journey → https://ordo7.pro` → 4–5 hashtags (#BuildInPublic #ProjectControls #Scheduling #SaaS #FounderJourney).
+Each new episode only needs: a new episode number, a new headline (keep the key phrase in `#d2cefd`), a 2–3 sentence body, and optionally a portrait side-swap. Everything else stays fixed. Suggested caption formula: hook line → the problem/story → what Ordo7 does → `Try It For Free → https://ordo7.pro` → 4–5 hashtags (#BuildInPublic #ProjectControls #Scheduling #SaaS #FounderJourney). CTA changed from "Follow the journey" to "Try It For Free" as of 2026-07-20 (see `../../docs/brand-narrative.md`'s changelog) — Logs 001–003 keep the original CTA as an accurate historical record.
 
 ## Files
 - `LinkedIn Founder Log.dc.html` — the design source (all three pieces on one canvas). Note: it references the Nocturne bundle via `_ds/…`; to render it standalone, copy that `_ds` folder alongside, or just use the JPGs in `renders/`.

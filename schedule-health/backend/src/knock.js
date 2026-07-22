@@ -71,6 +71,41 @@ async function notifyFeedback(user, message) {
   }
 }
 
+// Enterprise pricing-tier inquiries — same opt-in pattern as notifyFeedback, but its own
+// workflow/recipient env vars so it can route to a specific named person rather than whatever
+// inbox feedback happens to go to (docs/pricing-restructure.md's S-8: "route to a named person,
+// not a generic mailbox on another brand"). The inquiry is always saved to the database first
+// (see server.js), so nothing is lost if this isn't configured yet.
+async function notifyEnterpriseInquiry(user, company, message) {
+  const workflowKey = process.env.KNOCK_ENTERPRISE_WORKFLOW_KEY || 'ordo7-enterprise-inquiry';
+  const recipientEmail = process.env.KNOCK_ENTERPRISE_RECIPIENT_EMAIL;
+  if (!knockConfigured() || !recipientEmail) {
+    console.warn(`[knock] Enterprise inquiry notification skipped (KNOCK_API_KEY or KNOCK_ENTERPRISE_RECIPIENT_EMAIL not set) — inquiry from ${user.email} is still saved to the database`);
+    return null;
+  }
+  try {
+    const res = await fetch(`${KNOCK_API}/workflows/${encodeURIComponent(workflowKey)}/trigger`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.KNOCK_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        recipients: [{ id: 'ordo7-enterprise-contact', email: recipientEmail }],
+        data: { userName: user.name, userEmail: user.email, company: company || '(not given)', message }
+      })
+    });
+    if (!res.ok) {
+      console.error(`[knock] Failed to trigger enterprise-inquiry workflow: ${res.status} ${await res.text().catch(() => '')}`);
+      return null;
+    }
+    return res.json();
+  } catch (e) {
+    console.error('[knock] Failed to trigger enterprise-inquiry workflow:', e.message);
+    return null;
+  }
+}
+
 // Email verification uses its own opt-in flag (KNOCK_VERIFICATION_WORKFLOW_KEY) rather than just
 // knockConfigured(), since it changes signup behavior (see server.js): verification is only
 // required at all once this workflow is actually set up. Local dev without it stays frictionless.
@@ -223,7 +258,7 @@ async function notifyError(message, path) {
 }
 
 module.exports = {
-  knockConfigured, identifyUser, notifyFeedback, verificationConfigured, sendVerificationEmail,
+  knockConfigured, identifyUser, notifyFeedback, notifyEnterpriseInquiry, verificationConfigured, sendVerificationEmail,
   teamInviteConfigured, sendTeamInviteEmail, passwordResetConfigured, sendPasswordResetEmail,
   errorAlertConfigured, notifyError
 };

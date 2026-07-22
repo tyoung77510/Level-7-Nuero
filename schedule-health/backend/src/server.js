@@ -38,6 +38,9 @@ const oauth = require('./oauth');
 const blogContent = require('./blog-content');
 const rateLimit = require('./rate-limit');
 const webhook = require('./webhook');
+const mailerlite = require('./mailerlite');
+const fixGuidance = require('./fix-guidance');
+const entitlements = require('./entitlements');
 
 store.deleteExpiredSessions();
 store.pruneOldErrors();
@@ -110,6 +113,18 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_EMAILS = ['admin@ordo7.pro', 'taj.young77@gmail.com'];
 function isAdmin(user) {
   return !!user && ADMIN_EMAILS.includes(user.email.toLowerCase());
+}
+
+// Real backend enforcement for entitlements.js's boolean/tier gates — the counterpart to
+// FEATURE_TIERS in index.html, which stays a UI convenience (grey out a button, show an upgrade
+// card) but must never be the ONLY thing standing between a Free-tier request and a gated route.
+// Returns true and sends the 402 itself if the gate fails, so a route can `if (denyUnless(...))
+// return;` in one line. `featureName` is only for the error message shown to the user.
+function denyUnlessEntitled(res, user, gateKey, featureName) {
+  const ent = entitlements.resolveEntitlements(user);
+  if (ent[gateKey]) return false;
+  sendJSON(res, 402, { error: `${featureName} is a paid-plan feature`, requiredEntitlement: gateKey, currentTier: ent.tierKey });
+  return true;
 }
 
 function sendJSON(res, status, data) {
@@ -283,6 +298,11 @@ function publicUser(user) {
   // (see getEffectiveTierUser in db.js), while planTier stays their own real billing tier for
   // account-settings-type display ("you're on Free, but part of Acme Corp's Teams account").
   const billingUser = store.getEffectiveTierUser(user);
+  // effectiveTier is the RESOLVED new-price-book tier key ('free'/'professional'/'team'/
+  // 'enterprise') regardless of whether the account is on the new book or grandfathered — a
+  // legacy Starter/Pro subscriber shows 'professional' here, legacy Teams shows 'team', so the
+  // frontend's FEATURE_TIERS checks never need to know old tier names exist at all.
+  const ent = entitlements.resolveEntitlements(user);
   return {
     id: user.id,
     name: user.name,
@@ -290,15 +310,21 @@ function publicUser(user) {
     phone: user.phone,
     subscriptionStatus: user.subscription_status,
     planTier: user.plan_tier,
-    effectiveTier: billingUser.plan_tier,
+    effectiveTier: ent.tierKey,
+    isLegacyPlan: ent.isLegacy,
+    projectLimit: Number.isFinite(ent.projectLimit) ? ent.projectLimit : null,
     isTeamMember: !!user.team_owner_id,
-    isTeamOwner: user.plan_tier === 'teams' && !user.team_owner_id,
+    isTeamOwner: ['team', 'enterprise'].includes(ent.tierKey) && !user.team_owner_id,
     teamOwnerName: user.team_owner_id ? billingUser.name : null,
     teamOwnerEmail: user.team_owner_id ? billingUser.email : null,
     creditBalance: billingUser.credit_balance,
+    aiDisabled: !!user.ai_disabled,
     emailVerified: !!user.email_verified,
     referralCode: user.referral_code,
     onboarded: !!user.onboarded_at,
+    portfolioSizeBucket: user.portfolio_size_bucket || null,
+    migratedFrom: user.migrated_from || null,
+    profileSurveyDismissed: !!user.profile_survey_dismissed_at,
     isAdmin: isAdmin(user),
     webhookUrl: user.webhook_url || null
   };
@@ -352,6 +378,23 @@ route('POST', '/api/auth/signup', async (req, res) => {
     knock.sendVerificationEmail(user, verificationUrl(req, verifyToken)).catch(() => {});
   }
   sendJSON(res, 200, { user: publicUser(user) });
+});
+
+// Public, unauthenticated — a blog reader isn't necessarily an Ordo7 account holder. Backed by
+// MailerLite (see mailerlite.js); returns a disclosed 503 rather than silently pretending to
+// subscribe anyone when MAILERLITE_API_KEY isn't set, same graceful-degradation pattern used for
+// every other optional integration in this app.
+route('POST', '/api/blog/subscribe', async (req, res) => {
+  if (rateLimited(res, 'blog-subscribe', req, 5, 60 * 60 * 1000)) return; // 5/hour per IP — spam prevention
+  if (!mailerlite.mailerliteConfigured()) return sendJSON(res, 503, { error: 'Newsletter signup is not configured yet' });
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const email = String(payload.email || '').trim().toLowerCase();
+  if (!auth.EMAIL_RE.test(email)) return sendJSON(res, 400, { error: 'Enter a valid email address' });
+  const result = await mailerlite.subscribeToBlog(email);
+  if (!result.ok) return sendJSON(res, 502, { error: 'Could not subscribe right now — try again shortly' });
+  sendJSON(res, 200, { subscribed: true });
 });
 
 route('GET', '/api/referral', async (req, res, params, user) => {
@@ -677,16 +720,30 @@ route('PATCH', '/api/account/webhook', async (req, res, params, user) => {
   let payload;
   try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
   const url = payload.webhookUrl;
+  // Clearing is always allowed, ungated — a downgraded account that already had one set must
+  // still be able to remove it. Only setting a NEW url requires the Team+ entitlement.
   if (url === null || url === '') {
     return sendJSON(res, 200, { user: publicUser(store.setWebhookUrl(user.id, null)) });
   }
+  if (denyUnlessEntitled(res, user, 'slackZapier', 'Webhook integrations')) return;
   if (typeof url !== 'string' || !(await webhook.isSafeWebhookUrl(url))) {
     return sendJSON(res, 400, { error: 'That URL isn\'t reachable or isn\'t allowed — must be a public https:// URL (not localhost or an internal address).' });
   }
   sendJSON(res, 200, { user: publicUser(store.setWebhookUrl(user.id, url)) });
 });
 
+// Trust control, never a paid feature (docs/pricing-restructure.md section 3) — available and
+// togglable on every tier including Free, no entitlement gate on this route at all on purpose.
+route('PATCH', '/api/account/ai-settings', async (req, res, params, user) => {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const updated = store.setAiDisabled(user.id, !!payload.aiDisabled);
+  sendJSON(res, 200, { user: publicUser(updated) });
+});
+
 route('POST', '/api/account/webhook/test', async (req, res, params, user) => {
+  if (denyUnlessEntitled(res, user, 'slackZapier', 'Webhook integrations')) return;
   if (!user.webhook_url) return sendJSON(res, 400, { error: 'No webhook URL saved yet' });
   const result = await webhook.deliverWebhook(user.webhook_url, {
     text: 'Ordo7: this is a test notification — your webhook is connected correctly.',
@@ -717,9 +774,10 @@ route('POST', '/api/billing/checkout', async (req, res, params, user) => {
   let payload;
   try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
 
-  const tierDef = pricing.TIERS[payload.tier];
+  const tierDef = pricing.checkoutTierDef(payload.tier);
   if (!tierDef) return sendJSON(res, 400, { error: 'Unknown plan' });
-  const priceId = process.env[tierDef.stripePriceEnvVar];
+  const interval = payload.interval === 'annual' ? 'annual' : 'monthly';
+  const priceId = pricing.checkoutPriceId(payload.tier, interval);
   if (!priceId) return sendJSON(res, 503, { error: `The ${tierDef.name} plan is not configured yet` });
 
   const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
@@ -767,7 +825,11 @@ route('GET', '/api/billing/verify', async (req, res, params, user) => {
   const subscriptionStatus = session.subscription?.status || 'active';
   const subscriptionId = session.subscription?.id;
   updated = store.setSubscriptionStatus(user.id, subscriptionStatus, subscriptionId);
-  if (tierKey) updated = store.setUserTier(user.id, tierKey, pricing.TIERS[tierKey].monthlyCredits);
+  // A real new checkout only ever resolves to a current tier (professional/team) since
+  // checkoutPriceId() only offers those — the LEGACY_TIERS branch of tierForPriceId exists purely
+  // for defensive webhook-replay recognition, so it's guarded here rather than assumed unreachable.
+  const purchasedTierDef = tierKey && (pricing.TIERS[tierKey] || pricing.LEGACY_TIERS[tierKey]);
+  if (tierKey && purchasedTierDef) updated = store.setUserTier(user.id, tierKey, purchasedTierDef.monthlyCredits || 0);
 
   sendJSON(res, 200, { user: publicUser(updated) });
 });
@@ -861,7 +923,7 @@ route('POST', '/api/billing/webhook', async (req, res) => {
   // Refill credits to the plan's monthly allotment on each successful renewal invoice.
   if (event.type === 'invoice.payment_succeeded') {
     const owner = store.getUserByStripeCustomerId(obj.customer);
-    const tierDef = owner && pricing.TIERS[owner.plan_tier];
+    const tierDef = owner && pricing.anyTierDef(owner.plan_tier);
     if (owner && tierDef) store.setUserTier(owner.id, owner.plan_tier, tierDef.monthlyCredits);
   }
   sendJSON(res, 200, { received: true });
@@ -888,6 +950,7 @@ route('POST', '/api/projects/:name/unarchive', async (req, res, params, user) =>
 });
 
 route('GET', '/api/portfolio', async (req, res, params, user) => {
+  if (denyUnlessEntitled(res, user, 'portfolioOverview', 'Portfolio overview')) return;
   const rows = store.getPortfolio(user.id).map(({ project, latest }) => ({
     id: project.id,
     name: project.name,
@@ -915,9 +978,11 @@ route('GET', '/api/projects/:name/latest', async (req, res, params, user) => {
   try { activities = JSON.parse(snapshot.activities_json || '[]'); } catch (e) { activities = []; }
   const project = store.getProjectByName(user.id, params.name);
   const earnedSchedule = analyzeMod.computeEarnedSchedule(activities);
+  const recoveryAlert = computeRecoveryAlertForProject(user.id, params.name);
   sendJSON(res, 200, {
     snapshot, issues, activities,
-    earnedSchedule, budgetAtCompletion: project?.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null
+    earnedSchedule, budgetAtCompletion: project?.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null,
+    recoveryAlert
   });
 });
 
@@ -927,6 +992,7 @@ route('GET', '/api/projects/:name/latest', async (req, res, params, user) => {
 // /analyze), so this one gets real backend enforcement of the earned-value-metrics flag.
 route('POST', '/api/projects/:name/budget', async (req, res, params, user) => {
   if (!store.isFeatureEnabled('earned-value-metrics')) return sendJSON(res, 503, { error: 'Earned value metrics are temporarily unavailable' });
+  if (denyUnlessEntitled(res, user, 'workingTools', 'Earned value tracking')) return;
   const project = store.getProjectByName(user.id, params.name);
   if (!project) return sendJSON(res, 404, { error: 'No such project' });
   const body = await readBody(req);
@@ -940,6 +1006,7 @@ route('POST', '/api/projects/:name/budget', async (req, res, params, user) => {
 
 route('POST', '/api/snapshots/:id/actual-cost', async (req, res, params, user) => {
   if (!store.isFeatureEnabled('earned-value-metrics')) return sendJSON(res, 503, { error: 'Earned value metrics are temporarily unavailable' });
+  if (denyUnlessEntitled(res, user, 'workingTools', 'Earned value tracking')) return;
   const snapshotId = Number(params.id);
   const ownerId = store.getSnapshotOwnerUserId(snapshotId);
   if (ownerId === null) return sendJSON(res, 404, { error: 'No such snapshot' });
@@ -1022,8 +1089,29 @@ route('PATCH', '/api/issues/:id', async (req, res, params, user) => {
   sendJSON(res, 200, updated);
 });
 
+// Rule-based (not AI-generated) remediation guidance, one per DCMA-style check type — see
+// fix-guidance.js for why. Pro/Teams only, enforced here server-side (not just hidden behind a
+// frontend tier check) — the content itself isn't sensitive, but it's the thing being sold, so a
+// free-tier account calling this route directly must not get it for free. 402, not 403 — this is
+// "your plan doesn't include this feature," the same account-level case flagged as reserved for
+// 402 in the narrative route above, distinct from an ownership violation.
+route('GET', '/api/issues/:id/fix-guidance', async (req, res, params, user) => {
+  const issueId = Number(params.id);
+  const ownerId = store.getIssueOwnerUserId(issueId);
+  if (ownerId === null) return sendJSON(res, 404, { error: 'No such issue' });
+  if (ownerId !== user.id) return sendJSON(res, 403, { error: 'Not your project' });
+
+  if (denyUnlessEntitled(res, user, 'workingTools', 'Fix guidance')) return;
+
+  const issue = store.getIssueById(issueId);
+  const guidance = fixGuidance.getFixGuidanceForIssue(issue);
+  if (!guidance) return sendJSON(res, 404, { error: 'No fix guidance available for this issue type yet' });
+  sendJSON(res, 200, { guidance });
+});
+
 route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => {
   if (!ai.aiConfigured()) return sendJSON(res, 503, { error: 'AI narrative is not configured yet' });
+  if (user.ai_disabled) return sendJSON(res, 403, { error: 'AI features are turned off for your account — re-enable them in Account settings to use this.' });
   const snapshotId = Number(params.id);
   const ownerId = store.getSnapshotOwnerUserId(snapshotId);
   if (ownerId === null) return sendJSON(res, 404, { error: 'No such snapshot' });
@@ -1036,6 +1124,18 @@ route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => 
   const billingUser = store.getEffectiveTierUser(user);
   if (snapshot.narrative) return sendJSON(res, 200, { narrative: snapshot.narrative, cached: true, creditBalance: billingUser.credit_balance });
 
+  // Primary gate post-restructure: the plan's monthly narrative-query allowance (fair-use, not the
+  // product itself — see entitlements.js). credit_balance below is the secondary overflow valve —
+  // a plan's own monthly refill (pricing.js's monthlyCredits) should comfortably cover its query
+  // cap in normal use, with top-ups as the release valve for anyone who blows through both.
+  const ent = entitlements.resolveEntitlements(user);
+  const narrativeUsedThisMonth = store.countAiUsageThisMonthPooled(billingUser.id, 'narrative');
+  if (narrativeUsedThisMonth >= ent.aiNarrativePerMonth) {
+    return sendJSON(res, 429, {
+      error: `You've used all ${ent.aiNarrativePerMonth} AI narrative summaries included this month — upgrade for a higher allowance, or wait for next month's refill.`,
+      aiNarrativePerMonth: ent.aiNarrativePerMonth, usedThisMonth: narrativeUsedThisMonth
+    });
+  }
   // 429, not 402 — this is a quota/rate concept ("out of credits this period"), distinct from
   // the account-level "no active subscription" case, which no longer blocks the app at all now
   // that every account has a free tier.
@@ -1050,7 +1150,7 @@ route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => 
   const cost = pricing.costUsd(result.inputTokens, result.outputTokens);
   const credits = pricing.creditsForUsage(result.inputTokens, result.outputTokens);
   store.setSnapshotNarrative(snapshotId, result.text);
-  store.logAiUsage(user.id, snapshotId, result.inputTokens, result.outputTokens, cost, credits);
+  store.logAiUsage(user.id, snapshotId, result.inputTokens, result.outputTokens, cost, credits, 'narrative');
   const updatedBillingUser = store.deductCredits(billingUser.id, credits);
 
   sendJSON(res, 200, { narrative: result.text, cached: false, creditsUsed: credits, creditBalance: updatedBillingUser.credit_balance });
@@ -1062,7 +1162,12 @@ route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => 
 // source file's own task code/id), which is only a stable identity within the same project's
 // re-uploads of what's meant to be the same schedule — comparing snapshots from two unrelated
 // projects would just show everything as added/removed, which is accurate, if not useful.
+//
+// Also includes changedActuals/regressedProgress — a data-integrity check, not just a status
+// diff, flagging restated actual dates and backward-moving percent-complete between the two
+// snapshots (see the comment at their computation below for why).
 route('GET', '/api/snapshots/compare', async (req, res, params, user) => {
+  if (denyUnlessEntitled(res, user, 'workingTools', 'Snapshot comparison')) return;
   const parsed = url.parse(req.url, true);
   const fromId = Number(parsed.query.from);
   const toId = Number(parsed.query.to);
@@ -1090,6 +1195,13 @@ route('GET', '/api/snapshots/compare', async (req, res, params, user) => {
   const added = toActivities.filter(a => !fromByCode.has(a.code)).map(a => ({ code: a.code, name: a.name }));
   const removed = fromActivities.filter(a => !toByCode.has(a.code)).map(a => ({ code: a.code, name: a.name }));
   const becameCritical = [], resolvedCritical = [], floatChanges = [];
+  // Per SmartPM's 2026 industry report, actual dates being restated after the fact and reported
+  // progress moving backward are two of the strongest signals that an update was edited to "look
+  // right" rather than reflect real field conditions — 44% and 32% of updates in that study carried
+  // one or the other. Both are flagged here as a direct data-integrity check, not a normal float/
+  // criticality change: an actual date is supposed to be a fact once recorded, and percent-complete
+  // isn't supposed to go down.
+  const changedActuals = [], regressedProgress = [];
   for (const [code, toA] of toByCode) {
     const fromA = fromByCode.get(code);
     if (!fromA) continue;
@@ -1100,6 +1212,15 @@ route('GET', '/api/snapshots/compare', async (req, res, params, user) => {
       // 1 day is the smallest change worth surfacing — anything smaller is noise from rounding,
       // not a real shift a reviewer would care about.
       if (Math.abs(delta) >= 1) floatChanges.push({ code, name: toA.name, fromFloat: fromA.totalFloatDays, toFloat: toA.totalFloatDays, delta });
+    }
+    if (fromA.actualStart && toA.actualStart && fromA.actualStart !== toA.actualStart) {
+      changedActuals.push({ code, name: toA.name, field: 'start', from: fromA.actualStart, to: toA.actualStart });
+    }
+    if (fromA.actualEnd && toA.actualEnd && fromA.actualEnd !== toA.actualEnd) {
+      changedActuals.push({ code, name: toA.name, field: 'finish', from: fromA.actualEnd, to: toA.actualEnd });
+    }
+    if (fromA.percentComplete != null && toA.percentComplete != null && toA.percentComplete < fromA.percentComplete) {
+      regressedProgress.push({ code, name: toA.name, from: fromA.percentComplete, to: toA.percentComplete });
     }
   }
   floatChanges.sort((a, b) => a.delta - b.delta);
@@ -1120,7 +1241,7 @@ route('GET', '/api/snapshots/compare', async (req, res, params, user) => {
     scoreDelta: toSnap.score - fromSnap.score,
     critCountDelta: toSnap.crit_count - fromSnap.crit_count,
     riskCountDelta: toSnap.risk_count - fromSnap.risk_count,
-    activityChanges: { added, removed, becameCritical, resolvedCritical, floatChanges },
+    activityChanges: { added, removed, becameCritical, resolvedCritical, floatChanges, changedActuals, regressedProgress },
     issueChanges: { newIssues, resolvedIssues }
   });
 });
@@ -1153,6 +1274,7 @@ route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
   if (rateLimited(res, 'ai-chat', req, 30, 10 * 60 * 1000)) return;
   if (!ai.aiConfigured()) return sendJSON(res, 503, { error: 'AI chat is not configured yet' });
   if (!store.isFeatureEnabled('ask-ordo-ai')) return sendJSON(res, 503, { error: 'Ask Ordo is temporarily unavailable' });
+  if (user.ai_disabled) return sendJSON(res, 403, { error: 'AI features are turned off for your account — re-enable them in Account settings to use this.' });
   const snapshotId = Number(params.id);
   const ownerId = store.getSnapshotOwnerUserId(snapshotId);
   if (ownerId === null) return sendJSON(res, 404, { error: 'No such snapshot' });
@@ -1166,6 +1288,16 @@ route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
   if (message.length > 2000) return sendJSON(res, 400, { error: 'Keep questions under 2000 characters' });
 
   const billingUser = store.getEffectiveTierUser(user);
+  // Primary gate post-restructure: the plan's monthly Ask Ordo allowance (fair-use, not the
+  // product itself — see entitlements.js). credit_balance below is the secondary overflow valve.
+  const ent = entitlements.resolveEntitlements(user);
+  const askOrdoUsedThisMonth = store.countAiUsageThisMonthPooled(billingUser.id, 'chat');
+  if (askOrdoUsedThisMonth >= ent.askOrdoPerMonth) {
+    return sendJSON(res, 429, {
+      error: `You've used all ${ent.askOrdoPerMonth} Ask Ordo queries included this month — upgrade for a higher allowance, or wait for next month's refill.`,
+      askOrdoPerMonth: ent.askOrdoPerMonth, usedThisMonth: askOrdoUsedThisMonth
+    });
+  }
   if (billingUser.credit_balance <= 0) {
     return sendJSON(res, 429, { error: 'Out of AI credits — upgrade to Pro or wait for your next credit refill', creditBalance: billingUser.credit_balance });
   }
@@ -1195,10 +1327,48 @@ route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
   const credits = pricing.creditsForUsage(result.inputTokens, result.outputTokens);
   store.addChatMessage(snapshotId, user.id, 'user', message);
   store.addChatMessage(snapshotId, user.id, 'assistant', result.text);
-  store.logAiUsage(user.id, snapshotId, result.inputTokens, result.outputTokens, cost, credits);
+  store.logAiUsage(user.id, snapshotId, result.inputTokens, result.outputTokens, cost, credits, 'chat');
   const updatedBillingUser = store.deductCredits(billingUser.id, credits);
 
   res.end(CHAT_STREAM_META_MARKER + JSON.stringify({ creditsUsed: credits, creditBalance: updatedBillingUser.credit_balance }));
+});
+
+// Fixed enums, not free text — keeps later aggregate stats ("X% of users manage 6-15 projects",
+// "X% moved from SmartPM") countable against a known set instead of a pile of inconsistent
+// strings. migratedFrom's option list doubles as the same competitor set tracked in the private
+// competitive-intelligence repo, so a real answer here also validates (or corrects) those
+// assumptions with first-party data.
+const PORTFOLIO_SIZE_BUCKETS = ['first_project', '1', '2-5', '6-15', '16-50', '50+'];
+const MIGRATED_FROM_OPTIONS = ['starting_fresh', 'primavera_p6', 'acumen_fuse', 'smartpm', 'schedulereader', 'ecosys_hexagon', 'excel_spreadsheets', 'other'];
+
+// Human-readable labels for the admin console's aggregate panel — kept in sync with the <option>
+// text in index.html's survey modal by hand, same as the enums above.
+const PORTFOLIO_SIZE_LABELS = {
+  first_project: 'This is my first project', '1': 'Just 1', '2-5': '2–5', '6-15': '6–15', '16-50': '16–50', '50+': '50+'
+};
+const MIGRATED_FROM_LABELS = {
+  starting_fresh: "I'm starting fresh", primavera_p6: 'Primavera P6', acumen_fuse: 'Deltek Acumen Fuse',
+  smartpm: 'SmartPM', schedulereader: 'ScheduleReader', ecosys_hexagon: 'Hexagon / EcoSys',
+  excel_spreadsheets: 'Excel / spreadsheets', other: 'Other'
+};
+
+// Optional, skippable — see the profile_survey_dismissed_at column comment in db.js. Called with
+// both fields null/absent when the user clicks Skip or closes the prompt without answering; that
+// still marks it dismissed so it never shows again.
+route('POST', '/api/profile/survey', async (req, res, params, user) => {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const portfolioSizeBucket = payload.portfolioSizeBucket ? String(payload.portfolioSizeBucket) : null;
+  const migratedFrom = payload.migratedFrom ? String(payload.migratedFrom) : null;
+  if (portfolioSizeBucket && !PORTFOLIO_SIZE_BUCKETS.includes(portfolioSizeBucket)) {
+    return sendJSON(res, 400, { error: 'Unknown portfolio size option' });
+  }
+  if (migratedFrom && !MIGRATED_FROM_OPTIONS.includes(migratedFrom)) {
+    return sendJSON(res, 400, { error: 'Unknown migrated-from option' });
+  }
+  const updated = store.saveProfileSurvey(user.id, portfolioSizeBucket, migratedFrom);
+  sendJSON(res, 200, { user: publicUser(updated) });
 });
 
 route('POST', '/api/feedback', async (req, res, params, user) => {
@@ -1212,6 +1382,22 @@ route('POST', '/api/feedback', async (req, res, params, user) => {
   const feedback = store.createFeedback(user.id, message);
   knock.notifyFeedback(user, message).catch(() => {}); // never let a notification failure block submission
   sendJSON(res, 200, { feedback });
+});
+
+// Enterprise pricing-tier inquiry — a real form (docs/pricing-restructure.md's S-8), not a
+// mailto: link. Always saved to the database first; the Knock notification is best-effort on top.
+route('POST', '/api/enterprise-inquiry', async (req, res, params, user) => {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const company = String(payload.company || '').trim().slice(0, 200);
+  const message = String(payload.message || '').trim();
+  if (message.length < 3) return sendJSON(res, 400, { error: 'Tell us a bit about what you need — a sentence is enough' });
+  if (message.length > 2000) return sendJSON(res, 400, { error: 'Keep it under 2000 characters' });
+
+  const inquiry = store.createEnterpriseInquiry(user.id, company, message);
+  knock.notifyEnterpriseInquiry(user, company, message).catch(() => {});
+  sendJSON(res, 200, { inquiry });
 });
 
 // --- Admin Command Center (session required, ADMIN_EMAILS allowlist required) ---
@@ -1238,7 +1424,7 @@ route('POST', '/api/admin/users/:id/override', async (req, res, params, user) =>
   const targetId = Number(params.id);
   const tier = String(payload.tier || '');
   const credits = Number(payload.credits);
-  if (!pricing.TIERS[tier] && tier !== 'free') return sendJSON(res, 400, { error: 'Unknown plan tier' });
+  if (!pricing.anyTierDef(tier) && tier !== 'free' && tier !== 'enterprise') return sendJSON(res, 400, { error: 'Unknown plan tier' });
   if (!Number.isFinite(credits) || credits < 0) return sendJSON(res, 400, { error: 'Credits must be a non-negative number' });
   const updated = store.setUserTier(targetId, tier, credits);
   if (!updated) return sendJSON(res, 404, { error: 'No such user' });
@@ -1285,7 +1471,9 @@ route('POST', '/api/admin/flags/:id', async (req, res, params, user) => {
 // cost is a manually-maintained config value, not something this app can honestly measure, and
 // combining it with real numbers would imply a precision that doesn't exist (see admin_settings).
 function priceUsdForTier(tierKey) {
-  const tier = pricing.TIERS[tierKey];
+  // anyTierDef, not TIERS — legacy subscribers (starter/pro/teams) still contribute real MRR at
+  // their grandfathered price; using TIERS alone would silently zero out their revenue here.
+  const tier = pricing.anyTierDef(tierKey);
   if (!tier) return 0;
   const match = String(tier.priceLabel).match(/[\d.]+/);
   return match ? parseFloat(match[0]) : 0;
@@ -1311,6 +1499,18 @@ route('GET', '/api/admin/telemetry', async (req, res, params, user) => {
     advisorToolSpendUsd: advisorSpend.costUsd,
     serverCostMonthlyUsd: serverCostRaw ? Number(serverCostRaw) : null,
     advisoryClickCount: store.getAdvisoryClickCount()
+  });
+});
+
+route('GET', '/api/admin/profile-survey-stats', async (req, res, params, user) => {
+  if (!isAdmin(user)) return sendJSON(res, 403, { error: 'Admin access required' });
+  const stats = store.getProfileSurveyStats();
+  const withLabels = (breakdown, labels) => breakdown.map(row => ({ ...row, label: labels[row.value] || row.value }));
+  sendJSON(res, 200, {
+    totalPrompted: stats.totalPrompted,
+    totalSkippedEntirely: stats.totalSkippedEntirely,
+    portfolioSize: { total: stats.portfolioSize.total, breakdown: withLabels(stats.portfolioSize.breakdown, PORTFOLIO_SIZE_LABELS) },
+    migratedFrom: { total: stats.migratedFrom.total, breakdown: withLabels(stats.migratedFrom.breakdown, MIGRATED_FROM_LABELS) }
   });
 });
 
@@ -1446,6 +1646,26 @@ route('GET', '/api/feature-flags', async (req, res, params, user) => {
   sendJSON(res, 200, { flags: flags.map(f => ({ id: f.id, enabled: !!f.enabled })) });
 });
 
+// Builds the SPI trend series for a project's snapshot history and runs it through
+// computeRecoveryAlert — shared by /api/analyze (right after a new upload) and
+// /api/projects/:name/latest (reopening a project later), so the alert is consistent regardless
+// of which path got you to the current snapshot. Each historical snapshot's SPI is computed
+// as-of that snapshot's own created_at, not "now" — a past snapshot's earned-schedule read should
+// reflect what was known at that point in time, not be recomputed against today's date.
+function computeRecoveryAlertForProject(userId, projectName) {
+  const history = store.getHistory(userId, projectName);
+  const spiHistory = [];
+  for (const snap of history) {
+    let activities = [];
+    try { activities = JSON.parse(snap.activities_json || '[]'); } catch (e) { continue; }
+    const es = analyzeMod.computeEarnedSchedule(activities, snap.created_at);
+    if (es.available && es.spi != null) {
+      spiHistory.push({ snapshotId: snap.id, createdAt: snap.created_at, spi: es.spi });
+    }
+  }
+  return analyzeMod.computeRecoveryAlert(spiHistory);
+}
+
 route('POST', '/api/analyze', async (req, res, params, user) => {
   // analyze.js has no sub-togglable pieces — DCMA-14 checks run as one inseparable pass over the
   // schedule, so this flag's blast radius is the entire upload/analyze pipeline, not just the
@@ -1473,6 +1693,21 @@ route('POST', '/api/analyze', async (req, res, params, user) => {
 
   if (!fileText) return sendJSON(res, 400, { error: 'No file content received' });
 
+  // Project-limit enforcement is scoped to genuinely NEW project names only — re-scoring an
+  // existing project (the common case: someone re-uploading an updated export) never counts
+  // against the limit, regardless of how many active projects they currently have.
+  if (!store.projectExists(user.id, projectName)) {
+    const ent = entitlements.resolveEntitlements(user);
+    const activeCount = store.countActiveProjects(user.id);
+    if (activeCount >= ent.projectLimit) {
+      return sendJSON(res, 402, {
+        error: `You've reached your plan's active-project limit (${ent.projectLimit}). Archive an inactive project or upgrade to add another.`,
+        projectLimit: ent.projectLimit,
+        activeProjectCount: activeCount
+      });
+    }
+  }
+
   let result;
   try {
     result = analyzeMod.analyzeFile(filename, fileText);
@@ -1499,9 +1734,17 @@ route('POST', '/api/analyze', async (req, res, params, user) => {
     });
   }
 
+  // A count of 1 at this point means the row saveSnapshot just inserted was this user's first
+  // ever — drives the frontend's one-time, skippable profile-survey prompt (see
+  // /api/profile/survey below). Checked here rather than via a separate "have they analyzed
+  // before" flag so it can't drift out of sync with the actual snapshot rows.
+  const isFirstAnalysis = store.countSnapshotsForUser(user.id) === 1;
+  const recoveryAlert = computeRecoveryAlertForProject(user.id, projectName);
+
   sendJSON(res, 200, {
     project, snapshot, issues, activities: result.activities || [], hasDates: !!result.hasDates,
-    earnedSchedule, budgetAtCompletion: project.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null
+    earnedSchedule, budgetAtCompletion: project.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null,
+    isFirstAnalysis, recoveryAlert
   });
 });
 
@@ -1523,7 +1766,8 @@ const BLOG_CATEGORY_STYLES = {
   'Fundamentals': { label: 'FUNDAMENTALS', color: '#5eead4', bg: 'rgba(94,234,212,0.1)' },
   'DCMA & compliance': { label: 'DCMA', color: '#f4b955', bg: 'rgba(244,185,85,0.1)' },
   'For owners & PMs': { label: 'FOR OWNERS', color: '#a78bfa', bg: 'rgba(167,139,250,0.1)' },
-  'Product': { label: 'PRODUCT', color: '#46d19e', bg: 'rgba(70,209,158,0.1)' }
+  'Product': { label: 'PRODUCT', color: '#46d19e', bg: 'rgba(70,209,158,0.1)' },
+  'Founder Log': { label: 'FOUNDER LOG', color: '#9184d9', bg: 'rgba(145,132,217,0.1)' }
 };
 function categoryStyle(category) {
   return BLOG_CATEGORY_STYLES[category] || { label: String(category || '').toUpperCase(), color: '#8695a8', bg: 'rgba(148,163,184,0.1)' };
@@ -1547,6 +1791,8 @@ function buildShareLinks(url, title) {
     li: `https://www.linkedin.com/sharing/share-offsite/?url=${enc(url)}`,
     x: `https://twitter.com/intent/tweet?text=${enc(title)}&url=${enc(url)}`,
     fb: `https://www.facebook.com/sharer/sharer.php?u=${enc(url)}`,
+    reddit: `https://www.reddit.com/submit?url=${enc(url)}&title=${enc(title)}`,
+    telegram: `https://t.me/share/url?url=${enc(url)}&text=${enc(title)}`,
     wa: `https://wa.me/?text=${enc(title + ' ' + url)}`,
     mail: `mailto:?subject=${enc(title)}&body=${enc(url)}`
   };
@@ -1800,6 +2046,56 @@ document.querySelectorAll('[data-copy-url]').forEach(function (btn) {
   });
 });
 
+// Native share (Web Share API): hidden by default in the markup since most desktop browsers
+// don't support it. Where it IS supported, it hands off to the OS-level share sheet — every app
+// installed on the device, the one platform list we don't have to maintain by hand.
+if (navigator.share) {
+  document.querySelectorAll('.share-native').forEach(function (btn) {
+    btn.style.display = 'flex';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      navigator.share({
+        title: btn.getAttribute('data-share-title'),
+        url: btn.getAttribute('data-share-url')
+      }).catch(function () {});
+    });
+  });
+}
+
+// Newsletter signup — posts to /api/blog/subscribe (MailerLite-backed, see mailerlite.js).
+// Global function (not an IIFE) because the form's onsubmit calls it by name directly.
+function submitNewsletterForm(event, form) {
+  event.preventDefault();
+  var input = form.querySelector('input[type=email]');
+  var btn = form.querySelector('button');
+  var email = input.value.trim();
+  var original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Subscribing\\u2026';
+  fetch('/api/blog/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email })
+  }).then(function (res) {
+    return res.json().catch(function () { return {}; }).then(function (data) { return { ok: res.ok, data: data }; });
+  }).then(function (result) {
+    if (result.ok) {
+      btn.textContent = 'Subscribed \\u2713';
+      input.value = '';
+      input.disabled = true;
+    } else {
+      btn.textContent = (result.data && result.data.error) || 'Something went wrong';
+      btn.disabled = false;
+      setTimeout(function () { btn.textContent = original; }, 3500);
+    }
+  }).catch(function () {
+    btn.textContent = 'Network error — try again';
+    btn.disabled = false;
+    setTimeout(function () { btn.textContent = original; }, 3500);
+  });
+  return false;
+}
+
 // Category chip filtering — only present on the index page, so this whole block is a silent
 // no-op (chipBar is null) on the article page rather than needing a separate script include.
 (function () {
@@ -1875,23 +2171,32 @@ function blogFooter() {
   </footer>`;
 }
 
-// Icon labels are plain text glyphs (in / 𝕏 / f / ✆ / ✉ / ⧉), same as the design handoff — it
-// calls out swapping these for a real icon set (Phosphor) as a follow-up, not required for
-// launch fidelity.
-function shareRow(share, { size = 32, withCopy = false, copyUrl = '', leading = true } = {}) {
+// Icon labels are plain text glyphs (in / 𝕏 / f / R / ➤ / ✆ / ✉ / ⧉ / ⤴), same as the design
+// handoff — it calls out swapping these for a real icon set (Phosphor) as a follow-up, not
+// required for launch fidelity.
+//
+// Every post gets the full platform set, everywhere a share row appears (index headline rows,
+// the featured card, related cards, and both spots on the article page) — "share on every
+// platform" means the row shouldn't shrink depending on where you're standing. The one open-ended
+// entry is the native-share button (".share-native"): it's hidden by default and only revealed by
+// BLOG_SCRIPT when the browser supports the Web Share API, at which point it hands off to the
+// OS-level share sheet — every app installed on the device, not just the platforms we've
+// enumerated by hand.
+function shareRow(share, { size = 32, leading = true, copyUrl = '', shareTitle = '' } = {}) {
   const btn = (href, label, glyph, extra = '') => `<a href="${href}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ghost" title="${label}" style="width:${size}px; height:${size}px;" ${extra}>${glyph}</a>`;
-  const copy = withCopy
-    ? `<a href="#" class="ghost" title="Copy link" data-copy-url="${escapeHtml(copyUrl)}" onclick="event.stopPropagation()" style="width:${size}px; height:${size}px;">⧉</a>`
-    : '';
-  const wa = withCopy ? btn(share.wa, 'Share on WhatsApp', '✆') : '';
+  const copy = `<a href="#" class="ghost" title="Copy link" data-copy-url="${escapeHtml(copyUrl)}" onclick="event.stopPropagation()" style="width:${size}px; height:${size}px;">⧉</a>`;
+  const nativeShare = `<a href="#" class="ghost share-native" title="More" data-share-url="${escapeHtml(copyUrl)}" data-share-title="${escapeHtml(shareTitle)}" onclick="event.stopPropagation()" style="width:${size}px; height:${size}px; display:none;">⤴</a>`;
   return `<div class="share-row">
     ${leading ? '<span class="share-label">SHARE</span>' : ''}
     ${btn(share.li, 'LinkedIn', 'in')}
     ${btn(share.x, 'X', '𝕏')}
     ${btn(share.fb, 'Facebook', 'f')}
-    ${wa}
+    ${btn(share.reddit, 'Reddit', 'R')}
+    ${btn(share.telegram, 'Telegram', '➤')}
+    ${btn(share.wa, 'WhatsApp', '✆')}
     ${btn(share.mail, 'Email', '✉')}
     ${copy}
+    ${nativeShare}
   </div>`;
 }
 
@@ -1905,7 +2210,7 @@ function postRowHtml(vm) {
       </div>
       <a href="/blog/${escapeHtml(vm.slug)}" class="postrow-title">${escapeHtml(vm.headline)}</a>
       <div class="postrow-excerpt">${escapeHtml(vm.description)}</div>
-      <div class="card-interactive">${shareRow(vm.share, { size: 29, leading: true })}</div>
+      <div class="card-interactive">${shareRow(vm.share, { size: 29, leading: true, copyUrl: vm.url, shareTitle: vm.headline })}</div>
     </div>
     <span class="arrow">→</span>
   </div>`;
@@ -1917,7 +2222,7 @@ function relatedCardHtml(vm) {
     <span class="tag-pill" style="color:${vm.cat.color}; background:${vm.cat.bg};">${escapeHtml(vm.cat.label)}</span>
     <a href="/blog/${escapeHtml(vm.slug)}" class="related-card-title">${escapeHtml(vm.headline)}</a>
     <div class="related-card-excerpt">${escapeHtml(vm.description)}</div>
-    <div class="card-interactive">${shareRow(vm.share, { size: 29, leading: false })}</div>
+    <div class="card-interactive">${shareRow(vm.share, { size: 29, leading: false, copyUrl: vm.url, shareTitle: vm.headline })}</div>
   </div>`;
 }
 
@@ -2021,7 +2326,7 @@ function serveBlogIndex(req, res) {
             <div class="avatar" style="width:34px; height:34px; font-size:14px;">O7</div>
             <div class="byline-text"><b>Ordo7 Team</b> · ${featured.dateShort} · ${featured.readMins} min read</div>
           </div>
-          <div class="card-interactive" style="margin-top:22px;">${shareRow(featured.share, { size: 32 })}</div>
+          <div class="card-interactive" style="margin-top:22px;">${shareRow(featured.share, { size: 32, copyUrl: featured.url, shareTitle: featured.headline })}</div>
         </div>
         <div class="featured-right">
           <schedule-net></schedule-net>
@@ -2041,7 +2346,7 @@ function serveBlogIndex(req, res) {
           <h3>Schedule tips, twice a month.</h3>
           <p>Plain-language writing on reading, fixing and defending construction schedules. No spam.</p>
         </div>
-        <form class="newsletter-form" onsubmit="event.preventDefault(); this.querySelector('button').textContent='Coming soon';">
+        <form class="newsletter-form" onsubmit="return submitNewsletterForm(event, this);">
           <input type="email" placeholder="you@company.com" required>
           <button type="submit" class="cta-pill" style="border:none; cursor:pointer;">Subscribe</button>
         </form>
@@ -2112,7 +2417,7 @@ function serveBlogPost(req, res, slug) {
           <div class="byline-sub">${post.dateLong} · Powered by <a href="https://level7data.com/" target="_blank" rel="noopener">Level 7</a></div>
         </div>
         <div class="article-share">
-          ${shareRow(post.share, { size: 36, withCopy: true, copyUrl: post.url })}
+          ${shareRow(post.share, { size: 36, copyUrl: post.url, shareTitle: post.headline })}
         </div>
       </div>
     </div>
@@ -2133,7 +2438,7 @@ function serveBlogPost(req, res, slug) {
         ${tocHtml}
         <div class="toc-share-block">
           <div class="share-caption">Share this article</div>
-          ${shareRow(post.share, { size: 34, withCopy: true, copyUrl: post.url, leading: false })}
+          ${shareRow(post.share, { size: 34, copyUrl: post.url, shareTitle: post.headline, leading: false })}
           <a href="https://level7data.com/" target="_blank" rel="noopener" class="toc-book-cta">Book a consultation →</a>
         </div>
       </aside>
@@ -2262,6 +2567,7 @@ const server = http.createServer(async (req, res) => {
     // GET /api/team/invite/:token is deliberately public — an invitee needs to see who invited
     // them before they've logged in or even have an account yet (see the accept flow's UI).
     const isPublicRoute = pathname.startsWith('/api/auth/') || pathname === '/api/billing/webhook' || pathname.startsWith('/api/public/') || pathname === '/api/health' ||
+      pathname === '/api/blog/subscribe' ||
       (req.method === 'GET' && /^\/api\/team\/invite\/[^/]+$/.test(pathname));
     const cookies = auth.parseCookies(req);
     const user = auth.getUserForToken(cookies.session);
