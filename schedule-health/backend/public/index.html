@@ -573,15 +573,18 @@
   .tier-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
   .tier-card { display: flex; flex-direction: column; position: relative; padding-top: 30px; min-height: 100%; }
   .tier-card-popular { border-color: var(--accent); box-shadow: 0 4px 16px rgba(45,214,196,0.14); }
-  .tier-badge { position: absolute; top: 12px; left: 16px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 10px; }
+  .tier-badge { position: absolute; top: 12px; left: 16px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 10px; }
   .tier-badge-free { background: var(--line); color: var(--muted); }
   .tier-badge-popular { background: var(--accent); color: #06231f; }
   .tier-badge-soon { background: var(--line); color: var(--muted); }
   .tier-name { margin: 0 0 2px; font-size: 16px; }
-  .tier-tagline { font-size: 12px; color: var(--muted); margin: 0 0 8px; min-height: 32px; }
+  /* P-2: type scale floor -- 13px is the page-wide minimum (labels/table/terms), 14px for card
+     bullets and body copy. min-height bumped 32->36 to still fit two lines of tagline at the
+     larger size without the card growing unevenly against its neighbors. */
+  .tier-tagline { font-size: 13px; color: var(--muted); margin: 0 0 8px; min-height: 36px; }
   .price-line { font-size: 28px; font-weight: 700; color: var(--accent); margin: 4px 0; overflow-wrap: break-word; white-space: normal; }
   .price-line span, .price-line .price-suffix { font-size: 13px; font-weight: 400; color: var(--muted); }
-  .paywall-features { list-style: none; padding: 0; margin: 10px 0 14px; font-size: 12px; flex: 1; }
+  .paywall-features { list-style: none; padding: 0; margin: 10px 0 14px; font-size: 14px; flex: 1; }
   .paywall-features li { padding: 4px 0 4px 20px; position: relative; }
   .paywall-features li::before { content: "\2713"; position: absolute; left: 0; color: var(--good); font-weight: 700; }
   /* B-4: buttons were landing at different vertical positions because .paywall-features already
@@ -590,16 +593,16 @@
      many feature lines that tier has above it. */
   .tier-card > .btn, .tier-card > a.btn { margin-top: auto; }
   .billing-toggle-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 16px; }
-  .billing-toggle-label { font-size: 12.5px; color: var(--muted); }
+  .billing-toggle-label { font-size: 13px; color: var(--muted); }
   .billing-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 2px; }
-  .billing-toggle-btn { background: none; border: none; padding: 6px 14px; font-size: 12.5px; font-weight: 600; color: var(--muted); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .billing-toggle-btn { background: none; border: none; padding: 6px 14px; font-size: 13px; font-weight: 600; color: var(--muted); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
   .billing-toggle-btn.active { background: var(--accent); color: #06231f; }
-  .billing-save-badge { font-size: 10px; font-weight: 700; background: rgba(45,214,196,0.18); color: var(--accent); padding: 1px 6px; border-radius: 8px; }
+  .billing-save-badge { font-size: 13px; font-weight: 700; background: rgba(45,214,196,0.18); color: var(--accent); padding: 1px 6px; border-radius: 8px; }
   .billing-toggle-btn.active .billing-save-badge { background: rgba(6,35,31,0.2); color: #06231f; }
-  .compare-table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 640px; }
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 640px; }
   .compare-table th, .compare-table td { padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--line); }
   .compare-table th:first-child, .compare-table td:first-child { text-align: left; color: var(--ink); position: sticky; left: 0; background: var(--card); }
-  .compare-table th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; }
+  .compare-table th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.02em; }
   .compare-table td { color: var(--muted); }
   .compare-table td:first-child { color: var(--ink); }
   /* P-1: billing content gets its own max-width, independent of #panel-central-workspace's full
@@ -1016,12 +1019,12 @@
           <button class="btn" id="enterpriseContactBtn" style="width:100%;">Contact us</button>
         </div>
       </div>
-      <p id="paywallError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
-      <p id="paywallNote" style="font-size:12px; color:var(--muted); text-align:center; margin:10px 0 0;"></p>
+      <p id="paywallError" class="error" style="display:none; padding:6px 0 0; font-size:13px;"></p>
+      <p id="paywallNote" style="font-size:13px; color:var(--muted); text-align:center; margin:10px 0 0;"></p>
 
       <div id="enterpriseForm" class="card" style="margin-top:16px; display:none;">
         <h2 style="margin:0 0 4px; font-size:15px;">Tell us about your organization</h2>
-        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">This goes straight to the Ordo7 team, not a shared mailbox — we'll follow up directly.</p>
+        <p style="font-size:14px; color:var(--muted); margin:0 0 12px;">This goes straight to the Ordo7 team, not a shared mailbox — we'll follow up directly.</p>
         <div style="display:flex; flex-direction:column; gap:8px;">
           <input type="text" id="enterpriseCompany" placeholder="Company name" style="padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
           <textarea id="enterpriseMessage" placeholder="What are you looking to do with Ordo7? (portfolio size, number of seats, timeline, etc.)" rows="4" style="padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit; resize:vertical;"></textarea>
@@ -1030,8 +1033,8 @@
           <button class="btn cta" id="enterpriseSubmitBtn">Send inquiry</button>
           <button class="btn" id="enterpriseCancelBtn">Cancel</button>
         </div>
-        <p id="enterpriseError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
-        <p id="enterpriseNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
+        <p id="enterpriseError" class="error" style="display:none; padding:6px 0 0; font-size:13px;"></p>
+        <p id="enterpriseNote" style="font-size:13px; color:var(--muted); margin:8px 0 0;"></p>
       </div>
 
       <div class="card" style="margin-top:16px; overflow-x:auto;">
@@ -1069,7 +1072,7 @@
 
       <div class="card" style="margin-top:16px;">
         <h2 style="margin:0 0 4px; font-size:15px;">Need more AI usage without changing plans?</h2>
-        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Buy AI credits any time, on top of whatever plan you're on — $10 minimum, in $10 increments. Credits don't expire and stack on top of your plan's monthly Ask Ordo / narrative allowance.</p>
+        <p style="font-size:14px; color:var(--muted); margin:0 0 12px;">Buy AI credits any time, on top of whatever plan you're on — $10 minimum, in $10 increments. Credits don't expire and stack on top of your plan's monthly Ask Ordo / narrative allowance.</p>
         <div class="row" style="justify-content:flex-start; flex-wrap:wrap; gap:8px; margin-top:0;">
           <button class="btn topup-btn" data-amount="10">$10 (50 credits)</button>
           <button class="btn topup-btn" data-amount="20">$20 (100 credits)</button>
@@ -1079,46 +1082,46 @@
             <button class="btn topup-btn" id="topupCustomBtn">Buy</button>
           </span>
         </div>
-        <p id="topupError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
-        <p id="topupNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
-        <p style="font-size:12px; color:var(--muted); margin:10px 0 0;">Or <a href="#" id="pricingReferralLink" style="color:var(--accent);">refer a friend</a> — you both get bonus credits, free.</p>
+        <p id="topupError" class="error" style="display:none; padding:6px 0 0; font-size:13px;"></p>
+        <p id="topupNote" style="font-size:13px; color:var(--muted); margin:8px 0 0;"></p>
+        <p style="font-size:14px; color:var(--muted); margin:10px 0 0;">Or <a href="#" id="pricingReferralLink" style="color:var(--accent);">refer a friend</a> — you both get bonus credits, free.</p>
       </div>
 
       <div id="teamOwnerCard" class="card" style="margin-top:16px; display:none;">
         <h2 style="margin:0 0 4px; font-size:15px;">Team members</h2>
-        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Invite people onto your Team plan — they get full access and share your pooled AI allowance, no separate subscription needed. <span id="teamSeatCount"></span></p>
+        <p style="font-size:14px; color:var(--muted); margin:0 0 12px;">Invite people onto your Team plan — they get full access and share your pooled AI allowance, no separate subscription needed. <span id="teamSeatCount"></span></p>
         <ul id="teamMemberList" style="list-style:none; padding:0; margin:0 0 12px;"></ul>
         <div class="row" style="justify-content:flex-start; gap:8px; margin-top:0;">
           <input type="email" id="teamInviteEmail" placeholder="teammate@company.com" style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
           <button class="btn cta" id="teamInviteBtn">Send invite</button>
         </div>
-        <p id="teamError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
-        <p id="teamNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
+        <p id="teamError" class="error" style="display:none; padding:6px 0 0; font-size:13px;"></p>
+        <p id="teamNote" style="font-size:13px; color:var(--muted); margin:8px 0 0;"></p>
       </div>
 
       <div id="teamMemberCard" class="card" style="margin-top:16px; display:none;">
         <h2 style="margin:0 0 4px; font-size:15px;">Team</h2>
         <p id="teamMemberOwnerLine" style="font-size:13px; margin:0 0 12px;"></p>
         <button class="btn" id="teamLeaveBtn">Leave team</button>
-        <p id="teamMemberNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
+        <p id="teamMemberNote" style="font-size:13px; color:var(--muted); margin:8px 0 0;"></p>
       </div>
 
       <div class="card" style="margin-top:16px;">
         <h2 style="margin:0 0 4px; font-size:15px;">Integrations</h2>
-        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Get a notification every time a schedule finishes analyzing. Paste a Slack "Incoming Webhook" URL to post to a channel, or a Zapier/Make "catch webhook" URL to trigger anything else. Team plan and above.</p>
+        <p style="font-size:14px; color:var(--muted); margin:0 0 12px;">Get a notification every time a schedule finishes analyzing. Paste a Slack "Incoming Webhook" URL to post to a channel, or a Zapier/Make "catch webhook" URL to trigger anything else. Team plan and above.</p>
         <div class="row" style="justify-content:flex-start; gap:8px; margin-top:0;">
           <input type="url" id="webhookUrlInput" placeholder="https://hooks.slack.com/services/..." style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
           <button class="btn cta" id="webhookSaveBtn">Save</button>
           <button class="btn" id="webhookTestBtn">Send test</button>
           <button class="btn" id="webhookClearBtn" style="display:none;">Clear</button>
         </div>
-        <p id="webhookError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
-        <p id="webhookNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
+        <p id="webhookError" class="error" style="display:none; padding:6px 0 0; font-size:13px;"></p>
+        <p id="webhookNote" style="font-size:13px; color:var(--muted); margin:8px 0 0;"></p>
       </div>
 
       <div class="card" style="margin-top:16px;">
         <h2 style="margin:0 0 8px; font-size:15px;">Good to know</h2>
-        <ul style="font-size:12.5px; color:var(--muted); margin:0; padding-left:18px; line-height:1.7;">
+        <ul style="font-size:13px; color:var(--muted); margin:0; padding-left:18px; line-height:1.7;">
           <li>All prices are in USD.</li>
           <li>An <strong>active project</strong> is one uploaded or re-scored within the last 90 days. Projects outside that window still count toward nothing and stay fully readable — they're just not counted against your plan's project limit, and reappear in the count the moment you re-score them.</li>
           <li>If you hit your plan's active-project limit, uploading a new project is blocked until you archive an existing one or upgrade — nothing already analyzed is ever deleted or hidden.</li>
