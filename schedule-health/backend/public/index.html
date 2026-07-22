@@ -615,6 +615,9 @@
   .paywall-features { list-style: none; padding: 0; margin: 10px 0 14px; font-size: 14px; flex: 1; }
   .paywall-features li { padding: 4px 0 4px 20px; position: relative; }
   .paywall-features li::before { content: "\2713"; position: absolute; left: 0; color: var(--good); font-weight: 700; }
+  /* P-6: one differentiating bullet per card is emphasised by weight, not colour alone -- a card
+     of same-weight bullets makes the scan require reading every line to find what matters. */
+  .paywall-features li.bullet-emphasis { font-weight: 600; color: var(--ink); }
   /* B-4: buttons were landing at different vertical positions because .paywall-features already
      flexes to fill remaining space (flex:1) but the button itself wasn't pinned -- margin-top:auto
      on the button is what actually aligns every card's CTA to a shared baseline regardless of how
@@ -996,7 +999,7 @@
           <p class="tier-tagline">Check a single schedule, free forever</p>
           <p class="price-line">$0<span>/month</span></p>
           <ul class="paywall-features">
-            <li>1 active project</li>
+            <li class="bullet-emphasis">1 active project</li>
             <li>DCMA-style schedule checks included — not a paid add-on</li>
             <li>Full health scoring, issue punch list, critical path view</li>
             <li>3 snapshots of history per project</li>
@@ -1013,11 +1016,10 @@
           <ul class="paywall-features">
             <li>Everything in Free, plus:</li>
             <li>10 active projects, unlimited snapshot history</li>
-            <li>Gantt timeline, what-if sandbox, snapshot comparison</li>
+            <li class="bullet-emphasis">Gantt timeline, what-if sandbox, snapshot comparison</li>
             <li>Earned value / Earned Schedule tracking</li>
             <li>Portfolio overview, 1-click PDF exports</li>
             <li>200 Ask Ordo queries/mo, 100 AI narrative summaries/mo</li>
-            <li>Email support</li>
           </ul>
           <button class="btn cta" data-tier="professional" style="width:100%;">Subscribe — Professional</button>
         </div>
@@ -1030,10 +1032,9 @@
             <li>Everything in Professional, plus:</li>
             <li>40 active projects</li>
             <li>10 seats included ($29/seat after that)</li>
-            <li>Unwatermarked executive reports, custom branding</li>
+            <li class="bullet-emphasis">Unwatermarked executive reports, custom branding</li>
             <li>Slack / Zapier webhook integrations</li>
             <li>1,000 Ask Ordo queries/mo, 500 AI narrative summaries/mo — pooled across your team</li>
-            <li>Priority email support, DPA on request</li>
           </ul>
           <button class="btn btn-cta-outline" data-tier="team" style="width:100%;">Subscribe — Team</button>
         </div>
@@ -1044,7 +1045,7 @@
           <p class="price-line price-line-custom">Custom</p>
           <ul class="paywall-features">
             <li>Everything in Team, plus:</li>
-            <li>Unlimited projects and seats</li>
+            <li class="bullet-emphasis">Unlimited projects and seats</li>
             <li>API access, SSO</li>
             <li>Role-based permissions</li>
             <li>Dedicated support with SLA, formal DPA</li>
