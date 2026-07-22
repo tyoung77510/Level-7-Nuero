@@ -107,7 +107,11 @@ const NEW_TIERS = {
     name: 'Enterprise',
     priceLabel: 'Custom',
     projectLimit: UNLIMITED,
-    seatsIncluded: UNLIMITED,
+    // Seat count is a negotiated contract term, not unlimited -- null (matching
+    // additionalSeatPriceUsd below) rather than UNLIMITED so this field can't later get read into
+    // a UI claiming unlimited Enterprise seats. Not currently enforced anywhere (team-invite
+    // limits go through pricing.MAX_TEAM_MEMBERS, not this field), but keep it correct anyway.
+    seatsIncluded: null,
     additionalSeatPriceUsd: null,
     snapshotHistoryLimit: UNLIMITED,
     workingTools: true,
