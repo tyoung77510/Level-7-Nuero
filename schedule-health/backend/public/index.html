@@ -307,6 +307,17 @@
     color: #fff; border-color: var(--orange); font-weight: 600;
     box-shadow: 0 2px 8px color-mix(in srgb, var(--orange) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.25);
   }
+  /* P-3: the Team tier CTA steps down from .cta's filled orange to an outline -- with Professional
+     and Team both filled, neither one read as the primary choice and the Professional POPULAR
+     badge was undercut by a second button of equal visual weight next to it. Same size/position/
+     font-weight as .cta, just no fill, so exactly one filled button remains on the page. */
+  button.btn.btn-cta-outline {
+    background: transparent; color: var(--orange); border-color: var(--orange); font-weight: 600;
+    box-shadow: none;
+  }
+  button.btn.btn-cta-outline:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--orange) 12%, transparent);
+  }
   button.btn.tiny { padding: 4px 10px; font-size: 11px; }
   button.btn:disabled { opacity: 0.6; cursor: default; }
   /* Ambient mouse-follow glow — --mouse-x/--mouse-y are set on these elements by the delegated
@@ -1002,7 +1013,7 @@
             <li>1,000 Ask Ordo queries/mo, 500 AI narrative summaries/mo — pooled across your team</li>
             <li>Priority email support, DPA on request</li>
           </ul>
-          <button class="btn cta" data-tier="team" style="width:100%;">Subscribe — Team</button>
+          <button class="btn btn-cta-outline" data-tier="team" style="width:100%;">Subscribe — Team</button>
         </div>
         <div class="card tier-card" data-tier-key="enterprise">
           <span class="tier-badge tier-badge-soon">Custom</span>
