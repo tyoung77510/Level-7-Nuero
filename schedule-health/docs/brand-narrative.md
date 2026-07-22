@@ -30,7 +30,11 @@ A high-fidelity design handoff (the "Nocturne" system, see below) locked final c
 
 This entry establishes the template for every future Founder Log post: numbered sequentially (003, 004, ...), each one documenting a real build milestone, decision, or problem encountered — not generic motivational content. Per the design handoff's own recipe: each new episode only needs a new number, a new headline (key phrase in accent color), a 2–3 sentence body, and optionally a portrait side-swap — everything else in the system stays fixed.
 
-**LinkedIn caption formula** (from the design handoff): hook line → the problem/story → what Ordo7 does → `Follow the journey → https://ordo7.pro` → 4–5 hashtags. Suggested hashtag set: `#BuildInPublic #ProjectControls #Scheduling #SaaS #FounderJourney`.
+**LinkedIn caption formula** (from the design handoff): hook line → the problem/story → what Ordo7 does → `Read the full post → https://www.ordo7.pro/blog/<slug>` → `Follow Ordo7 on LinkedIn → https://www.linkedin.com/company/ordo7/` → `Try It For Free → https://ordo7.pro` → 4–5 hashtags. **`#Ordo7` is mandatory in every post, every time** — rotate the remaining 3–4 from: `#BuildInPublic #ProjectControls #Scheduling #SaaS #FounderJourney #DCMA #Bootstrapped #ConstructionTech #PMP`, picked for relevance to that day's topic. **Every Founder Log post has a matching blog entry (`backend/src/blog-content.js`) — the caption must link to it.** Both of these were missed on the first live post (Day 003, caught and corrected after publishing — see `founder-log-calendar.md`'s note); don't repeat either gap.
+
+**Changelog (2026-07-22):** added the Ordo7 LinkedIn company-page link (`linkedin.com/company/ordo7/`) as a fourth mandatory link, alongside the blog link and the Try It For Free CTA — cross-promotes from the personal-profile post (primary reach channel) to the company page the Routine already posts to separately, so profile viewers can follow the company page too. Day 005 (`batch-01-linkedin-captions.md`) is updated with this link. **Day 004 is not yet updated** — it's fully staged and was about to post when blocked on a Zapier connector issue; decide whether to retrofit it with this link before it goes out, or let it ship as originally drafted since it was already "final" before this change. Days 001–003 are already live and are not retroactively edited, per the standing rule for this doc.
+
+**Changelog (2026-07-20):** CTA line changed from "Follow the journey → ordo7.pro" to "Try It For Free → ordo7.pro" going forward, on both the caption and the rendered graphic's CTA button (see `render/template-feed.html`/`template-cover.html`). Days 001–003 are already live and keep their original "Follow the journey" copy as an accurate historical record — not retroactively rewritten here. Days 004+ (not yet posted as of this change) use the new CTA. Note the tension this creates with Day 044's planned topic ("'Follow the journey,' not 'buy now' — why the ask right now is attention, not a sale") — that topic's premise no longer matches the live CTA; flagged for a decision on whether to revise Day 044's angle before it's drafted.
 
 ## Visual design system ("Nocturne")
 
@@ -44,6 +48,7 @@ Locked, high-fidelity design tokens — recreate pixel-accurately for any new Fo
 - **Colors:** ground `#0d0f1a`/`#141626`/`#1b1e30`; text primary `#e9e9ed`, muted `#b2b6ca`, faint `#75798c`; accent (blurple) `#9184d9`, light accent `#d2cefd`.
 - **Type:** Inter — headings weight 500 max (never bolder), body weight 400, kicker/label weight 600 uppercase.
 - **Asset files:** stored at `schedule-health/marketing-assets/linkedin-founder-log/` — design source HTML, README with full spec, `assets/mark.png` + `assets/ceo-portrait.png`, and post-ready renders in `renders/`.
+- **Render pipeline:** `linkedin-founder-log/render/` — parameterized HTML templates (feed + cover) and a Playwright script that turn a JSON data file into pixel-consistent JPGs. Any day's graphic is one command away; see `render/README.md`. This is what generates every Founder Log entry's image now, rather than manual recreation per post.
 
 ## Founder background (confirmed, anonymized)
 
@@ -78,6 +83,31 @@ This is the real "why now," and it's a market observation, not just a personal a
 
 This reframes Ordo7's pitch: it's not just "the existing tools are clunky," it's "there's a genuine labor shortage in project controls right now, driven by a real construction/data-center/manufacturing boom, and the people absorbing that gap (PMs wearing two jobs) need something built for them specifically."
 
+## Product capabilities (content bank — verified against the actual code, not the marketing copy)
+
+The market has only really heard two things about Ordo7 so far: the health score and the DCMA checks. That's a fraction of what's actually shipped. Every item below is real and live in `backend/public/index.html` / `backend/src/` today — verified by reading the code, not assumed from memory. Use this as the source list for feature-spotlight content; don't describe a capability that isn't in this list, and don't undersell one that is.
+
+- **Schedule health scoring** — a 0–100 score broken into sub-scores (logic quality, float distribution, constraint hygiene, milestone hygiene), not one opaque number.
+- **DCMA-style issue detection** — negative float, missing logic, out-of-sequence work, and the rest of the 14-point checklist, flagged automatically on upload. Included on every plan, including Free.
+- **Ask Ordo** — a permanently-docked, multi-turn AI chat, grounded in the actual uploaded schedule's real numbers, that *also* answers general project-controls/scheduling questions (DCMA, EVM, critical path, PMBOK concepts) even when unrelated to the loaded file. Built into every plan. See "Ask Ordo vs. the market" below — this is the single most underused fact in Ordo7's current marketing.
+- **What-if sandbox** — adjust float and duration and watch the health score recalculate instantly, before committing to a real schedule revision.
+- **Earned value tracking** — real progress-vs-baseline via Earned Schedule analysis, plus optional cost variance (CPI, CV) *only* once the user enters their own budget data. Never estimated or fabricated — if the cost data isn't there, Ordo7 says so instead of guessing.
+- **Portfolio Overview / Multi-Project Leaderboard** — trend tracking and rollup across every schedule a user has uploaded, not just a single-file tool.
+- **Printable, ready-to-send status report** — no formatting decisions left for the user; per `design-notes.md`, automating this "single most-hated recurring task" is treated as one of the highest-leverage features in the product.
+- **Zero setup, one upload** — drop in a `.xer`, MS Project XML, or CSV export; no project setup wizard, no field mapping, no account configuration before the first result.
+- **Team seats** — invite teammates onto a plan (Teams tier), shared visibility into the same projects.
+- **Shareable snapshot links** — a schedule health snapshot can be shared via a link without giving someone a login.
+
+## Ask Ordo vs. the market (use this — it's a live, ready-to-use contrast)
+
+A well-funded, enterprise-priced competitor in this category recently launched (and staffed up around, with new VP-level hires) a "chat with your schedule in plain language" AI feature as a headline announcement — sold through an enterprise sales cycle, gated behind procurement, with zero public reviews months after GA (per `ordo7-competitive-intel`'s tracking — never name the competitor in public content, reference generically: "a well-funded competitor," "an enterprise player in this space").
+
+**Ordo7 already had this.** Ask Ordo has been live since the product's early build, on every plan including Free, with no sales call required. This is a genuinely rare position: the market just validated that "plain-language AI conversation with your schedule" is the feature buyers want, and Ordo7 doesn't need to build anything to answer that — it needs to *say so*. This is a standing content angle, not a one-off: any time the gap between Ordo7's real capability and its current market awareness needs closing, Ask Ordo is the sharpest, truest example available.
+
+## How Ordo7 listens and evolves
+
+"Ordo7 is not static; it's evolving" isn't just a tagline — there's a real mechanism behind it, and it's worth naming specifically rather than gesturing at vaguely: in-app feedback submission is wired to notify the team directly (via Knock) the moment someone submits it, and every submission is saved regardless of whether notifications are configured. That's a real, standing commitment: a user's frustration or feature request doesn't go into a void, it reaches Taj directly. Content on this theme should point to that mechanism specifically ("there's a feedback button in the product, and I read what comes through it") rather than a generic "we love feedback!" claim.
+
 ## Target audience — education / K-12 bond programs
 
 **This is a real, credibility-backed vertical, not a cold pitch.** Taj has direct hands-on experience delivering a K-12 capital/bond modernization program — this is the strongest, most specific story hook available for this audience, and should be used, not buried.
@@ -97,6 +127,7 @@ Note: this is in addition to Ordo7's other target segment already explored for p
 - **Specific over vague.** Reference the actual thing that changed that week — a feature shipped, a real user's frustration, a design decision and why. Never a content-free "big things coming!" post.
 - **Same bluntness as Level 7's brand voice**, but more personal — this is Taj's voice, not the institutional "Truth-Teller" voice used for Level 7 Consulting client-facing material. Direct, no jargon, contractions welcome, no corporate speak ("synergize," "leverage," "best-in-class" are still banned here).
 - **Don't fabricate.** No invented metrics, no invented user testimonials, no invented milestones ahead of when they're real. This mirrors the product's own "don't fabricate metrics" rule in `design-notes.md` — the brand narrative holds itself to the same honesty standard the product does.
+- **User feedback content is real-only.** When a Founder Log post references a user comment, request, or reaction, it must be an actual thing a real user said, anonymized (no names, no organizations — same confidentiality rule as everywhere else in this doc). Never invent a quote or paraphrase to fill a content slot. If there's nothing real to reference yet, the post waits or runs a category-appropriate placeholder instead — see `founder-log-calendar.md`'s Slot F rule.
 
 ## Channel application
 
@@ -121,8 +152,14 @@ Background, the origin thesis, and the build timeline are now confirmed (see abo
 
 - **What "support" concretely means** once the audience-building phase converts — paid beta, waitlist-to-launch, pre-orders, something else. The CTA evolves once it stops being pure "follow the journey," and this determines when/how that shift happens. Not urgent before launch — "follow the journey" still holds as the CTA through launch itself.
 
+## 90-day content calendar
+
+The Founder Log runs as a daily series (LinkedIn + blog, same story every day) for 90 days, structured as a 7-slot weekly wheel (build log, spark/thesis, DCMA education, industry pain point, founder story, user feedback, reflective) so it has consistent rhythm without repeating a topic. Full day-by-day topic bank, the fabrication guardrails for the two "live" slots, and the batching approach live in `founder-log-calendar.md`. First batch (Days 003–009) is fully drafted — graphics in `../marketing-assets/linkedin-founder-log/renders/`, LinkedIn captions in `../marketing-assets/linkedin-founder-log/batch-01-linkedin-captions.md`, blog posts appended to `../backend/src/blog-content.js`.
+
 ## Obsidian / cross-references
 
 - [[../CLAUDE.md]] — product overview and architecture
 - [[design-notes.md]] — product thesis and UX principles this narrative should stay consistent with
+- [[founder-log-calendar.md]] — the 90-day day-by-day topic calendar
+- [[tedx-talk-draft.md]] — the spark thesis reshaped as a TEDx talk, with sourced labor-shortage/capital-boom data behind it
 - [[../marketing-assets/README.md]] — asset inventory this content plan feeds

@@ -6,7 +6,7 @@ Version-controlled marketing/social-media creative for Ordo7 — **not served by
 
 - `facebook/` — assets for Facebook posts/ads. Currently: `ordo7-upload-flow-animation.mp4`, a screen recording of the real upload flow (New Analysis → drop a schedule file → what-you'll-get panel).
 - `social-ads/` — vertical (9:16) short-form ad clips for Reels/Stories/TikTok-style placements, generated via ElevenLabs. Currently: `02-the-fix.mp4` ("Score any schedule in seconds"). Numbered — looks like part of a series, so more (01, 03, ...) may follow.
-- `linkedin-founder-log/` — full design handoff for the "Founder Log" LinkedIn series (the "Nocturne" design system): design source HTML, spec README, logo mark + founder portrait assets, and post-ready JPG renders for entries 001 and 002. See `../docs/brand-narrative.md` for the confirmed copy, voice rules, and cross-channel consistency requirements this feeds.
+- `linkedin-founder-log/` — full design handoff for the "Founder Log" LinkedIn series (the "Nocturne" design system): design source HTML, spec README, logo mark + founder portrait assets, a Playwright render pipeline (`render/`), and post-ready JPG renders in `renders/` for entries 001–009 (batch 01: 003, 004, 005, 007, 009 — 006 and 008 are live-only slots, not yet real). LinkedIn caption text for batch 01 is in `batch-01-linkedin-captions.md`; matching blog posts are in `../backend/src/blog-content.js`. See `../docs/brand-narrative.md` for confirmed copy and voice rules, and `../docs/founder-log-calendar.md` for the full 90-day topic calendar.
 
 ## Pending
 

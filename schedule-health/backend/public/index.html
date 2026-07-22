@@ -111,6 +111,24 @@
     transform: scale(0.98) translateY(0);
   }
   #panel-central-workspace { flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 20px 24px; }
+  /* Billing/Plan is content-heavy (5 cards, comparison table, top-ups, team, integrations) and
+     was getting trapped in this panel's own small internal scrollbar rather than the page just
+     scrolling normally (see docs/pricing-restructure.md's B-2) -- toggled on/off in setView()
+     rather than changed globally, since every other view is a fixed dashboard-style panel on
+     purpose and shouldn't grow with its content the way a settings/marketing page should. */
+  body.pricing-scroll-mode { overflow-y: auto; }
+  body.pricing-scroll-mode .app-shell-root { height: auto; min-height: 100vh; }
+  body.pricing-scroll-mode #panel-central-workspace { overflow-y: visible; }
+  /* Ask Ordo panel visually collapses while on Billing/Plan (docs/pricing-restructure.md's S-3 --
+     it was eating ~1/4 of the viewport just to say "analyze a schedule first", squeezing the
+     price cards into truncating their own text). This is independent of the user's own manual
+     collapse preference (localStorage, applyChatCollapsedState()) -- leaving this page restores
+     whatever they actually had set, since this only touches layout, never the .collapsed class. */
+  body.pricing-scroll-mode #panel-right-command-bar { flex: 0 0 auto; width: 52px; min-width: 52px; }
+  body.pricing-scroll-mode #panel-right-command-bar .chat-panel-header > span,
+  body.pricing-scroll-mode #panel-right-command-bar .chat-suggest-pill,
+  body.pricing-scroll-mode #panel-right-command-bar #chatEmpty,
+  body.pricing-scroll-mode #panel-right-command-bar #chatWrap { display: none !important; }
   #panel-right-command-bar { flex: 0 0 25%; min-width: 320px; max-width: 420px; border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
   .breadcrumb { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
   .breadcrumb .crumb-link { color: var(--accent); cursor: pointer; }
@@ -547,27 +565,47 @@
   .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(0); background: var(--good); color: #06231f; font-weight: 600; font-size: 13px; padding: 10px 20px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 300; opacity: 1; transition: opacity 0.3s ease, transform 0.3s ease; }
   .toast.toast-hide { opacity: 0; transform: translateX(-50%) translateY(8px); }
   .oauth-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 10px 16px; border-radius: 8px; font-size: 13px; }
-  .tier-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: stretch; }
-  .tier-card { display: flex; flex-direction: column; position: relative; padding-top: 30px; }
+  /* 4 tiers, not 5 (docs/pricing-restructure.md S-1) -- minmax(0,1fr) plus overflow-wrap on the
+     price line is what actually fixes B-1 (price text truncating at the card edge): 5 equal-width
+     columns left no room for "$19.99/month"/"$149/month" to fit without clipping; 4 wider columns
+     plus a wrapping-safe price line means no price string clips at any of the widths in the QC
+     matrix (1280/1440/1920 + mobile), not just at whatever width happened to be tested by eye. */
+  .tier-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+  .tier-card { display: flex; flex-direction: column; position: relative; padding-top: 30px; min-height: 100%; }
   .tier-card-popular { border-color: var(--accent); box-shadow: 0 4px 16px rgba(45,214,196,0.14); }
   .tier-badge { position: absolute; top: 12px; left: 16px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 10px; }
   .tier-badge-free { background: var(--line); color: var(--muted); }
   .tier-badge-popular { background: var(--accent); color: #06231f; }
   .tier-badge-soon { background: var(--line); color: var(--muted); }
   .tier-name { margin: 0 0 2px; font-size: 16px; }
-  .tier-tagline { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
-  .price-line { font-size: 28px; font-weight: 700; color: var(--accent); margin: 4px 0; }
-  .price-line span { font-size: 13px; font-weight: 400; color: var(--muted); }
+  .tier-tagline { font-size: 12px; color: var(--muted); margin: 0 0 8px; min-height: 32px; }
+  .price-line { font-size: 28px; font-weight: 700; color: var(--accent); margin: 4px 0; overflow-wrap: break-word; white-space: normal; }
+  .price-line span, .price-line .price-suffix { font-size: 13px; font-weight: 400; color: var(--muted); }
   .paywall-features { list-style: none; padding: 0; margin: 10px 0 14px; font-size: 12px; flex: 1; }
   .paywall-features li { padding: 4px 0 4px 20px; position: relative; }
   .paywall-features li::before { content: "\2713"; position: absolute; left: 0; color: var(--good); font-weight: 700; }
+  /* B-4: buttons were landing at different vertical positions because .paywall-features already
+     flexes to fill remaining space (flex:1) but the button itself wasn't pinned -- margin-top:auto
+     on the button is what actually aligns every card's CTA to a shared baseline regardless of how
+     many feature lines that tier has above it. */
+  .tier-card > .btn, .tier-card > a.btn { margin-top: auto; }
+  .billing-toggle-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 16px; }
+  .billing-toggle-label { font-size: 12.5px; color: var(--muted); }
+  .billing-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 2px; }
+  .billing-toggle-btn { background: none; border: none; padding: 6px 14px; font-size: 12.5px; font-weight: 600; color: var(--muted); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .billing-toggle-btn.active { background: var(--accent); color: #06231f; }
+  .billing-save-badge { font-size: 10px; font-weight: 700; background: rgba(45,214,196,0.18); color: var(--accent); padding: 1px 6px; border-radius: 8px; }
+  .billing-toggle-btn.active .billing-save-badge { background: rgba(6,35,31,0.2); color: #06231f; }
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 640px; }
+  .compare-table th, .compare-table td { padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--line); }
+  .compare-table th:first-child, .compare-table td:first-child { text-align: left; color: var(--ink); }
+  .compare-table th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; }
+  .compare-table td { color: var(--muted); }
+  .compare-table td:first-child { color: var(--ink); }
   @media (max-width: 1100px) {
-    .tier-grid { grid-template-columns: repeat(3, 1fr); }
+    .tier-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 700px) {
-    .tier-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 480px) {
     .tier-grid { grid-template-columns: 1fr; }
   }
   /* Ask Ordo — permanently docked in #panel-right-command-bar, visible alongside whatever the
@@ -832,6 +870,42 @@
       </div>
     </div>
 
+    <div id="modal-profile-survey" class="modal-overlay no-print" style="display:none;">
+      <div class="modal-box">
+        <button class="modal-close" id="profileSurveyModalClose" aria-label="Close">&times;</button>
+        <h2 style="margin:0 0 8px; font-size:17px;">Quick question — helps us build the right thing</h2>
+        <p style="font-size:13px; color:var(--muted); margin:0 0 16px;">Totally optional, two questions, takes 10 seconds.</p>
+        <div style="margin-bottom:14px;">
+          <label for="profileSurveyPortfolioSize" style="display:block; font-size:12px; color:var(--muted); margin-bottom:6px;">How many projects are in your portfolio?</label>
+          <select id="profileSurveyPortfolioSize" style="width:100%;">
+            <option value="first_project">This is my first project</option>
+            <option value="1">Just 1</option>
+            <option value="2-5">2–5</option>
+            <option value="6-15">6–15</option>
+            <option value="16-50">16–50</option>
+            <option value="50+">50+</option>
+          </select>
+        </div>
+        <div style="margin-bottom:18px;">
+          <label for="profileSurveyMigratedFrom" style="display:block; font-size:12px; color:var(--muted); margin-bottom:6px;">What tool are you moving away from, if any?</label>
+          <select id="profileSurveyMigratedFrom" style="width:100%;">
+            <option value="starting_fresh">I'm starting fresh.</option>
+            <option value="primavera_p6">Primavera P6</option>
+            <option value="acumen_fuse">Deltek Acumen Fuse</option>
+            <option value="smartpm">SmartPM</option>
+            <option value="schedulereader">ScheduleReader</option>
+            <option value="ecosys_hexagon">Hexagon / EcoSys</option>
+            <option value="excel_spreadsheets">Excel / spreadsheets</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="row" style="justify-content:flex-end; gap:10px; margin-top:0;">
+          <button class="btn" id="profileSurveySkipBtn">Skip</button>
+          <button class="btn primary" id="profileSurveySubmitBtn">Submit</button>
+        </div>
+      </div>
+    </div>
+
     <div class="telemetry-shell">
       <nav id="panel-left-sidebar" class="no-print">
         <div class="sidebar-nav">
@@ -866,83 +940,129 @@
         </div>
 
     <div id="v-pricing" class="view">
-      <p style="font-size:12.5px; color:var(--muted); text-align:center; margin:0 0 16px; display:flex; align-items:center; justify-content:center; gap:6px;">
-        <span style="color:var(--good);">&#10003;</span>
-        DCMA-based schedule-health checks are included on every plan, including Free — not a paid add-on.
-      </p>
+      <div class="billing-toggle-row">
+        <span class="billing-toggle-label">Billing:</span>
+        <div class="billing-toggle" role="tablist" aria-label="Billing interval">
+          <button class="billing-toggle-btn" id="billingMonthlyBtn" data-interval="monthly">Monthly</button>
+          <button class="billing-toggle-btn active" id="billingAnnualBtn" data-interval="annual">Annual <span class="billing-save-badge">2 months free</span></button>
+        </div>
+      </div>
+
       <div class="tier-grid">
-        <div class="card tier-card">
+        <div class="card tier-card" data-tier-key="free">
           <span class="tier-badge tier-badge-free">Free</span>
           <h2 class="tier-name">Free</h2>
-          <p class="tier-tagline">Get started with Ordo7</p>
+          <p class="tier-tagline">Check a single schedule, free forever</p>
           <p class="price-line">$0<span>/month</span></p>
           <ul class="paywall-features">
-            <li>Unlimited projects and uploads</li>
-            <li>Plain-language health scoring, no jargon</li>
-            <li>DCMA-style issue detection</li>
-            <li>Trend tracking and portfolio rollup</li>
-            <li>20 free AI summary credits on signup</li>
+            <li>1 active project</li>
+            <li>DCMA 14-point check included — not a paid add-on</li>
+            <li>Full health scoring, issue punch list, critical path view</li>
+            <li>3 snapshots of history per project</li>
+            <li>10 Ask Ordo queries/mo, 5 AI narrative summaries/mo</li>
           </ul>
           <button class="btn" disabled style="width:100%;">Your plan by default</button>
         </div>
-        <div class="card tier-card">
-          <h2 class="tier-name" style="margin-top:12px;">Starter</h2>
-          <p class="tier-tagline">More room without the commitment</p>
-          <p class="price-line">$19.99<span>/month</span></p>
-          <ul class="paywall-features">
-            <li>Everything in Free, plus:</li>
-            <li>150 AI summary credits/month</li>
-            <li>Credits refill every billing cycle</li>
-          </ul>
-          <button class="btn cta" data-tier="starter" style="width:100%;">Subscribe — Starter</button>
-        </div>
-        <div class="card tier-card tier-card-popular">
+        <div class="card tier-card tier-card-popular" data-tier-key="professional">
           <span class="tier-badge tier-badge-popular">Popular</span>
-          <h2 class="tier-name">Pro</h2>
-          <p class="tier-tagline">For teams running this every week</p>
-          <p class="price-line">$49<span>/month</span></p>
+          <h2 class="tier-name">Professional</h2>
+          <p class="tier-tagline">For the planner running their own projects</p>
+          <p class="price-line"><span class="price-amount">$79</span><span class="price-suffix">/month</span></p>
           <ul class="paywall-features">
             <li>Everything in Free, plus:</li>
-            <li>500 AI summary credits/month</li>
-            <li>Credits refill every billing cycle</li>
-            <li>Gantt timeline view</li>
-            <li>Sandbox "what-if" simulator</li>
-            <li>Unrestricted portfolio leaderboard</li>
+            <li>10 active projects, unlimited snapshot history</li>
+            <li>Gantt timeline, what-if sandbox, snapshot comparison</li>
+            <li>Earned value / Earned Schedule tracking</li>
+            <li>Portfolio overview, 1-click PDF exports</li>
+            <li>200 Ask Ordo queries/mo, 100 AI narrative summaries/mo</li>
+            <li>Email support</li>
           </ul>
-          <button class="btn cta" data-tier="pro" style="width:100%;">Subscribe — Pro</button>
+          <button class="btn cta" data-tier="professional" style="width:100%;">Subscribe — Professional</button>
         </div>
-        <div class="card tier-card">
-          <h2 class="tier-name">Teams</h2>
-          <p class="tier-tagline">Present clean, credit-backed reporting to your clients</p>
-          <p class="price-line">$149<span>/month</span></p>
+        <div class="card tier-card" data-tier-key="team">
+          <h2 class="tier-name">Team</h2>
+          <p class="tier-tagline">For project controls teams reporting to clients</p>
+          <p class="price-line"><span class="price-amount">$299</span><span class="price-suffix">/month</span></p>
           <ul class="paywall-features">
-            <li>Everything in Pro, plus:</li>
-            <li>2,500 pooled AI summary credits/month</li>
-            <li>Invite up to 9 team members, sharing your plan and credits</li>
-            <li>Unwatermarked executive progress reports</li>
-            <li>1-click PDF presentation exports</li>
+            <li>Everything in Professional, plus:</li>
+            <li>40 active projects</li>
+            <li>10 seats included ($29/seat after that)</li>
+            <li>Unwatermarked executive reports, custom branding</li>
+            <li>Slack / Zapier webhook integrations</li>
+            <li>1,000 Ask Ordo queries/mo, 500 AI narrative summaries/mo — pooled across your team</li>
+            <li>Priority email support, DPA on request</li>
           </ul>
-          <button class="btn cta" data-tier="teams" style="width:100%;">Subscribe — Teams</button>
+          <button class="btn cta" data-tier="team" style="width:100%;">Subscribe — Team</button>
         </div>
-        <div class="card tier-card">
+        <div class="card tier-card" data-tier-key="enterprise">
           <span class="tier-badge tier-badge-soon">Custom</span>
           <h2 class="tier-name">Enterprise</h2>
-          <p class="tier-tagline">Custom pricing for large organizations</p>
+          <p class="tier-tagline">For organisations with portfolio-wide requirements</p>
           <p class="price-line">Custom</p>
           <ul class="paywall-features">
-            <li>Everything in Teams, plus:</li>
-            <li>Dedicated support</li>
-            <li>Custom integrations</li>
+            <li>Everything in Team, plus:</li>
+            <li>Unlimited projects and seats</li>
+            <li>API access, SSO</li>
+            <li>Role-based permissions</li>
+            <li>Dedicated support with SLA, formal DPA</li>
           </ul>
-          <a class="btn" style="width:100%; text-align:center; display:block; box-sizing:border-box;" href="mailto:admin@level7data.com?subject=Ordo7%20Enterprise%20plan">Contact us</a>
+          <button class="btn" id="enterpriseContactBtn" style="width:100%;">Contact us</button>
         </div>
       </div>
       <p id="paywallError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
       <p id="paywallNote" style="font-size:12px; color:var(--muted); text-align:center; margin:10px 0 0;"></p>
 
+      <div id="enterpriseForm" class="card" style="margin-top:16px; display:none;">
+        <h2 style="margin:0 0 4px; font-size:15px;">Tell us about your organization</h2>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">This goes straight to the Ordo7 team, not a shared mailbox — we'll follow up directly.</p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <input type="text" id="enterpriseCompany" placeholder="Company name" style="padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
+          <textarea id="enterpriseMessage" placeholder="What are you looking to do with Ordo7? (portfolio size, number of seats, timeline, etc.)" rows="4" style="padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit; resize:vertical;"></textarea>
+        </div>
+        <div class="row" style="justify-content:flex-start; gap:8px; margin-top:10px;">
+          <button class="btn cta" id="enterpriseSubmitBtn">Send inquiry</button>
+          <button class="btn" id="enterpriseCancelBtn">Cancel</button>
+        </div>
+        <p id="enterpriseError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
+        <p id="enterpriseNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
+      </div>
+
+      <div class="card" style="margin-top:16px; overflow-x:auto;">
+        <h2 style="margin:0 0 12px; font-size:15px;">Compare plans</h2>
+        <table class="compare-table">
+          <thead>
+            <tr><th>Feature</th><th>Free</th><th>Professional</th><th>Team</th><th>Enterprise</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Active projects</td><td>1</td><td>10</td><td>40</td><td>Unlimited</td></tr>
+            <tr><td>Seats</td><td>1</td><td>1</td><td>10 included</td><td>Custom</td></tr>
+            <tr><td>Additional seats</td><td>—</td><td>—</td><td>$29/seat/mo</td><td>Custom</td></tr>
+            <tr><td>Snapshot history</td><td>3</td><td>Unlimited</td><td>Unlimited</td><td>Unlimited</td></tr>
+            <tr><td>Health score, DCMA-14, issue punch list, critical path</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+            <tr><td>Gantt timeline, what-if sandbox, snapshot comparison</td><td>—</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+            <tr><td>Earned value / Earned Schedule</td><td>—</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+            <tr><td>Trend history</td><td>30 days</td><td>Full</td><td>Full</td><td>Full</td></tr>
+            <tr><td>Executive report export</td><td>Watermarked</td><td>Watermarked</td><td>Unwatermarked</td><td>White-label</td></tr>
+            <tr><td>1-click PDF presentation</td><td>—</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+            <tr><td>Custom logo &amp; branding</td><td>—</td><td>—</td><td>&#10003;</td><td>&#10003;</td></tr>
+            <tr><td>Portfolio overview</td><td>—</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+            <tr><td>Role-based permissions</td><td>—</td><td>—</td><td>—</td><td>&#10003;</td></tr>
+            <tr><td>Ask Ordo queries/mo</td><td>10</td><td>200</td><td>1,000 pooled</td><td>Custom</td></tr>
+            <tr><td>AI narrative summaries/mo</td><td>5</td><td>100</td><td>500 pooled</td><td>Custom</td></tr>
+            <tr><td>Credit top-ups</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+            <tr><td>Disable AI entirely</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+            <tr><td>Slack / Zapier webhooks</td><td>—</td><td>—</td><td>&#10003;</td><td>&#10003;</td></tr>
+            <tr><td>API access</td><td>—</td><td>—</td><td>—</td><td>&#10003;</td></tr>
+            <tr><td>SSO</td><td>—</td><td>—</td><td>—</td><td>&#10003;</td></tr>
+            <tr><td>Support</td><td>Community</td><td>Email</td><td>Priority email</td><td>Dedicated + SLA</td></tr>
+            <tr><td>DPA / security review</td><td>—</td><td>—</td><td>On request</td><td>&#10003;</td></tr>
+          </tbody>
+        </table>
+      </div>
+
       <div class="card" style="margin-top:16px;">
-        <h2 style="margin:0 0 4px; font-size:15px;">Need more credits without changing plans?</h2>
-        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Buy AI credits any time, on top of whatever plan you're on — $10 minimum, in $10 increments. Credits don't expire and stack with your plan's monthly refill.</p>
+        <h2 style="margin:0 0 4px; font-size:15px;">Need more AI usage without changing plans?</h2>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Buy AI credits any time, on top of whatever plan you're on — $10 minimum, in $10 increments. Credits don't expire and stack on top of your plan's monthly Ask Ordo / narrative allowance.</p>
         <div class="row" style="justify-content:flex-start; flex-wrap:wrap; gap:8px; margin-top:0;">
           <button class="btn topup-btn" data-amount="10">$10 (50 credits)</button>
           <button class="btn topup-btn" data-amount="20">$20 (100 credits)</button>
@@ -954,11 +1074,12 @@
         </div>
         <p id="topupError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
         <p id="topupNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
+        <p style="font-size:12px; color:var(--muted); margin:10px 0 0;">Or <a href="#" id="pricingReferralLink" style="color:var(--accent);">refer a friend</a> — you both get bonus credits, free.</p>
       </div>
 
       <div id="teamOwnerCard" class="card" style="margin-top:16px; display:none;">
         <h2 style="margin:0 0 4px; font-size:15px;">Team members</h2>
-        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Invite people onto your Teams plan — they get full access and share your pooled credits, no separate subscription needed. <span id="teamSeatCount"></span></p>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Invite people onto your Team plan — they get full access and share your pooled AI allowance, no separate subscription needed. <span id="teamSeatCount"></span></p>
         <ul id="teamMemberList" style="list-style:none; padding:0; margin:0 0 12px;"></ul>
         <div class="row" style="justify-content:flex-start; gap:8px; margin-top:0;">
           <input type="email" id="teamInviteEmail" placeholder="teammate@company.com" style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
@@ -977,7 +1098,7 @@
 
       <div class="card" style="margin-top:16px;">
         <h2 style="margin:0 0 4px; font-size:15px;">Integrations</h2>
-        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Get a notification every time a schedule finishes analyzing. Paste a Slack "Incoming Webhook" URL to post to a channel, or a Zapier/Make "catch webhook" URL to trigger anything else.</p>
+        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Get a notification every time a schedule finishes analyzing. Paste a Slack "Incoming Webhook" URL to post to a channel, or a Zapier/Make "catch webhook" URL to trigger anything else. Team plan and above.</p>
         <div class="row" style="justify-content:flex-start; gap:8px; margin-top:0;">
           <input type="url" id="webhookUrlInput" placeholder="https://hooks.slack.com/services/..." style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
           <button class="btn cta" id="webhookSaveBtn">Save</button>
@@ -986,6 +1107,18 @@
         </div>
         <p id="webhookError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
         <p id="webhookNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h2 style="margin:0 0 8px; font-size:15px;">Good to know</h2>
+        <ul style="font-size:12.5px; color:var(--muted); margin:0; padding-left:18px; line-height:1.7;">
+          <li>All prices are in USD.</li>
+          <li>An <strong>active project</strong> is one uploaded or re-scored within the last 90 days. Projects outside that window still count toward nothing and stay fully readable — they're just not counted against your plan's project limit, and reappear in the count the moment you re-score them.</li>
+          <li>If you hit your plan's active-project limit, uploading a new project is blocked until you archive an existing one or upgrade — nothing already analyzed is ever deleted or hidden.</li>
+          <li>Cancel any time from this page — you keep access through the end of the billing period you already paid for, then drop to Free (existing projects and history are kept, not deleted).</li>
+          <li>Annual plans are billed once for the year (2 months free vs. paying monthly) and are non-refundable pro-rata after the first 14 days; monthly plans can be cancelled any time with no further charges.</li>
+          <li>Every account existing before this pricing update keeps its original price and terms indefinitely — nothing changes for existing subscribers.</li>
+        </ul>
       </div>
     </div>
 
@@ -1188,6 +1321,7 @@ const NAV_GROUPS = [
 const PROJECT_SCOPED_STEPS = ['upload', 'health', 'milestones', 'gantt', 'criticalpath', 'earnedvalue', 'sandbox', 'activity', 'trends', 'report'];
 
 function setView(step, sourceBtn){
+  currentStep = step;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('v-' + step).classList.add('active');
   // Within the sidebar-nav group specifically, Portfolio Overview and Multi-Project Leaderboard
@@ -1205,6 +1339,8 @@ function setView(step, sourceBtn){
   const subnavWrap = document.querySelector('.central-subnav-wrap');
   if (subnavWrap) subnavWrap.classList.toggle('collapsed', !PROJECT_SCOPED_STEPS.includes(step));
   document.getElementById('panel-central-workspace').scrollTop = 0;
+  document.body.classList.toggle('pricing-scroll-mode', step === 'pricing');
+  window.scrollTo(0, 0);
   if (step === 'upload') renderUploadRing();
   if (step === 'trends') renderTrends();
   if (step === 'portfolio') renderPortfolio();
@@ -1217,6 +1353,7 @@ function setView(step, sourceBtn){
   if (step === 'activity') renderActivityFeedTab();
   if (step === 'pricing') renderPricing();
   if (step === 'health' && currentSnapshot) renderHealth(currentSnapshot);
+  updateBreadcrumb();
 }
 navButtons.forEach(b => b.addEventListener('click', () => setView(b.dataset.step, b)));
 
@@ -1287,9 +1424,22 @@ function animateMetricCounters(container){
   });
 }
 
+// Standalone (non-project-scoped) views get their own root label matching the sidebar nav item
+// that opens them, instead of always saying "Portfolios" -- e.g. Billing/Plan showed "Portfolios"
+// as its heading regardless of which view was actually open (docs/pricing-restructure.md's B-3).
+const STANDALONE_STEP_LABELS = {
+  pricing: 'Billing / Plan',
+  projects: 'Active Projects',
+  issues: 'Issue Punch List',
+  portfolio: 'Portfolio Overview'
+};
 function updateBreadcrumb(){
   const el = document.getElementById('breadcrumb');
   if (!el) return;
+  if (!PROJECT_SCOPED_STEPS.includes(currentStep) && STANDALONE_STEP_LABELS[currentStep]) {
+    el.innerHTML = '<span class="crumb-link" onclick="setView(\'' + currentStep + '\')">' + STANDALONE_STEP_LABELS[currentStep] + '</span>';
+    return;
+  }
   let html = '<span class="crumb-link" onclick="setView(\'portfolio\')">Portfolios</span>';
   if (currentProject) html += ' › <span class="crumb-link" onclick="setView(\'health\')">' + escapeHtml(currentProject) + '</span>';
   if (currentSnapshot) html += ' › Snapshot #' + currentSnapshot.id;
@@ -1404,8 +1554,10 @@ document.getElementById('welcomeHeroCta').addEventListener('click', dismissWelco
 let currentProject = null;
 let currentSnapshot = null;
 let currentActivities = null;
+let currentStep = 'health';
 let currentHasDates = false;
 let currentEarnedSchedule = null;
+let currentRecoveryAlert = null;
 let currentBudgetAtCompletion = null;
 let currentActualCostToDate = null;
 let sandboxState = {}; // per-activity float/duration overrides for the What-If sandbox, keyed by activity code
@@ -1563,23 +1715,36 @@ function tierLabel(tier){
 
 function updateCreditPill(user){
   const el = document.getElementById('creditPill');
-  // effectiveTier (not planTier) — a Team member should see "Teams" here, not their own
-  // underlying Free plan, since Teams is what's actually governing their credits/access.
-  el.textContent = tierLabel(user.effectiveTier) + ' · ' + (user.creditBalance ?? 0) + ' Credits (Get More Free)';
+  // effectiveTier (not planTier) — a Team member should see "Team" here, not their own
+  // underlying Free plan, since Team is what's actually governing their access.
+  // Plain plan indicator, not a credit count (docs/pricing-restructure.md's C-3 — the old
+  // "Free · 0 Credits (Get More Free)" read as a deficit notice with an ambiguous CTA). Clicking
+  // this now goes straight to Billing/Plan, the one clear upgrade path — referring a friend for
+  // bonus credits is still available, just relocated to that page instead of conflated here.
+  el.textContent = tierLabel(user.effectiveTier) + ' plan';
 }
 
 // Tier-gates for features that don't exist as their own routes/checks yet — each one will grow
 // its own UI (Gantt view, sandbox, etc.) as it's built; this is just the access-check they'll all
 // share, kept in one place so the tier list per feature isn't duplicated at every call site.
+// Tier keys post-pricing-restructure (docs/pricing-restructure.md) — 'professional'/'team' are
+// the current price book, but a grandfathered legacy account's effectiveTier is already resolved
+// to these SAME new keys server-side (see entitlements.js's LEGACY_TIER_MAP + publicUser() in
+// server.js), so this file never needs to know about the old 'pro'/'teams'/'starter' names at all.
+// criticalPath was removed from this table entirely — it's free on every plan now, not gated.
 const FEATURE_TIERS = {
-  sandboxSimulator: ['pro', 'teams'],
-  ganttTimeline: ['pro', 'teams'],
-  criticalPath: ['pro', 'teams'],
-  earnedValue: ['pro', 'teams'],
-  crossSnapshotVariance: ['pro', 'teams'],
-  liveReviewRooms: ['teams'],
-  unwatermarkedReports: ['teams'],
-  unrestrictedLeaderboard: ['pro', 'teams']
+  sandboxSimulator: ['professional', 'team', 'enterprise'],
+  ganttTimeline: ['professional', 'team', 'enterprise'],
+  earnedValue: ['professional', 'team', 'enterprise'],
+  crossSnapshotVariance: ['professional', 'team', 'enterprise'],
+  fixGuidance: ['professional', 'team', 'enterprise'],
+  liveReviewRooms: ['team', 'enterprise'],
+  unwatermarkedReports: ['team', 'enterprise'],
+  // Portfolio Overview itself is Professional+ (not in Free at all) — the real backend gate lives
+  // on GET /api/portfolio. unrestrictedLeaderboard is the finer distinction WITHIN that: Team+ sees
+  // every project ranked, Professional sees a capped top-N (see PORTFOLIO_LEADERBOARD_CAP below).
+  portfolioOverview: ['professional', 'team', 'enterprise'],
+  unrestrictedLeaderboard: ['team', 'enterprise']
 };
 
 function checkFeatureAccess(feature){
@@ -1827,7 +1992,8 @@ function showToast(message){
 const shareUrl = 'https://www.ordo7.pro';
 let referralStatsCache = null;
 
-document.getElementById('creditPill').addEventListener('click', openReferralModal);
+document.getElementById('creditPill').addEventListener('click', () => setView('pricing'));
+document.getElementById('pricingReferralLink').addEventListener('click', (e) => { e.preventDefault(); openReferralModal(); });
 document.getElementById('referralModalClose').addEventListener('click', closeReferralModal);
 document.getElementById('modal-referral-perk').addEventListener('click', (e) => {
   if (e.target.id === 'modal-referral-perk') closeReferralModal();
@@ -1866,6 +2032,46 @@ document.getElementById('referralModalCopyBtn').addEventListener('click', async 
   btn.textContent = 'Copied!';
   setTimeout(() => { btn.textContent = original; }, 1500);
 });
+
+// --- Profile survey (portfolio size / migrated-from) ---
+// One-time, skippable prompt shown after a user's first-ever analysis (see isFirstAnalysis in
+// submitAnalysis below). Every way of dismissing it — Skip, the X button, clicking the overlay —
+// calls submitProfileSurvey with nulls, which still marks it dismissed server-side so it never
+// shows again regardless of whether the user actually answered anything.
+
+document.getElementById('profileSurveyModalClose').addEventListener('click', dismissProfileSurveyModal);
+document.getElementById('profileSurveySkipBtn').addEventListener('click', dismissProfileSurveyModal);
+document.getElementById('modal-profile-survey').addEventListener('click', (e) => {
+  if (e.target.id === 'modal-profile-survey') dismissProfileSurveyModal();
+});
+document.getElementById('profileSurveySubmitBtn').addEventListener('click', () => {
+  const portfolioSizeBucket = document.getElementById('profileSurveyPortfolioSize').value || null;
+  const migratedFrom = document.getElementById('profileSurveyMigratedFrom').value || null;
+  submitProfileSurvey(portfolioSizeBucket, migratedFrom);
+});
+
+function openProfileSurveyModal(){
+  document.getElementById('modal-profile-survey').style.display = 'flex';
+}
+
+function dismissProfileSurveyModal(){
+  submitProfileSurvey(null, null);
+}
+
+async function submitProfileSurvey(portfolioSizeBucket, migratedFrom){
+  document.getElementById('modal-profile-survey').style.display = 'none';
+  try {
+    const result = await api('/api/profile/survey', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ portfolioSizeBucket, migratedFrom })
+    });
+    currentUser = result.user;
+    if (portfolioSizeBucket || migratedFrom) showToast('Thanks — that helps.');
+  } catch (e) {
+    // Non-critical — fail silently rather than interrupting the analysis result on screen.
+  }
+}
 
 // --- Share Private Risk Audit ---
 // Copies a real, working link — POST /api/snapshots/:id/share generates (or reuses) a public
@@ -1925,15 +2131,80 @@ document.getElementById('suggestFeaturePill').addEventListener('click', () => {
 function renderPricing(){
   const errEl = document.getElementById('paywallError');
   if (errEl) errEl.style.display = 'none';
+  // effectiveTier, not planTier -- a legacy Starter/Pro account's raw plan_tier is still
+  // 'starter'/'pro' in the database (grandfathered, never rewritten), but the checkout button's
+  // data-tier is the NEW key ('professional'). Comparing against effectiveTier (server-resolved
+  // through entitlements.js) is what correctly marks their real current plan, old name or new.
   document.querySelectorAll('#v-pricing [data-tier]').forEach(btn => {
-    if (currentUser && currentUser.planTier === btn.dataset.tier) {
+    btn.disabled = false;
+    if (currentUser && currentUser.effectiveTier === btn.dataset.tier) {
       btn.disabled = true;
       btn.textContent = 'Current plan';
+    } else {
+      btn.textContent = 'Subscribe — ' + (btn.dataset.tier === 'professional' ? 'Professional' : 'Team');
     }
   });
+  updatePricingPrices();
   renderTeamSection();
   renderWebhookSection();
 }
+
+// --- Annual/monthly billing toggle (default annual — 2 months free, see docs/pricing-restructure.md S-2) ---
+let pricingBillingInterval = 'annual';
+const TIER_PRICES = {
+  professional: { monthly: '$79', annual: '$790' },
+  team: { monthly: '$299', annual: '$2,990' }
+};
+function updatePricingPrices(){
+  document.querySelectorAll('#v-pricing .tier-card').forEach(card => {
+    const key = card.dataset.tierKey;
+    const prices = TIER_PRICES[key];
+    if (!prices) return; // Free and Enterprise have fixed, non-toggling price text
+    const amountEl = card.querySelector('.price-amount');
+    const suffixEl = card.querySelector('.price-suffix');
+    if (!amountEl || !suffixEl) return;
+    amountEl.textContent = prices[pricingBillingInterval];
+    suffixEl.textContent = pricingBillingInterval === 'annual' ? '/year' : '/month';
+  });
+}
+function setBillingInterval(interval){
+  pricingBillingInterval = interval;
+  document.getElementById('billingMonthlyBtn').classList.toggle('active', interval === 'monthly');
+  document.getElementById('billingAnnualBtn').classList.toggle('active', interval === 'annual');
+  updatePricingPrices();
+}
+document.getElementById('billingMonthlyBtn').addEventListener('click', () => setBillingInterval('monthly'));
+document.getElementById('billingAnnualBtn').addEventListener('click', () => setBillingInterval('annual'));
+
+// --- Enterprise inquiry form (replaces a plain mailto: -- docs/pricing-restructure.md S-8) ---
+document.getElementById('enterpriseContactBtn').addEventListener('click', () => {
+  document.getElementById('enterpriseForm').style.display = '';
+  document.getElementById('enterpriseForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+document.getElementById('enterpriseCancelBtn').addEventListener('click', () => {
+  document.getElementById('enterpriseForm').style.display = 'none';
+});
+document.getElementById('enterpriseSubmitBtn').addEventListener('click', async () => {
+  const company = document.getElementById('enterpriseCompany').value.trim();
+  const message = document.getElementById('enterpriseMessage').value.trim();
+  const errEl = document.getElementById('enterpriseError');
+  const noteEl = document.getElementById('enterpriseNote');
+  errEl.style.display = 'none';
+  noteEl.textContent = '';
+  if (message.length < 3) { errEl.textContent = 'Tell us a bit about what you need — a sentence is enough'; errEl.style.display = 'block'; return; }
+  const btn = document.getElementById('enterpriseSubmitBtn');
+  btn.disabled = true;
+  try {
+    await api('/api/enterprise-inquiry', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ company, message }) });
+    document.getElementById('enterpriseCompany').value = '';
+    document.getElementById('enterpriseMessage').value = '';
+    noteEl.textContent = "Sent — we'll follow up at " + (currentUser ? currentUser.email : 'your account email') + '.';
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+  btn.disabled = false;
+});
 
 // currentUser already carries webhookUrl (see publicUser() server-side) -- no extra API call
 // needed, unlike renderTeamSection which has to ask /api/team for seat/member data.
@@ -2107,7 +2378,7 @@ document.querySelectorAll('#v-pricing [data-tier]').forEach(btn => {
       const { url } = await api('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier })
+        body: JSON.stringify({ tier, interval: pricingBillingInterval })
       });
       window.location.href = url;
     } catch (e) {
@@ -2408,16 +2679,65 @@ function renderIssues(issues){
     const shareBtn = (!resolved && i.severity === 'crit')
       ? '<button class="btn tiny no-print" onclick="shareCatch(\'' + escapeHtml(jsStringEscape(i.name)) + '\', \'' + escapeHtml(jsStringEscape(i.sub)) + '\')">🏆 Share This Catch</button>'
       : '';
-    return '<div class="issue reveal-item' + (resolved ? ' resolved' : '') + '" style="animation-delay:' + (idx * 52) + 'ms;"><div><p class="issue-name">' + name + '</p><p class="issue-sub">' + sub + '</p></div>' +
-    '<div class="issue-right">' +
-      (resolved
-        ? '<span class="badge resolved-badge">resolved</span>'
-        : '<span class="badge ' + (i.severity === 'crit' ? 'crit">critical' : 'risk">at risk') + '</span>' +
-          shareBtn +
-          '<button class="btn tiny no-print" onclick="resolveIssue(' + i.id + ')">Mark resolved</button>') +
-    '</div></div>';
+    const fixBtn = !resolved
+      ? '<button class="btn tiny no-print" onclick="toggleFixGuidance(' + i.id + ')">🔧 How to fix</button>'
+      : '';
+    return '<div class="issue-wrap">' +
+      '<div class="issue reveal-item' + (resolved ? ' resolved' : '') + '" style="animation-delay:' + (idx * 52) + 'ms;"><div><p class="issue-name">' + name + '</p><p class="issue-sub">' + sub + '</p></div>' +
+      '<div class="issue-right">' +
+        (resolved
+          ? '<span class="badge resolved-badge">resolved</span>'
+          : '<span class="badge ' + (i.severity === 'crit' ? 'crit">critical' : 'risk">at risk') + '</span>' +
+            shareBtn + fixBtn +
+            '<button class="btn tiny no-print" onclick="resolveIssue(' + i.id + ')">Mark resolved</button>') +
+      '</div></div>' +
+      '<div id="fix-guidance-' + i.id + '" class="no-print" style="display:none; margin:-2px 0 8px;"></div>' +
+    '</div>';
   }).join('');
   observeReveal(el);
+}
+
+// Lazy-loaded, toggled per issue — fetched once per page load (cached on the panel's own
+// dataset.loaded flag) then just shown/hidden on subsequent clicks, same as not re-fetching
+// something that can't have changed since the issue itself hasn't changed.
+async function toggleFixGuidance(issueId){
+  const panel = document.getElementById('fix-guidance-' + issueId);
+  if (!panel) return;
+  if (panel.dataset.loaded){
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    return;
+  }
+  panel.style.display = 'block';
+
+  if (!checkFeatureAccess('fixGuidance')){
+    panel.innerHTML = '<div class="card" style="margin-top:4px;"><p style="font-size:12.5px; margin:0 0 8px;">Fix guidance is a Pro feature — step-by-step remediation for every issue type Ordo7 flags.</p>' +
+      '<button class="btn primary" style="font-size:12px; padding:6px 14px;" onclick="setView(\'pricing\')">Upgrade to unlock fix guidance</button></div>';
+    panel.dataset.loaded = '1';
+    return;
+  }
+
+  panel.innerHTML = '<p class="empty" style="padding:6px 0;">Loading fix guidance…</p>';
+  try {
+    const res = await fetch(API + '/api/issues/' + issueId + '/fix-guidance', { credentials: 'same-origin' });
+    if (res.status === 402){
+      panel.innerHTML = '<div class="card" style="margin-top:4px;"><p style="font-size:12.5px; margin:0 0 8px;">Fix guidance is a Pro feature — step-by-step remediation for every issue type Ordo7 flags.</p>' +
+        '<button class="btn primary" style="font-size:12px; padding:6px 14px;" onclick="setView(\'pricing\')">Upgrade to unlock fix guidance</button></div>';
+      panel.dataset.loaded = '1';
+      return;
+    }
+    if (!res.ok){
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || ('Request failed: ' + res.status));
+    }
+    const data = await res.json();
+    panel.innerHTML = '<div class="card" style="margin-top:4px; border-left:3px solid var(--accent);">' +
+      '<p style="font-weight:600; font-size:13px; margin:0 0 6px;">🔧 ' + escapeHtml(data.guidance.title) + '</p>' +
+      '<p style="font-size:12.5px; color:var(--muted); margin:0; line-height:1.5;">' + escapeHtml(data.guidance.body) + '</p>' +
+    '</div>';
+    panel.dataset.loaded = '1';
+  } catch (e) {
+    panel.innerHTML = '<p class="error" style="font-size:12px; padding:4px 0;">Could not load fix guidance: ' + escapeHtml(e.message) + '</p>';
+  }
 }
 
 function shareCatch(name, sub){
@@ -2809,6 +3129,16 @@ function renderVarianceResult(data){
       '<span style="color:' + (f.delta < 0 ? 'var(--bad)' : 'var(--good)') + ';">' + (f.delta > 0 ? '+' : '') + f.delta + 'd</span></div></div>'
   ).join('');
 
+  const changedActualRows = (data.activityChanges.changedActuals || []).map(c =>
+    '<div class="crit-path-row"><div class="crit-path-name">' + escapeHtml(c.name) + ' <span style="color:var(--muted); font-weight:400;">&middot; actual ' + c.field + '</span></div>' +
+      '<div class="crit-path-meta"><span style="color:var(--bad);">' + c.from + ' &rarr; ' + c.to + '</span></div></div>'
+  ).join('');
+
+  const regressedProgressRows = (data.activityChanges.regressedProgress || []).map(r =>
+    '<div class="crit-path-row"><div class="crit-path-name">' + escapeHtml(r.name) + '</div>' +
+      '<div class="crit-path-meta"><span style="color:var(--bad);">' + r.from + '% &rarr; ' + r.to + '%</span></div></div>'
+  ).join('');
+
   const issueRow = (i) => '<div class="issue"><div style="font-size:13px; font-weight:500;">' + escapeHtml(i.name) + '</div>' +
     '<div class="issue-right" style="font-size:12px; color:var(--muted);">' + escapeHtml(i.sub) + '</div></div>';
 
@@ -2816,6 +3146,16 @@ function renderVarianceResult(data){
       '<div class="card" style="text-align:center; padding:12px;"><div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Score</div><div style="font-size:20px; font-weight:700; margin-top:4px;">' + data.from.score + ' &rarr; ' + data.to.score + '</div><div style="margin-top:2px;">' + deltaLabel(data.scoreDelta, false) + '</div></div>' +
       '<div class="card" style="text-align:center; padding:12px;"><div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Critical issues</div><div style="font-size:20px; font-weight:700; margin-top:4px;">' + data.from.critCount + ' &rarr; ' + data.to.critCount + '</div><div style="margin-top:2px;">' + deltaLabel(data.critCountDelta, true) + '</div></div>' +
       '<div class="card" style="text-align:center; padding:12px;"><div style="font-size:11px; color:var(--muted); text-transform:uppercase;">At-risk issues</div><div style="font-size:20px; font-weight:700; margin-top:4px;">' + data.from.riskCount + ' &rarr; ' + data.to.riskCount + '</div><div style="margin-top:2px;">' + deltaLabel(data.riskCountDelta, true) + '</div></div>' +
+    '</div>' +
+    '<div class="card" style="margin-bottom:12px;">' +
+      '<h2 style="margin:0 0 4px; font-size:14px;">Data integrity — restated actuals</h2>' +
+      '<p style="font-size:11.5px; color:var(--muted); margin:0 0 8px;">An actual date is supposed to be a fact once recorded. These changed between the two snapshots.</p>' +
+      (changedActualRows ? '<div class="crit-path-list">' + changedActualRows + '</div>' : '<p class="empty" style="padding:6px 0;">None — no actual dates were restated.</p>') +
+    '</div>' +
+    '<div class="card" style="margin-bottom:12px;">' +
+      '<h2 style="margin:0 0 4px; font-size:14px;">Data integrity — progress moved backward</h2>' +
+      '<p style="font-size:11.5px; color:var(--muted); margin:0 0 8px;">Percent-complete dropped between the two snapshots for these activities.</p>' +
+      (regressedProgressRows ? '<div class="crit-path-list">' + regressedProgressRows + '</div>' : '<p class="empty" style="padding:6px 0;">None — no reported progress moved backward.</p>') +
     '</div>' +
     '<div class="card" style="margin-bottom:12px;">' +
       '<h2 style="margin:0 0 8px; font-size:14px;">Activities that became critical</h2>' + varianceActivityList(data.activityChanges.becameCritical, 'None.') +
@@ -2834,7 +3174,9 @@ function renderVarianceResult(data){
     '</div>';
 }
 
-const FREE_LEADERBOARD_CAP = 2;
+// Professional sees a capped top-N ranking; Team+ (unrestrictedLeaderboard) sees every project.
+// Free no longer reaches this view at all — see portfolioOverview's gate in renderPortfolio().
+const PORTFOLIO_LEADERBOARD_CAP = 2;
 
 // Loads a previously-analyzed project's latest snapshot into the current workspace — the "Active
 // Projects" sidebar destination is the only way to get back into a project without re-uploading.
@@ -2847,6 +3189,7 @@ async function openProject(name){
     currentActivities = result.activities || [];
     currentHasDates = currentActivities.some(a => a.start);
     currentEarnedSchedule = result.earnedSchedule || null;
+    currentRecoveryAlert = result.recoveryAlert || null;
     currentBudgetAtCompletion = result.budgetAtCompletion ?? null;
     currentActualCostToDate = result.actualCostToDate ?? null;
     sandboxState = {};
@@ -2938,14 +3281,21 @@ async function renderActivityFeedTab(){
 
 async function renderPortfolio(){
   const el = document.getElementById('portfolioContent');
+  if (!checkFeatureAccess('portfolioOverview')){
+    el.innerHTML = '<div class="card" style="text-align:center;">' +
+      '<p style="font-size:13px; margin:0 0 10px;">Portfolio overview is a Professional-plan feature — trend tracking and rollup across every schedule you upload.</p>' +
+      '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to unlock portfolio overview</button>' +
+      '</div>';
+    return;
+  }
   let rows;
   try { rows = await api('/api/portfolio'); } catch (e) { el.innerHTML = '<p class="error">Could not reach the server: ' + e.message + '</p>'; return; }
   if (!rows.length){ el.innerHTML = '<p class="empty">No projects analyzed yet.</p>'; return; }
 
   const ranked = rows.slice().sort((a, b) => b.score - a.score);
   const unrestricted = checkFeatureAccess('unrestrictedLeaderboard');
-  const hiddenCount = unrestricted ? 0 : Math.max(0, ranked.length - FREE_LEADERBOARD_CAP);
-  const visible = unrestricted ? ranked : ranked.slice(0, FREE_LEADERBOARD_CAP);
+  const hiddenCount = unrestricted ? 0 : Math.max(0, ranked.length - PORTFOLIO_LEADERBOARD_CAP);
+  const visible = unrestricted ? ranked : ranked.slice(0, PORTFOLIO_LEADERBOARD_CAP);
 
   let html = visible.map((r, i) => {
     // Each row's three segments grow from a zero-width baseline up to their real share, staggered
@@ -2964,8 +3314,8 @@ async function renderPortfolio(){
 
   if (hiddenCount > 0) {
     html += '<div class="card" style="text-align:center; margin-top:8px;">' +
-      '<p style="font-size:13px; margin:0 0 10px;">' + hiddenCount + ' more project' + (hiddenCount === 1 ? '' : 's') + ' ranked in your portfolio — Free plan shows the top ' + FREE_LEADERBOARD_CAP + '.</p>' +
-      '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to see full leaderboard</button>' +
+      '<p style="font-size:13px; margin:0 0 10px;">' + hiddenCount + ' more project' + (hiddenCount === 1 ? '' : 's') + ' ranked in your portfolio — the Professional plan shows the top ' + PORTFOLIO_LEADERBOARD_CAP + '.</p>' +
+      '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to see the full multi-project leaderboard</button>' +
       '</div>';
   }
 
@@ -3098,13 +3448,8 @@ function renderCriticalPath(){
     el.innerHTML = '<p class="empty">No schedule analyzed yet.</p>';
     return;
   }
-  if (!checkFeatureAccess('criticalPath')){
-    el.innerHTML = '<div class="card" style="text-align:center;">' +
-      '<p style="font-size:13px; margin:0 0 10px;">The critical path view is a Pro feature — see exactly which activities are driving your finish date, at a glance.</p>' +
-      '<button class="btn primary" onclick="setView(\'pricing\')">Upgrade to unlock the critical path view</button>' +
-      '</div>';
-    return;
-  }
+  // Critical path view is free on every plan (docs/pricing-restructure.md section 3, "Analysis —
+  // free forever" — do not gate this) — the only remaining check is the admin kill-switch.
   if (!checkFlagEnabled('critical-path-engine')){
     el.innerHTML = '<p class="empty">The critical path view is temporarily unavailable — check back shortly.</p>';
     return;
@@ -3148,6 +3493,26 @@ function renderCriticalPath(){
 // since almost no uploaded schedule file carries per-activity cost/resource data — see
 // computeEarnedSchedule in src/analyze.js). The optional cost section below only appears once the
 // user enters real numbers; CPI/CV are never estimated or guessed.
+// Per SmartPM's 2026 industry report, a mid-project SPI dip with no recovery response was the
+// strongest predictor of a bad outcome they found — ~2.5x worse than projects that responded. This
+// renders that trend check (see computeRecoveryAlert in analyze.js for exactly what's measured and
+// what it deliberately doesn't claim to be). Silent (empty string) when there isn't enough
+// snapshot history yet, or when SPI isn't sustained low — this only speaks up when there's
+// something to say, same principle as the rest of this app's issue reporting.
+function renderRecoveryAlertBanner(){
+  const alert = currentRecoveryAlert;
+  if (!alert || !alert.available || !alert.triggered) return '';
+  return '<div class="card" style="margin-bottom:14px; border:1px solid var(--bad); background:color-mix(in srgb, var(--bad) 8%, transparent);">' +
+    '<div style="display:flex; align-items:flex-start; gap:10px;">' +
+      '<span style="font-size:18px; line-height:1;">&#9888;&#65039;</span>' +
+      '<div>' +
+        '<div style="font-weight:600; font-size:13.5px; color:var(--bad); margin-bottom:2px;">Early slip, no recovery</div>' +
+        '<div style="font-size:12.5px; color:var(--muted);">' + escapeHtml(alert.reason) + ' Per industry research, this pattern predicts significantly worse final outcomes than a one-off dip — worth a look now, not next update.</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 function renderEarnedValue(){
   const el = document.getElementById('earnedValueContent');
   if (!currentActivities || !currentActivities.length){
@@ -3175,7 +3540,8 @@ function renderEarnedValue(){
   const spiColor = es.spi == null ? 'var(--muted)' : (es.spi >= 1 ? 'var(--good)' : (es.spi >= 0.9 ? 'var(--warn)' : 'var(--bad)'));
   const svColor = es.svPoints >= 0 ? 'var(--good)' : (es.svPoints >= -10 ? 'var(--warn)' : 'var(--bad)');
 
-  let html =
+  let html = renderRecoveryAlertBanner();
+  html +=
     '<p style="font-size:12px; color:var(--muted); margin:0 0 4px;">As of ' + escapeHtml(es.asOfDate) + ' · ' + es.activitiesConsidered + ' activities with baseline dates considered' +
       (es.activitiesExcluded ? ' (' + es.activitiesExcluded + ' excluded — no baseline dates)' : '') + '</p>' +
     '<p style="font-size:12px; color:var(--muted); margin:0 0 14px;">Earned Schedule compares how much of the schedule <em>should</em> be done by now against how much actually is, weighting each activity by its own planned duration. It\'s a duration-weighted proxy, not a cost- or resource-weighted one — two activities of equal length count equally here even if their real effort differs.</p>' +
@@ -3443,6 +3809,7 @@ async function submitAnalysis(projectName, filename, content){
     currentActivities = result.activities || [];
     currentHasDates = !!result.hasDates;
     currentEarnedSchedule = result.earnedSchedule || null;
+    currentRecoveryAlert = result.recoveryAlert || null;
     currentBudgetAtCompletion = result.budgetAtCompletion ?? null;
     currentActualCostToDate = result.actualCostToDate ?? null;
     sandboxState = {};
@@ -3452,6 +3819,9 @@ async function submitAnalysis(projectName, filename, content){
     updateBreadcrumb();
     renderChat();
     setView('health');
+    if (result.isFirstAnalysis && currentUser && !currentUser.profileSurveyDismissed) {
+      openProfileSurveyModal();
+    }
   } catch (e) {
     dzIdle.style.display = '';
     dzAnalyzing.style.display = 'none';

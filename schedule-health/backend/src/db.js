@@ -129,6 +129,16 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Enterprise pricing-tier inquiries (docs/pricing-restructure.md's S-8: a real form, routed to a
+  -- named person via Knock, replacing a plain mailto: to a different brand's shared inbox).
+  CREATE TABLE IF NOT EXISTS enterprise_inquiries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    company TEXT,
+    message TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   -- Server-side errors (unhandled route exceptions, uncaught exceptions, unhandled rejections) —
   -- so "something threw in production" is visible in the admin console without needing to watch
   -- Railway logs live. Unlike feedback, this is debugging history, not a permanent record — see
@@ -364,6 +374,37 @@ ensureColumn('blog_posts', 'headline', 'TEXT');
 // matches "smart defaults over configuration": most accounts have one team/one Slack channel to
 // notify, and per-project granularity can be added later if someone actually asks for it.
 ensureColumn('users', 'webhook_url', 'TEXT');
+// Optional profile survey, shown once after a user's first analysis (see isFirstAnalysis in
+// server.js's /api/analyze handler). Both answer columns stay null if the user skips or closes
+// the prompt without answering — profile_survey_dismissed_at is what actually stops it from
+// showing again, independent of whether they answered anything. Values are validated server-side
+// against a fixed enum (PORTFOLIO_SIZE_BUCKETS / MIGRATED_FROM_OPTIONS in server.js) rather than
+// accepting free text, so later aggregate stats ("X% moved from Y") are countable, not a pile of
+// inconsistent strings to clean up first.
+ensureColumn('users', 'portfolio_size_bucket', 'TEXT');
+ensureColumn('users', 'migrated_from', 'TEXT');
+ensureColumn('users', 'profile_survey_dismissed_at', 'TEXT');
+// Pricing restructure grandfathering (see docs/pricing-restructure.md). The backfillSql only ever
+// runs once — at the moment this column is first added to a given database — over whatever users
+// already exist at that instant, snapshotting their pre-restructure plan_tier. Any user created
+// after that (a new signup) gets legacy_plan = NULL by the column default, meaning their
+// entitlements resolve from the NEW price book instead. This is what makes "existing users keep
+// their current terms forever, new signups get new terms" self-enforcing rather than something an
+// admin has to remember to apply per-account — see resolveEntitlements() in entitlements.js, the
+// only place that reads this column.
+ensureColumn('users', 'legacy_plan', 'TEXT', 'UPDATE users SET legacy_plan = plan_tier');
+// Distinguishes Ask Ordo chat queries from AI narrative summaries — the pricing restructure caps
+// each separately per month (entitlements.js's askOrdoPerMonth / aiNarrativePerMonth). Existing
+// pre-migration rows predate this distinction and default to 'narrative' (narrative generation
+// existed before chat did); this is a real, minor, honest limitation on historical data only — it
+// cannot retroactively know which old rows were actually chat turns, but every new row going
+// forward is tagged correctly at the call site (see server.js), so this month's cap enforcement is
+// accurate from the moment this ships onward, which is all that actually matters for a monthly cap.
+ensureColumn('ai_usage', 'kind', "TEXT NOT NULL DEFAULT 'narrative'");
+// A trust control, never a paid feature (docs/pricing-restructure.md section 3 — "never gate
+// this, it would make Ordo7 unusable for exactly the security-conscious firms most worth
+// winning") — available and togglable on every tier, including Free.
+ensureColumn('users', 'ai_disabled', 'INTEGER NOT NULL DEFAULT 0');
 
 // Backfill referral codes for any pre-existing users (fresh databases already get one via
 // createUser at signup; this only runs once, for accounts created before this feature existed).
@@ -440,6 +481,16 @@ function setEmailVerified(userId) {
 
 function markOnboarded(userId) {
   db.prepare("UPDATE users SET onboarded_at = datetime('now') WHERE onboarded_at IS NULL AND id = ?").run(userId);
+  return getUserById(userId);
+}
+
+// Saves the optional profile-survey answers and marks the prompt dismissed either way, so it
+// never asks again regardless of whether the user actually answered or just skipped/closed it.
+function saveProfileSurvey(userId, portfolioSizeBucket, migratedFrom) {
+  db.prepare(`
+    UPDATE users SET portfolio_size_bucket = ?, migrated_from = ?, profile_survey_dismissed_at = datetime('now')
+    WHERE id = ?
+  `).run(portfolioSizeBucket || null, migratedFrom || null, userId);
   return getUserById(userId);
 }
 
@@ -532,11 +583,36 @@ function addCredits(userId, amount) {
   return getUserById(userId);
 }
 
-function logAiUsage(userId, snapshotId, inputTokens, outputTokens, costUsd, creditsCharged) {
+function logAiUsage(userId, snapshotId, inputTokens, outputTokens, costUsd, creditsCharged, kind) {
   db.prepare(`
-    INSERT INTO ai_usage (user_id, snapshot_id, input_tokens, output_tokens, cost_usd, credits_charged)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(userId, snapshotId, inputTokens, outputTokens, costUsd, creditsCharged);
+    INSERT INTO ai_usage (user_id, snapshot_id, input_tokens, output_tokens, cost_usd, credits_charged, kind)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(userId, snapshotId, inputTokens, outputTokens, costUsd, creditsCharged, kind || 'narrative');
+}
+
+// Counts real ai_usage rows of one kind ('chat' or 'narrative') in the current calendar month, for
+// ONE user_id only — the primary AI gate post-restructure (entitlements.js's
+// askOrdoPerMonth/aiNarrativePerMonth), with credit_balance now a secondary fair-use overflow
+// underneath it. Calendar-month, not a rolling 30-day window, so it resets predictably on the 1st.
+function countAiUsageThisMonth(userId, kind) {
+  const row = db.prepare(`
+    SELECT COUNT(*) AS n FROM ai_usage
+    WHERE user_id = ? AND kind = ? AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+  `).get(userId, kind);
+  return row.n;
+}
+
+// Team's pooled cap (spec: "1,000/mo pooled") is shared across the owner + every member, not
+// per-person — ai_usage rows stay attributed to whichever individual actually made the call (for
+// real audit history), so pooling the CAP means summing everyone riding on the same owner's plan,
+// not just the owner's own rows. Pass the billing owner's id (getEffectiveTierUser's result).
+function countAiUsageThisMonthPooled(ownerId, kind) {
+  const row = db.prepare(`
+    SELECT COUNT(*) AS n FROM ai_usage
+    WHERE kind = ? AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+      AND user_id IN (SELECT id FROM users WHERE id = ? OR team_owner_id = ?)
+  `).get(kind, ownerId, ownerId);
+  return row.n;
 }
 
 function getCreditPurchaseBySessionId(sessionId) {
@@ -628,6 +704,11 @@ function setWebhookUrl(userId, url) {
   return getUserById(userId);
 }
 
+function setAiDisabled(userId, disabled) {
+  db.prepare('UPDATE users SET ai_disabled = ? WHERE id = ?').run(disabled ? 1 : 0, userId);
+  return getUserById(userId);
+}
+
 function getOrCreateProject(userId, name) {
   let row = db.prepare('SELECT * FROM projects WHERE user_id = ? AND name = ?').get(userId, name);
   if (!row) {
@@ -664,6 +745,32 @@ function listProjects(userId) {
 
 function listArchivedProjects(userId) {
   return db.prepare('SELECT * FROM projects WHERE user_id = ? AND archived_at IS NOT NULL ORDER BY archived_at DESC').all(userId);
+}
+
+// "Active project" per docs/pricing-restructure.md section 3: uploaded or re-scored within the
+// last 90 days. This is a SEPARATE concept from the manual archived_at toggle above — a project
+// ages out of the count automatically here without ever being manually archived, and reappears in
+// the count the moment it's re-scored. Manually archived projects (archived_at set) never count,
+// regardless of recency. Used only to enforce the plan's project limit, never to hide a project
+// from the user — an "inactive" project stays fully visible/readable, per the spec.
+function countActiveProjects(userId) {
+  const row = db.prepare(`
+    SELECT COUNT(*) AS n FROM projects p
+    WHERE p.user_id = ?
+      AND p.archived_at IS NULL
+      AND COALESCE(
+        (SELECT MAX(s.created_at) FROM snapshots s WHERE s.project_id = p.id),
+        p.created_at
+      ) >= datetime('now', '-90 days')
+  `).get(userId);
+  return row.n;
+}
+
+// True if this project name is already known for this user (re-scoring an existing project never
+// counts against the limit, regardless of its current active/inactive state) — checked BEFORE
+// getOrCreateProject so the caller can enforce the limit only on a genuinely NEW project name.
+function projectExists(userId, name) {
+  return Boolean(db.prepare('SELECT 1 FROM projects WHERE user_id = ? AND name = ?').get(userId, name));
 }
 
 function archiveProject(userId, name) {
@@ -722,6 +829,14 @@ function saveSnapshot(userId, projectName, result, sourceFilename) {
   return { project, snapshot };
 }
 
+// Used to detect "this was the user's first-ever analysis" right after saveSnapshot — a count of
+// 1 at that point means the row just inserted was it, without needing a separate tracking column.
+function countSnapshotsForUser(userId) {
+  return db.prepare(`
+    SELECT COUNT(*) AS n FROM snapshots s JOIN projects p ON p.id = s.project_id WHERE p.user_id = ?
+  `).get(userId).n;
+}
+
 function getHistory(userId, projectName) {
   const project = db.prepare('SELECT * FROM projects WHERE user_id = ? AND name = ?').get(userId, projectName);
   if (!project) return [];
@@ -736,6 +851,10 @@ function getLatestSnapshot(userId, projectName) {
 
 function getIssuesForSnapshot(snapshotId) {
   return db.prepare('SELECT * FROM issues WHERE snapshot_id = ? ORDER BY severity, id').all(snapshotId);
+}
+
+function getIssueById(issueId) {
+  return db.prepare('SELECT * FROM issues WHERE id = ?').get(issueId);
 }
 
 function getSnapshotById(snapshotId) {
@@ -827,6 +946,19 @@ function createFeedback(userId, message) {
   return db.prepare('SELECT * FROM feedback WHERE user_id = ? ORDER BY id DESC LIMIT 1').get(userId);
 }
 
+function createEnterpriseInquiry(userId, company, message) {
+  db.prepare('INSERT INTO enterprise_inquiries (user_id, company, message) VALUES (?, ?, ?)').run(userId, company || null, message);
+  return db.prepare('SELECT * FROM enterprise_inquiries WHERE user_id = ? ORDER BY id DESC LIMIT 1').get(userId);
+}
+
+function listEnterpriseInquiriesForAdmin() {
+  return db.prepare(`
+    SELECT ei.id, ei.company, ei.message, ei.created_at, u.name AS user_name, u.email AS user_email
+    FROM enterprise_inquiries ei JOIN users u ON u.id = ei.user_id
+    ORDER BY ei.created_at DESC
+  `).all();
+}
+
 function logError({ message, stack, method, path, userEmail }) {
   db.prepare('INSERT INTO error_log (message, stack, method, path, user_email) VALUES (?, ?, ?, ?, ?)')
     .run(String(message || 'Unknown error').slice(0, 2000), stack ? String(stack).slice(0, 8000) : null, method || null, path || null, userEmail || null);
@@ -883,6 +1015,42 @@ function pruneBlogPosts(keepSlugs) {
 }
 
 // --- Admin Command Center ---
+
+// Each breakdown's percentages are computed against only the users who answered *that* field, not
+// against every prompted user — a skip on one field shouldn't dilute the distribution of the
+// other. totalPrompted/totalSkippedEntirely give the response-rate context alongside the two
+// breakdowns, so the console can show both "of people who answered, X% said Y" and "N people have
+// been asked, M skipped entirely" without conflating the two.
+function getProfileSurveyStats() {
+  const totalPrompted = db.prepare('SELECT COUNT(*) AS n FROM users WHERE profile_survey_dismissed_at IS NOT NULL').get().n;
+  const totalSkippedEntirely = db.prepare(`
+    SELECT COUNT(*) AS n FROM users
+    WHERE profile_survey_dismissed_at IS NOT NULL AND portfolio_size_bucket IS NULL AND migrated_from IS NULL
+  `).get().n;
+
+  const portfolioRows = db.prepare(`
+    SELECT portfolio_size_bucket AS value, COUNT(*) AS n FROM users
+    WHERE portfolio_size_bucket IS NOT NULL GROUP BY portfolio_size_bucket
+  `).all();
+  const portfolioTotal = portfolioRows.reduce((sum, r) => sum + r.n, 0);
+
+  const migratedRows = db.prepare(`
+    SELECT migrated_from AS value, COUNT(*) AS n FROM users
+    WHERE migrated_from IS NOT NULL GROUP BY migrated_from
+  `).all();
+  const migratedTotal = migratedRows.reduce((sum, r) => sum + r.n, 0);
+
+  const toBreakdown = (rows, total) => rows
+    .map(r => ({ value: r.value, count: r.n, pct: total ? Math.round((r.n / total) * 100) : 0 }))
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    totalPrompted,
+    totalSkippedEntirely,
+    portfolioSize: { total: portfolioTotal, breakdown: toBreakdown(portfolioRows, portfolioTotal) },
+    migratedFrom: { total: migratedTotal, breakdown: toBreakdown(migratedRows, migratedTotal) }
+  };
+}
 
 // Search is optional — an empty/undefined query returns every account, newest first, capped so
 // a large user base can't return an unbounded response to the console in one call.
@@ -956,7 +1124,11 @@ function setFeedbackReviewed(id, reviewed) {
 // turns this into real dollar MRR using the actual price points; db.js stays pure data access.
 function getUserCountsByTier() {
   const rows = db.prepare('SELECT plan_tier, COUNT(*) AS n FROM users WHERE team_owner_id IS NULL GROUP BY plan_tier').all();
-  const counts = { free: 0, starter: 0, pro: 0, teams: 0 };
+  // Both price books' keys — post-restructure signups land on professional/team, while
+  // grandfathered accounts still carry their original starter/pro/teams plan_tier value
+  // indefinitely (see docs/pricing-restructure.md section 4). Omitting either set would make a
+  // real cohort of paying customers silently disappear from admin telemetry.
+  const counts = { free: 0, professional: 0, team: 0, starter: 0, pro: 0, teams: 0 };
   rows.forEach(r => { if (r.plan_tier in counts) counts[r.plan_tier] = r.n; });
   return counts;
 }
@@ -995,17 +1167,19 @@ function getAdminAiUsageTotal() {
 
 module.exports = {
   db, getOrCreateProject, listProjects, listArchivedProjects, archiveProject, unarchiveProject, saveSnapshot,
-  getHistory, getLatestSnapshot, getIssuesForSnapshot, updateIssueStatus, getPortfolio, getActivityFeed,
-  getIssueOwnerUserId, createFeedback,
+  countActiveProjects, projectExists,
+  getHistory, getLatestSnapshot, getIssuesForSnapshot, getIssueById, updateIssueStatus, getPortfolio, getActivityFeed,
+  getIssueOwnerUserId, createFeedback, createEnterpriseInquiry, listEnterpriseInquiriesForAdmin,
   logError, listErrorsForAdmin, pruneOldErrors,
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
   getOrCreateShareToken, getPublicSnapshotByShareToken,
   createUser, getUserByEmail, getUserById, setEmailVerified, markOnboarded,
+  saveProfileSurvey, countSnapshotsForUser, getProfileSurveyStats,
   getUserByOAuthAccount, linkOAuthAccount, createOAuthUser,
   createPendingOAuthSignup, consumePendingOAuthSignup,
   getUserByReferralCode, getReferralStats,
   getUserByStripeCustomerId, getUserByStripeSubscriptionId, setStripeCustomerId, setSubscriptionStatus,
-  setUserTier, deductCredits, addCredits, logAiUsage,
+  setUserTier, deductCredits, addCredits, logAiUsage, countAiUsageThisMonth, countAiUsageThisMonthPooled,
   getEffectiveTierUser, addTeamMember, removeTeamMember, getTeamMembers,
   createTeamInvite, getTeamInviteByToken, deleteTeamInvite, listPendingInvitesForOwner, deleteExpiredTeamInvites,
   getCreditPurchaseBySessionId, recordCreditPurchase,
@@ -1013,7 +1187,7 @@ module.exports = {
   createSession, getSession, deleteSession, deleteExpiredSessions,
   createVerificationToken, getVerificationToken, deleteVerificationToken, deleteExpiredVerificationTokens,
   createPasswordResetToken, getPasswordResetToken, deletePasswordResetToken, deleteExpiredPasswordResetTokens,
-  deleteSessionsForUser, setUserPassword, setWebhookUrl,
+  deleteSessionsForUser, setUserPassword, setWebhookUrl, setAiDisabled,
   listBlogPosts, getBlogPostBySlug, createBlogPost, updateBlogPost, pruneBlogPosts,
   searchUsersForAdmin, listFeatureFlags, isFeatureEnabled, setFeatureFlag,
   logAdvisoryClick, getAdvisoryClickCount, getAdminSetting, setAdminSetting, recordConsent,

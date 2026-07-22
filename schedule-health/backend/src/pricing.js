@@ -27,39 +27,66 @@ const FREE_SIGNUP_CREDITS = 20;
 // the loop simple and immediate rather than waiting on a conversion event).
 const REFERRAL_BONUS_CREDITS = 25;
 
-// Self-serve tiers. Enterprise is intentionally not listed here — still a "Contact us"
-// placeholder with no checkout wired up. Teams went live with an honest feature set: everything
-// that's actually built (pooled credits, unwatermarked reports) and nothing that isn't yet —
-// multi-seat invites and live review rooms are left off the pricing card entirely rather than
-// advertised and gated behind something that doesn't work. Revisit this list once those exist.
+// Post-restructure self-serve tiers (see docs/pricing-restructure.md). Enterprise is
+// intentionally not listed here — still a "Contact us" placeholder with no checkout wired up.
+// Each paid tier carries TWO Stripe price IDs (monthly, annual — annual is 2 months free per the
+// spec) rather than one; the checkout route picks whichever the user selected.
+//
+// monthlyCredits here is now a secondary safety-net refill for the AI credit-balance mechanic
+// (ai.js's per-call cost metering), NOT the primary AI gate anymore — the primary gate is the
+// per-tier monthly query caps (askOrdoPerMonth / aiNarrativePerMonth) in entitlements.js, enforced
+// by counting ai_usage rows for the current calendar month. credit_balance/top-ups still exist as
+// a real fair-use overflow valve underneath that cap, per the spec's "credit top-ups: all tiers."
 const TIERS = {
-  starter: {
-    key: 'starter',
-    name: 'Starter',
-    priceLabel: '$19.99/month',
-    monthlyCredits: 150,
-    stripePriceEnvVar: 'STRIPE_PRICE_ID_STARTER'
+  professional: {
+    key: 'professional',
+    name: 'Professional',
+    priceLabel: '$79/month',
+    priceLabelAnnual: '$790/year',
+    monthlyCredits: 1000,
+    stripePriceEnvVarMonthly: 'STRIPE_PRICE_ID_PROFESSIONAL_MONTHLY',
+    stripePriceEnvVarAnnual: 'STRIPE_PRICE_ID_PROFESSIONAL_ANNUAL'
   },
-  pro: {
-    key: 'pro',
-    name: 'Pro',
-    priceLabel: '$49/month',
-    monthlyCredits: 500,
-    stripePriceEnvVar: 'STRIPE_PRICE_ID_PRO'
-  },
-  teams: {
-    key: 'teams',
-    name: 'Teams',
-    priceLabel: '$149/month',
-    monthlyCredits: 2500,
-    stripePriceEnvVar: 'STRIPE_PRICE_ID_TEAMS'
+  team: {
+    key: 'team',
+    name: 'Team',
+    priceLabel: '$299/month',
+    priceLabelAnnual: '$2,990/year',
+    monthlyCredits: 5000,
+    stripePriceEnvVarMonthly: 'STRIPE_PRICE_ID_TEAM_MONTHLY',
+    stripePriceEnvVarAnnual: 'STRIPE_PRICE_ID_TEAM_ANNUAL'
   }
 };
 
-// Seats beyond the owner's own account. Not tied to the $149 price point by any real cost model
-// yet — it's a reasonable cap to launch with (prevents one Teams subscription from silently
-// becoming unlimited-seat) and can move once real usage shows what's right.
-const MAX_TEAM_MEMBERS = 9;
+// Retired tiers — no longer offered at checkout (checkoutTierDef() below only resolves TIERS
+// above), kept ONLY so tierForPriceId can still recognize a legacy Stripe subscription's price ID
+// if a webhook ever replays an old event. Never read their stripePriceEnvVar for a NEW checkout.
+// monthlyCredits values here are unchanged from the pre-restructure tiers on purpose — a legacy
+// subscriber's renewal refill (see the invoice.payment_succeeded webhook in server.js) must keep
+// giving them exactly what they always got, never silently drop to zero because their plan_tier
+// no longer has an entry in the new TIERS object above.
+const LEGACY_TIERS = {
+  starter: { key: 'starter', name: 'Starter', priceLabel: '$19.99/month', monthlyCredits: 150, stripePriceEnvVar: 'STRIPE_PRICE_ID_STARTER' },
+  pro: { key: 'pro', name: 'Pro', priceLabel: '$49/month', monthlyCredits: 500, stripePriceEnvVar: 'STRIPE_PRICE_ID_PRO' },
+  teams: { key: 'teams', name: 'Teams', priceLabel: '$149/month', monthlyCredits: 2500, stripePriceEnvVar: 'STRIPE_PRICE_ID_TEAMS' }
+};
+
+// Looks up a plan_tier value against both price books — for call sites that need a tier's display
+// name/monthlyCredits regardless of whether the account is on the new or the grandfathered book.
+function anyTierDef(planTierValue) {
+  return TIERS[planTierValue] || LEGACY_TIERS[planTierValue] || null;
+}
+
+// Included in the Team tier's own price; beyond this, $29/seat/mo (entitlements.js's
+// additionalSeatPriceUsd) — NOTE: metered per-seat billing to Stripe is not wired up yet, only
+// the entitlement number is defined here. Enforce the free-seat boundary; treat "charge for a
+// seat beyond 10" as a known gap until a real Stripe seat-billing flow is built, not something to
+// silently fake.
+const TEAM_SEATS_INCLUDED = 10;
+const ADDITIONAL_SEAT_PRICE_USD = 29;
+// Hard technical ceiling regardless of billing state, so a runaway invite loop can't create an
+// unbounded number of member rows before seat billing exists to charge for them.
+const MAX_TEAM_MEMBERS = 50;
 
 // One-time credit top-ups (no subscription required, stacks with any plan's monthly refill).
 // Priced higher per credit than what a subscription implies (Pro: $50/500cr = $0.10/credit) —
@@ -78,10 +105,30 @@ function creditsForUsage(inputTokens, outputTokens) {
 }
 
 function tierForPriceId(priceId) {
+  if (!priceId) return null;
   for (const tier of Object.values(TIERS)) {
-    if (priceId && process.env[tier.stripePriceEnvVar] === priceId) return tier.key;
+    if (process.env[tier.stripePriceEnvVarMonthly] === priceId) return tier.key;
+    if (process.env[tier.stripePriceEnvVarAnnual] === priceId) return tier.key;
+  }
+  // Legacy price IDs are recognized (so an old webhook replay doesn't silently no-op) but never
+  // offered at new checkout — see LEGACY_TIERS above.
+  for (const tier of Object.values(LEGACY_TIERS)) {
+    if (process.env[tier.stripePriceEnvVar] === priceId) return tier.key;
   }
   return null;
+}
+
+// The single tier definition a NEW checkout is allowed to resolve to — deliberately excludes
+// LEGACY_TIERS so nobody can start a brand-new Starter/Pro/Teams subscription post-restructure.
+function checkoutTierDef(tierKey) {
+  return TIERS[tierKey] || null;
+}
+
+function checkoutPriceId(tierKey, interval) {
+  const tier = checkoutTierDef(tierKey);
+  if (!tier) return null;
+  const envVar = interval === 'annual' ? tier.stripePriceEnvVarAnnual : tier.stripePriceEnvVarMonthly;
+  return process.env[envVar] || null;
 }
 
 function creditsForTopupAmount(usd) {
@@ -96,7 +143,8 @@ function isValidTopupAmount(usd) {
 }
 
 module.exports = {
-  TIERS, FREE_SIGNUP_CREDITS, REFERRAL_BONUS_CREDITS, MARGIN_MULTIPLIER, CREDIT_VALUE_USD, MAX_TEAM_MEMBERS,
+  TIERS, LEGACY_TIERS, FREE_SIGNUP_CREDITS, REFERRAL_BONUS_CREDITS, MARGIN_MULTIPLIER, CREDIT_VALUE_USD,
+  MAX_TEAM_MEMBERS, TEAM_SEATS_INCLUDED, ADDITIONAL_SEAT_PRICE_USD,
   TOPUP_CREDIT_PRICE_USD, TOPUP_MIN_USD, TOPUP_INCREMENT_USD,
-  costUsd, creditsForUsage, tierForPriceId, creditsForTopupAmount, isValidTopupAmount
+  costUsd, creditsForUsage, tierForPriceId, checkoutTierDef, checkoutPriceId, anyTierDef, creditsForTopupAmount, isValidTopupAmount
 };
