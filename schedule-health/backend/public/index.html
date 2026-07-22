@@ -595,6 +595,12 @@
   .tier-tagline { font-size: 13px; color: var(--muted); margin: 0 0 8px; min-height: 36px; }
   .price-line { font-size: 28px; font-weight: 700; color: var(--accent); margin: 4px 0; overflow-wrap: break-word; white-space: normal; }
   .price-line span, .price-line .price-suffix { font-size: 13px; font-weight: 400; color: var(--muted); }
+  /* P-4: on annual, the headline figure becomes the monthly-equivalent (e.g. $66/mo), with the
+     actual once-a-year charge and the pre-discount monthly price demoted to this secondary line --
+     buyers compare plans by monthly cost, so that's what should dominate, while the real annual
+     charge stays clearly stated (never hidden) right underneath it. */
+  .price-annual-note { font-size: 13px; color: var(--muted); margin: 0 0 4px; }
+  .price-annual-note .price-was { text-decoration: line-through; opacity: 0.7; margin-right: 4px; }
   .paywall-features { list-style: none; padding: 0; margin: 10px 0 14px; font-size: 14px; flex: 1; }
   .paywall-features li { padding: 4px 0 4px 20px; position: relative; }
   .paywall-features li::before { content: "\2713"; position: absolute; left: 0; color: var(--good); font-weight: 700; }
@@ -603,12 +609,15 @@
      on the button is what actually aligns every card's CTA to a shared baseline regardless of how
      many feature lines that tier has above it. */
   .tier-card > .btn, .tier-card > a.btn { margin-top: auto; }
-  .billing-toggle-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 16px; }
-  .billing-toggle-label { font-size: 13px; color: var(--muted); }
-  .billing-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 2px; }
-  .billing-toggle-btn { background: none; border: none; padding: 6px 14px; font-size: 13px; font-weight: 600; color: var(--muted); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-  .billing-toggle-btn.active { background: var(--accent); color: #06231f; }
-  .billing-save-badge { font-size: 13px; font-weight: 700; background: rgba(45,214,196,0.18); color: var(--accent); padding: 1px 6px; border-radius: 8px; }
+  .billing-toggle-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 20px; }
+  .billing-toggle-label { font-size: 14px; font-weight: 600; color: var(--ink); }
+  /* P-4: toggle was easy to miss despite annual prepay being materially more valuable to the
+     business than the discount costs -- bigger control, bigger badge, thicker active-state
+     contrast so it reads within the first scan of the page rather than blending into the header row. */
+  .billing-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; padding: 4px; gap: 4px; }
+  .billing-toggle-btn { background: none; border: none; padding: 9px 18px; font-size: 14px; font-weight: 600; color: var(--muted); border-radius: 7px; cursor: pointer; display: flex; align-items: center; gap: 7px; }
+  .billing-toggle-btn.active { background: var(--accent); color: #06231f; box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent); }
+  .billing-save-badge { font-size: 13px; font-weight: 700; background: rgba(45,214,196,0.18); color: var(--accent); padding: 2px 7px; border-radius: 8px; }
   .billing-toggle-btn.active .billing-save-badge { background: rgba(6,35,31,0.2); color: #06231f; }
   .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 640px; }
   .compare-table th, .compare-table td { padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--line); }
@@ -989,6 +998,7 @@
           <h2 class="tier-name">Professional</h2>
           <p class="tier-tagline">For the planner running their own projects</p>
           <p class="price-line"><span class="price-amount">$79</span><span class="price-suffix">/month</span></p>
+          <p class="price-annual-note" style="display:none;"></p>
           <ul class="paywall-features">
             <li>Everything in Free, plus:</li>
             <li>10 active projects, unlimited snapshot history</li>
@@ -1004,6 +1014,7 @@
           <h2 class="tier-name">Team</h2>
           <p class="tier-tagline">For project controls teams reporting to clients</p>
           <p class="price-line"><span class="price-amount">$299</span><span class="price-suffix">/month</span></p>
+          <p class="price-annual-note" style="display:none;"></p>
           <ul class="paywall-features">
             <li>Everything in Professional, plus:</li>
             <li>40 active projects</li>
@@ -2172,11 +2183,16 @@ function renderPricing(){
 }
 
 // --- Annual/monthly billing toggle (default annual — 2 months free, see docs/pricing-restructure.md S-2) ---
-let pricingBillingInterval = 'annual';
+// P-4: persisted across refresh via localStorage -- falls back to the 'annual' default if unset
+// or unavailable (private browsing etc.), never throws.
+let pricingBillingInterval = (function(){
+  try { return localStorage.getItem('ordo7BillingInterval') || 'annual'; } catch (e) { return 'annual'; }
+})();
 const TIER_PRICES = {
-  professional: { monthly: '$79', annual: '$790' },
-  team: { monthly: '$299', annual: '$2,990' }
+  professional: { monthly: 79, annual: 790 },
+  team: { monthly: 299, annual: 2990 }
 };
+function formatUsd(n){ return '$' + n.toLocaleString('en-US'); }
 function updatePricingPrices(){
   document.querySelectorAll('#v-pricing .tier-card').forEach(card => {
     const key = card.dataset.tierKey;
@@ -2184,19 +2200,39 @@ function updatePricingPrices(){
     if (!prices) return; // Free and Enterprise have fixed, non-toggling price text
     const amountEl = card.querySelector('.price-amount');
     const suffixEl = card.querySelector('.price-suffix');
+    const noteEl = card.querySelector('.price-annual-note');
     if (!amountEl || !suffixEl) return;
-    amountEl.textContent = prices[pricingBillingInterval];
-    suffixEl.textContent = pricingBillingInterval === 'annual' ? '/year' : '/month';
+    if (pricingBillingInterval === 'annual') {
+      // P-4: headline becomes the monthly-equivalent (790/12 = 65.83 -> $66, 2990/12 = 249.17 ->
+      // $249, matching the spec's own worked examples) -- the actual once-a-year charge moves to
+      // the secondary line so it's still stated plainly, never hidden, right under the headline.
+      const monthlyEquivalent = Math.round(prices.annual / 12);
+      amountEl.textContent = formatUsd(monthlyEquivalent);
+      suffixEl.textContent = '/mo';
+      if (noteEl) {
+        noteEl.innerHTML = '<span class="price-was">' + formatUsd(prices.monthly) + '/mo</span>billed annually at ' + formatUsd(prices.annual);
+        noteEl.style.display = '';
+      }
+    } else {
+      amountEl.textContent = formatUsd(prices.monthly);
+      suffixEl.textContent = '/month';
+      if (noteEl) noteEl.style.display = 'none';
+    }
   });
 }
 function setBillingInterval(interval){
   pricingBillingInterval = interval;
   document.getElementById('billingMonthlyBtn').classList.toggle('active', interval === 'monthly');
   document.getElementById('billingAnnualBtn').classList.toggle('active', interval === 'annual');
+  try { localStorage.setItem('ordo7BillingInterval', interval); } catch (e) {}
   updatePricingPrices();
 }
 document.getElementById('billingMonthlyBtn').addEventListener('click', () => setBillingInterval('monthly'));
 document.getElementById('billingAnnualBtn').addEventListener('click', () => setBillingInterval('annual'));
+// Reflect a persisted interval in the toggle's initial active state -- the HTML hardcodes Annual
+// as active by default, which is only wrong if the user had switched to Monthly on a prior visit.
+document.getElementById('billingMonthlyBtn').classList.toggle('active', pricingBillingInterval === 'monthly');
+document.getElementById('billingAnnualBtn').classList.toggle('active', pricingBillingInterval === 'annual');
 
 // --- Enterprise inquiry form (replaces a plain mailto: -- docs/pricing-restructure.md S-8) ---
 document.getElementById('enterpriseContactBtn').addEventListener('click', () => {
