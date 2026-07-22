@@ -4,6 +4,19 @@
 > Purpose: let a fresh Claude session (new chat, zero memory of prior conversation) reorient in one read.
 > Update this whenever a new chat picks up work, so the NEXT new chat stays current too.
 
+## Today's blocked Founder Log run (2026-07-22) — pick this up first
+
+The daily Founder Log posting Routine fired today (2026-07-22, not a holiday) and got all the way to the posting step before stopping. Everything is staged and verified — the only blocker is Zapier.
+
+- **Day to post: 004** ("Utility industry / safety") — lowest unposted day per `marketing-assets/linkedin-founder-log/posting-log.md` (001–003 already posted). Not a Slot A/F day, so no real-content check needed.
+- **Caption:** already pre-approved in `marketing-assets/linkedin-founder-log/batch-01-linkedin-captions.md` (the "## Day 004" section) — use as-is, don't redraft. Includes the blog link, `Try It For Free → https://ordo7.pro`, and `#Ordo7` plus 4 other tags.
+- **Graphics:** already rendered — `marketing-assets/linkedin-founder-log/renders/founder-log-004-feed-1200x1500.jpg` and `founder-log-004-cover-1200x627.jpg`.
+- **Blog post:** already live in `backend/src/blog-content.js` at slug `founder-log-004-utility-safety`.
+- **Blocker:** Zapier connector is authenticated/connected at the org level but `enabledInChat: false` for this chat session (confirmed via `ListConnectors`, keyword `"Zapier"`) — same per-chat toggle issue as Apollo hit in a parallel thread. Posting to LinkedIn (personal profile + Level 7 Consulting page `142899041` + Ordo7 page `142904113`) can't proceed until it's enabled.
+- **Nothing was posted. `posting-log.md` was NOT touched** — Day 004 is still correctly absent from it.
+
+**Next action for whoever picks this up:** confirm Zapier shows `enabledInChat: true`, then post Day 004's pre-approved caption + graphic to all three LinkedIn destinations, commit nothing new (content already committed), and add Day 004's row to `posting-log.md` with the three post URLs + blog URL. Full step-by-step instructions live in the Routine's own standing prompt (see the `trig_01NFQsz9yfnoiFrFTriZx4qM` trigger below) — this note is just the "what's already done, what's blocked" snapshot.
+
 ## Where things stand (as of 2026-07-20)
 
 **Branch:** `claude/new-session-8x1hcw` (tyoung77510/Level-7-Nuero) — this is the standing dev branch for all Ordo7/marketing work referenced below. Check whether it's since been merged to `main`; if merged, start fresh from `main` under a new branch rather than stacking on merged history.
