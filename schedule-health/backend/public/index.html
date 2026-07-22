@@ -595,6 +595,17 @@
   .tier-tagline { font-size: 13px; color: var(--muted); margin: 0 0 8px; min-height: 36px; }
   .price-line { font-size: 28px; font-weight: 700; color: var(--accent); margin: 4px 0; overflow-wrap: break-word; white-space: normal; }
   .price-line span, .price-line .price-suffix { font-size: 13px; font-weight: 400; color: var(--muted); }
+  /* Real bug found while working P-5: .price-amount is a <span> (needed so JS can rewrite it on
+     the monthly/annual toggle), which meant the generic ".price-line span" rule above was silently
+     shrinking the headline price itself to 13px/gray -- Free's "$0" and Enterprise's "Custom" are
+     bare text (not spans) so they were never affected, leaving them looking artificially larger
+     than Professional/Team's actual numbers. This restores the real price to the same size/weight/
+     color as the rest of .price-line; the two extra class selectors outweigh ".price-line span" in
+     specificity so this wins regardless of source order. */
+  .price-line .price-amount { font-size: 28px; font-weight: 700; color: var(--accent); }
+  /* P-5: with the bug above fixed, Enterprise's "Custom" would tie the numeric prices at 28px --
+     stepping it down further keeps Enterprise from visually competing with Professional's price. */
+  .price-line.price-line-custom { font-size: 22px; }
   /* P-4: on annual, the headline figure becomes the monthly-equivalent (e.g. $66/mo), with the
      actual once-a-year charge and the pre-discount monthly price demoted to this secondary line --
      buyers compare plans by monthly cost, so that's what should dominate, while the real annual
@@ -1030,7 +1041,7 @@
           <span class="tier-badge tier-badge-soon">Custom</span>
           <h2 class="tier-name">Enterprise</h2>
           <p class="tier-tagline">For organisations with portfolio-wide requirements</p>
-          <p class="price-line">Custom</p>
+          <p class="price-line price-line-custom">Custom</p>
           <ul class="paywall-features">
             <li>Everything in Team, plus:</li>
             <li>Unlimited projects and seats</li>
