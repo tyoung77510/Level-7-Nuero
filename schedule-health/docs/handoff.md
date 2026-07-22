@@ -42,9 +42,12 @@ now parses MSPDI (MS Project "Save As → XML") in `backend/src/analyze.js`
 thing that changed that week — never fabricate," and this is real.
 
 ## How to publish (mechanics)
-- **Channel:** Zapier → LinkedIn. Call `list_enabled_zapier_actions` first, then use the
-  **Create Share Update** action (`linkedin_create_share_update`, an `execute_zapier_write_action`)
-  to post to the personal profile.
+- **Preferred: manual native image post.** Upload the committed 005 render (see "The image" below)
+  on LinkedIn and paste the caption above under it. Native feed images can't be posted through
+  Zapier (see that section), so this is the intended path and gives the full 4:5 visual.
+- **Text-only fallback via Zapier → LinkedIn:** call `list_enabled_zapier_actions` first, then use
+  the **Create Share Update** action (`linkedin_create_share_update`, an
+  `execute_zapier_write_action`) to post to the personal profile.
   - `comment` = the full caption above (required).
   - `visibility__code` = `anyone`.
   - Alternative: **Create Company Update** (`linkedin_create_company_update`) posts to the Ordo7
@@ -53,14 +56,22 @@ thing that changed that week — never fabricate," and this is real.
 - **This is a public, irreversible action.** Confirm the final copy with the owner (Taj) before
   posting — do not auto-publish without a go.
 
-## Known limitation — text-only (no 005 graphic yet)
-The series is normally an image post, but **renders exist only for 001 and 002**
-(`marketing-assets/linkedin-founder-log/renders/`); there is no 005 graphic, and Zapier's share
-action can only attach an image via a **public image URL** (a local repo file can't be attached).
-So 005 posts as **text-only** unless someone first:
-1. designs a Nocturne-style 005 graphic (spec + tokens in the design kit README), and
-2. hosts it at a public URL to pass as `content__submitted_image_url`, **or** uploads the JPG
-   manually as a native LinkedIn image using the caption above.
+## The image — built and committed
+The 005 graphic is done (Nocturne style, portrait upper-right, mirroring Log 002):
+- **Render:** `marketing-assets/linkedin-founder-log/renders/founder-log-005-feed-1200x1500.png`
+  — 1200×1500 (4:5), opaque PNG, LinkedIn-safe (no alpha). Post this as-is.
+- **Source:** `marketing-assets/linkedin-founder-log/founder-log-005.html` — standalone; regenerate
+  with headless Chromium (`chrome --headless=new --window-size=1200,1500 --screenshot=out.png
+  file://…/founder-log-005.html`).
+
+**Why the native upload is manual:** Zapier's LinkedIn Create Share Update only attaches an image
+as a *link-card thumbnail* via a public image URL — not a native feed image. So to get the real
+4:5 visual, upload the PNG by hand and paste the caption (the design kit says renders "can be
+posted as-is").
+
+_Fidelity note: the render environment blocked Google Fonts, so the type fell back to a system
+sans-serif rather than Inter. Re-render the source in a design tool for pixel-perfect Inter if
+desired._
 
 ## Series convention note
 The design-kit caption formula currently lists only one link (`ordo7.pro`). This 005 post
