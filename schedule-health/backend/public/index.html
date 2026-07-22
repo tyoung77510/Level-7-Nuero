@@ -960,6 +960,7 @@
           <button data-step="pricing"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Billing / Plan</button>
         </div>
         <div class="sidebar-footer">
+          <button data-step="settings"><span class="sidebar-footer-icon">&#9881;</span> Account Settings</button>
           <button data-step="guide"><span class="sidebar-footer-icon">?</span> App Guide / Capabilities</button>
           <a id="replayTourLink">Replay tour</a>
         </div>
@@ -1141,19 +1142,6 @@
       </div>
 
       <div class="card" style="margin-top:16px;">
-        <h2 style="margin:0 0 4px; font-size:15px;">Integrations</h2>
-        <p style="font-size:14px; color:var(--muted); margin:0 0 12px;">Get a notification every time a schedule finishes analyzing. Paste a Slack "Incoming Webhook" URL to post to a channel, or a Zapier/Make "catch webhook" URL to trigger anything else. Team plan and above.</p>
-        <div class="row" style="justify-content:flex-start; gap:8px; margin-top:0;">
-          <input type="url" id="webhookUrlInput" placeholder="https://hooks.slack.com/services/..." style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
-          <button class="btn cta" id="webhookSaveBtn">Save</button>
-          <button class="btn" id="webhookTestBtn">Send test</button>
-          <button class="btn" id="webhookClearBtn" style="display:none;">Clear</button>
-        </div>
-        <p id="webhookError" class="error" style="display:none; padding:6px 0 0; font-size:13px;"></p>
-        <p id="webhookNote" style="font-size:13px; color:var(--muted); margin:8px 0 0;"></p>
-      </div>
-
-      <div class="card" style="margin-top:16px;">
         <h2 style="margin:0 0 8px; font-size:15px;">Good to know</h2>
         <ul style="font-size:13px; color:var(--muted); margin:0; padding-left:18px; line-height:1.7;">
           <li>All prices are in USD.</li>
@@ -1163,6 +1151,24 @@
           <li>Annual plans are billed once for the year (2 months free vs. paying monthly) and are non-refundable pro-rata after the first 14 days; monthly plans can be cancelled any time with no further charges.</li>
           <li>Every account existing before this pricing update keeps its original price and terms indefinitely — nothing changes for existing subscribers.</li>
         </ul>
+      </div>
+      </div>
+    </div>
+
+    <div id="v-settings" class="view">
+      <div class="pricing-container">
+      <p class="section-title" style="margin-bottom:14px;">Account Settings</p>
+      <div class="card" style="margin-top:0;">
+        <h2 style="margin:0 0 4px; font-size:15px;">Integrations</h2>
+        <p style="font-size:14px; color:var(--muted); margin:0 0 12px;">Get a notification every time a schedule finishes analyzing. Paste a Slack "Incoming Webhook" URL to post to a channel, or a Zapier/Make "catch webhook" URL to trigger anything else. Requires the Team plan or above — <a href="#" onclick="event.preventDefault(); setView('pricing');" style="color:var(--accent);">see plans</a>.</p>
+        <div class="row" style="justify-content:flex-start; gap:8px; margin-top:0;">
+          <input type="url" id="webhookUrlInput" placeholder="https://hooks.slack.com/services/..." style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
+          <button class="btn cta" id="webhookSaveBtn">Save</button>
+          <button class="btn" id="webhookTestBtn">Send test</button>
+          <button class="btn" id="webhookClearBtn" style="display:none;">Clear</button>
+        </div>
+        <p id="webhookError" class="error" style="display:none; padding:6px 0 0; font-size:13px;"></p>
+        <p id="webhookNote" style="font-size:13px; color:var(--muted); margin:8px 0 0;"></p>
       </div>
       </div>
     </div>
@@ -1397,6 +1403,7 @@ function setView(step, sourceBtn){
   if (step === 'projects') renderActiveProjects();
   if (step === 'activity') renderActivityFeedTab();
   if (step === 'pricing') renderPricing();
+  if (step === 'settings') renderWebhookSection();
   if (step === 'health' && currentSnapshot) renderHealth(currentSnapshot);
   updateBreadcrumb();
 }
@@ -1476,7 +1483,8 @@ const STANDALONE_STEP_LABELS = {
   pricing: 'Billing / Plan',
   projects: 'Active Projects',
   issues: 'Issue Punch List',
-  portfolio: 'Portfolio Overview'
+  portfolio: 'Portfolio Overview',
+  settings: 'Account Settings'
 };
 function updateBreadcrumb(){
   const el = document.getElementById('breadcrumb');
@@ -2191,7 +2199,6 @@ function renderPricing(){
   });
   updatePricingPrices();
   renderTeamSection();
-  renderWebhookSection();
 }
 
 // --- Annual/monthly billing toggle (default annual — 2 months free, see docs/pricing-restructure.md S-2) ---
