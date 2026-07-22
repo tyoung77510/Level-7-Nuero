@@ -1,0 +1,18 @@
+[
+  {
+    "day": 1,
+    "headline": "Scheduling's been broken for years. I decided to **fix it.**",
+    "body": "I'm a developer building Ordo7 in the open — the project-controls tool professionals keep asking for. No big team. No permission. Just the work, shared step by step.",
+    "footer": "New from the build, every week · ordo7.pro",
+    "portraitSide": "left",
+    "types": ["feed", "cover"]
+  },
+  {
+    "day": 2,
+    "headline": "**PMs are doing two jobs.** Ordo7 takes one back.",
+    "body": "A capital-projects boom is outpacing the trained staff to run it — so PMs absorb cost control and schedule maintenance on top of their real job. Upload a schedule, get a plain-language health check. No Primavera analyst, no new headcount.",
+    "footer": "Built for the PM already doing two jobs · ordo7.pro",
+    "portraitSide": "right",
+    "types": ["feed"]
+  }
+]
