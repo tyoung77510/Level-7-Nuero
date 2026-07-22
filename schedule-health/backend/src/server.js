@@ -40,6 +40,7 @@ const rateLimit = require('./rate-limit');
 const webhook = require('./webhook');
 const mailerlite = require('./mailerlite');
 const fixGuidance = require('./fix-guidance');
+const entitlements = require('./entitlements');
 
 store.deleteExpiredSessions();
 store.pruneOldErrors();
@@ -112,6 +113,18 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_EMAILS = ['admin@ordo7.pro', 'taj.young77@gmail.com'];
 function isAdmin(user) {
   return !!user && ADMIN_EMAILS.includes(user.email.toLowerCase());
+}
+
+// Real backend enforcement for entitlements.js's boolean/tier gates — the counterpart to
+// FEATURE_TIERS in index.html, which stays a UI convenience (grey out a button, show an upgrade
+// card) but must never be the ONLY thing standing between a Free-tier request and a gated route.
+// Returns true and sends the 402 itself if the gate fails, so a route can `if (denyUnless(...))
+// return;` in one line. `featureName` is only for the error message shown to the user.
+function denyUnlessEntitled(res, user, gateKey, featureName) {
+  const ent = entitlements.resolveEntitlements(user);
+  if (ent[gateKey]) return false;
+  sendJSON(res, 402, { error: `${featureName} is a paid-plan feature`, requiredEntitlement: gateKey, currentTier: ent.tierKey });
+  return true;
 }
 
 function sendJSON(res, status, data) {
@@ -285,6 +298,11 @@ function publicUser(user) {
   // (see getEffectiveTierUser in db.js), while planTier stays their own real billing tier for
   // account-settings-type display ("you're on Free, but part of Acme Corp's Teams account").
   const billingUser = store.getEffectiveTierUser(user);
+  // effectiveTier is the RESOLVED new-price-book tier key ('free'/'professional'/'team'/
+  // 'enterprise') regardless of whether the account is on the new book or grandfathered — a
+  // legacy Starter/Pro subscriber shows 'professional' here, legacy Teams shows 'team', so the
+  // frontend's FEATURE_TIERS checks never need to know old tier names exist at all.
+  const ent = entitlements.resolveEntitlements(user);
   return {
     id: user.id,
     name: user.name,
@@ -292,12 +310,15 @@ function publicUser(user) {
     phone: user.phone,
     subscriptionStatus: user.subscription_status,
     planTier: user.plan_tier,
-    effectiveTier: billingUser.plan_tier,
+    effectiveTier: ent.tierKey,
+    isLegacyPlan: ent.isLegacy,
+    projectLimit: Number.isFinite(ent.projectLimit) ? ent.projectLimit : null,
     isTeamMember: !!user.team_owner_id,
-    isTeamOwner: user.plan_tier === 'teams' && !user.team_owner_id,
+    isTeamOwner: ['team', 'enterprise'].includes(ent.tierKey) && !user.team_owner_id,
     teamOwnerName: user.team_owner_id ? billingUser.name : null,
     teamOwnerEmail: user.team_owner_id ? billingUser.email : null,
     creditBalance: billingUser.credit_balance,
+    aiDisabled: !!user.ai_disabled,
     emailVerified: !!user.email_verified,
     referralCode: user.referral_code,
     onboarded: !!user.onboarded_at,
@@ -699,16 +720,30 @@ route('PATCH', '/api/account/webhook', async (req, res, params, user) => {
   let payload;
   try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
   const url = payload.webhookUrl;
+  // Clearing is always allowed, ungated — a downgraded account that already had one set must
+  // still be able to remove it. Only setting a NEW url requires the Team+ entitlement.
   if (url === null || url === '') {
     return sendJSON(res, 200, { user: publicUser(store.setWebhookUrl(user.id, null)) });
   }
+  if (denyUnlessEntitled(res, user, 'slackZapier', 'Webhook integrations')) return;
   if (typeof url !== 'string' || !(await webhook.isSafeWebhookUrl(url))) {
     return sendJSON(res, 400, { error: 'That URL isn\'t reachable or isn\'t allowed — must be a public https:// URL (not localhost or an internal address).' });
   }
   sendJSON(res, 200, { user: publicUser(store.setWebhookUrl(user.id, url)) });
 });
 
+// Trust control, never a paid feature (docs/pricing-restructure.md section 3) — available and
+// togglable on every tier including Free, no entitlement gate on this route at all on purpose.
+route('PATCH', '/api/account/ai-settings', async (req, res, params, user) => {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const updated = store.setAiDisabled(user.id, !!payload.aiDisabled);
+  sendJSON(res, 200, { user: publicUser(updated) });
+});
+
 route('POST', '/api/account/webhook/test', async (req, res, params, user) => {
+  if (denyUnlessEntitled(res, user, 'slackZapier', 'Webhook integrations')) return;
   if (!user.webhook_url) return sendJSON(res, 400, { error: 'No webhook URL saved yet' });
   const result = await webhook.deliverWebhook(user.webhook_url, {
     text: 'Ordo7: this is a test notification — your webhook is connected correctly.',
@@ -739,9 +774,10 @@ route('POST', '/api/billing/checkout', async (req, res, params, user) => {
   let payload;
   try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
 
-  const tierDef = pricing.TIERS[payload.tier];
+  const tierDef = pricing.checkoutTierDef(payload.tier);
   if (!tierDef) return sendJSON(res, 400, { error: 'Unknown plan' });
-  const priceId = process.env[tierDef.stripePriceEnvVar];
+  const interval = payload.interval === 'annual' ? 'annual' : 'monthly';
+  const priceId = pricing.checkoutPriceId(payload.tier, interval);
   if (!priceId) return sendJSON(res, 503, { error: `The ${tierDef.name} plan is not configured yet` });
 
   const origin = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
@@ -789,7 +825,11 @@ route('GET', '/api/billing/verify', async (req, res, params, user) => {
   const subscriptionStatus = session.subscription?.status || 'active';
   const subscriptionId = session.subscription?.id;
   updated = store.setSubscriptionStatus(user.id, subscriptionStatus, subscriptionId);
-  if (tierKey) updated = store.setUserTier(user.id, tierKey, pricing.TIERS[tierKey].monthlyCredits);
+  // A real new checkout only ever resolves to a current tier (professional/team) since
+  // checkoutPriceId() only offers those — the LEGACY_TIERS branch of tierForPriceId exists purely
+  // for defensive webhook-replay recognition, so it's guarded here rather than assumed unreachable.
+  const purchasedTierDef = tierKey && (pricing.TIERS[tierKey] || pricing.LEGACY_TIERS[tierKey]);
+  if (tierKey && purchasedTierDef) updated = store.setUserTier(user.id, tierKey, purchasedTierDef.monthlyCredits || 0);
 
   sendJSON(res, 200, { user: publicUser(updated) });
 });
@@ -883,7 +923,7 @@ route('POST', '/api/billing/webhook', async (req, res) => {
   // Refill credits to the plan's monthly allotment on each successful renewal invoice.
   if (event.type === 'invoice.payment_succeeded') {
     const owner = store.getUserByStripeCustomerId(obj.customer);
-    const tierDef = owner && pricing.TIERS[owner.plan_tier];
+    const tierDef = owner && pricing.anyTierDef(owner.plan_tier);
     if (owner && tierDef) store.setUserTier(owner.id, owner.plan_tier, tierDef.monthlyCredits);
   }
   sendJSON(res, 200, { received: true });
@@ -910,6 +950,7 @@ route('POST', '/api/projects/:name/unarchive', async (req, res, params, user) =>
 });
 
 route('GET', '/api/portfolio', async (req, res, params, user) => {
+  if (denyUnlessEntitled(res, user, 'portfolioOverview', 'Portfolio overview')) return;
   const rows = store.getPortfolio(user.id).map(({ project, latest }) => ({
     id: project.id,
     name: project.name,
@@ -951,6 +992,7 @@ route('GET', '/api/projects/:name/latest', async (req, res, params, user) => {
 // /analyze), so this one gets real backend enforcement of the earned-value-metrics flag.
 route('POST', '/api/projects/:name/budget', async (req, res, params, user) => {
   if (!store.isFeatureEnabled('earned-value-metrics')) return sendJSON(res, 503, { error: 'Earned value metrics are temporarily unavailable' });
+  if (denyUnlessEntitled(res, user, 'workingTools', 'Earned value tracking')) return;
   const project = store.getProjectByName(user.id, params.name);
   if (!project) return sendJSON(res, 404, { error: 'No such project' });
   const body = await readBody(req);
@@ -964,6 +1006,7 @@ route('POST', '/api/projects/:name/budget', async (req, res, params, user) => {
 
 route('POST', '/api/snapshots/:id/actual-cost', async (req, res, params, user) => {
   if (!store.isFeatureEnabled('earned-value-metrics')) return sendJSON(res, 503, { error: 'Earned value metrics are temporarily unavailable' });
+  if (denyUnlessEntitled(res, user, 'workingTools', 'Earned value tracking')) return;
   const snapshotId = Number(params.id);
   const ownerId = store.getSnapshotOwnerUserId(snapshotId);
   if (ownerId === null) return sendJSON(res, 404, { error: 'No such snapshot' });
@@ -1058,10 +1101,7 @@ route('GET', '/api/issues/:id/fix-guidance', async (req, res, params, user) => {
   if (ownerId === null) return sendJSON(res, 404, { error: 'No such issue' });
   if (ownerId !== user.id) return sendJSON(res, 403, { error: 'Not your project' });
 
-  const billingUser = store.getEffectiveTierUser(user);
-  if (!['pro', 'teams'].includes(billingUser.plan_tier)) {
-    return sendJSON(res, 402, { error: 'Fix guidance is a Pro feature', requiredTier: 'pro' });
-  }
+  if (denyUnlessEntitled(res, user, 'workingTools', 'Fix guidance')) return;
 
   const issue = store.getIssueById(issueId);
   const guidance = fixGuidance.getFixGuidanceForIssue(issue);
@@ -1071,6 +1111,7 @@ route('GET', '/api/issues/:id/fix-guidance', async (req, res, params, user) => {
 
 route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => {
   if (!ai.aiConfigured()) return sendJSON(res, 503, { error: 'AI narrative is not configured yet' });
+  if (user.ai_disabled) return sendJSON(res, 403, { error: 'AI features are turned off for your account — re-enable them in Account settings to use this.' });
   const snapshotId = Number(params.id);
   const ownerId = store.getSnapshotOwnerUserId(snapshotId);
   if (ownerId === null) return sendJSON(res, 404, { error: 'No such snapshot' });
@@ -1083,6 +1124,18 @@ route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => 
   const billingUser = store.getEffectiveTierUser(user);
   if (snapshot.narrative) return sendJSON(res, 200, { narrative: snapshot.narrative, cached: true, creditBalance: billingUser.credit_balance });
 
+  // Primary gate post-restructure: the plan's monthly narrative-query allowance (fair-use, not the
+  // product itself — see entitlements.js). credit_balance below is the secondary overflow valve —
+  // a plan's own monthly refill (pricing.js's monthlyCredits) should comfortably cover its query
+  // cap in normal use, with top-ups as the release valve for anyone who blows through both.
+  const ent = entitlements.resolveEntitlements(user);
+  const narrativeUsedThisMonth = store.countAiUsageThisMonthPooled(billingUser.id, 'narrative');
+  if (narrativeUsedThisMonth >= ent.aiNarrativePerMonth) {
+    return sendJSON(res, 429, {
+      error: `You've used all ${ent.aiNarrativePerMonth} AI narrative summaries included this month — upgrade for a higher allowance, or wait for next month's refill.`,
+      aiNarrativePerMonth: ent.aiNarrativePerMonth, usedThisMonth: narrativeUsedThisMonth
+    });
+  }
   // 429, not 402 — this is a quota/rate concept ("out of credits this period"), distinct from
   // the account-level "no active subscription" case, which no longer blocks the app at all now
   // that every account has a free tier.
@@ -1097,7 +1150,7 @@ route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => 
   const cost = pricing.costUsd(result.inputTokens, result.outputTokens);
   const credits = pricing.creditsForUsage(result.inputTokens, result.outputTokens);
   store.setSnapshotNarrative(snapshotId, result.text);
-  store.logAiUsage(user.id, snapshotId, result.inputTokens, result.outputTokens, cost, credits);
+  store.logAiUsage(user.id, snapshotId, result.inputTokens, result.outputTokens, cost, credits, 'narrative');
   const updatedBillingUser = store.deductCredits(billingUser.id, credits);
 
   sendJSON(res, 200, { narrative: result.text, cached: false, creditsUsed: credits, creditBalance: updatedBillingUser.credit_balance });
@@ -1114,6 +1167,7 @@ route('POST', '/api/snapshots/:id/narrative', async (req, res, params, user) => 
 // diff, flagging restated actual dates and backward-moving percent-complete between the two
 // snapshots (see the comment at their computation below for why).
 route('GET', '/api/snapshots/compare', async (req, res, params, user) => {
+  if (denyUnlessEntitled(res, user, 'workingTools', 'Snapshot comparison')) return;
   const parsed = url.parse(req.url, true);
   const fromId = Number(parsed.query.from);
   const toId = Number(parsed.query.to);
@@ -1220,6 +1274,7 @@ route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
   if (rateLimited(res, 'ai-chat', req, 30, 10 * 60 * 1000)) return;
   if (!ai.aiConfigured()) return sendJSON(res, 503, { error: 'AI chat is not configured yet' });
   if (!store.isFeatureEnabled('ask-ordo-ai')) return sendJSON(res, 503, { error: 'Ask Ordo is temporarily unavailable' });
+  if (user.ai_disabled) return sendJSON(res, 403, { error: 'AI features are turned off for your account — re-enable them in Account settings to use this.' });
   const snapshotId = Number(params.id);
   const ownerId = store.getSnapshotOwnerUserId(snapshotId);
   if (ownerId === null) return sendJSON(res, 404, { error: 'No such snapshot' });
@@ -1233,6 +1288,16 @@ route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
   if (message.length > 2000) return sendJSON(res, 400, { error: 'Keep questions under 2000 characters' });
 
   const billingUser = store.getEffectiveTierUser(user);
+  // Primary gate post-restructure: the plan's monthly Ask Ordo allowance (fair-use, not the
+  // product itself — see entitlements.js). credit_balance below is the secondary overflow valve.
+  const ent = entitlements.resolveEntitlements(user);
+  const askOrdoUsedThisMonth = store.countAiUsageThisMonthPooled(billingUser.id, 'chat');
+  if (askOrdoUsedThisMonth >= ent.askOrdoPerMonth) {
+    return sendJSON(res, 429, {
+      error: `You've used all ${ent.askOrdoPerMonth} Ask Ordo queries included this month — upgrade for a higher allowance, or wait for next month's refill.`,
+      askOrdoPerMonth: ent.askOrdoPerMonth, usedThisMonth: askOrdoUsedThisMonth
+    });
+  }
   if (billingUser.credit_balance <= 0) {
     return sendJSON(res, 429, { error: 'Out of AI credits — upgrade to Pro or wait for your next credit refill', creditBalance: billingUser.credit_balance });
   }
@@ -1262,7 +1327,7 @@ route('POST', '/api/snapshots/:id/chat', async (req, res, params, user) => {
   const credits = pricing.creditsForUsage(result.inputTokens, result.outputTokens);
   store.addChatMessage(snapshotId, user.id, 'user', message);
   store.addChatMessage(snapshotId, user.id, 'assistant', result.text);
-  store.logAiUsage(user.id, snapshotId, result.inputTokens, result.outputTokens, cost, credits);
+  store.logAiUsage(user.id, snapshotId, result.inputTokens, result.outputTokens, cost, credits, 'chat');
   const updatedBillingUser = store.deductCredits(billingUser.id, credits);
 
   res.end(CHAT_STREAM_META_MARKER + JSON.stringify({ creditsUsed: credits, creditBalance: updatedBillingUser.credit_balance }));
@@ -1319,6 +1384,22 @@ route('POST', '/api/feedback', async (req, res, params, user) => {
   sendJSON(res, 200, { feedback });
 });
 
+// Enterprise pricing-tier inquiry — a real form (docs/pricing-restructure.md's S-8), not a
+// mailto: link. Always saved to the database first; the Knock notification is best-effort on top.
+route('POST', '/api/enterprise-inquiry', async (req, res, params, user) => {
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const company = String(payload.company || '').trim().slice(0, 200);
+  const message = String(payload.message || '').trim();
+  if (message.length < 3) return sendJSON(res, 400, { error: 'Tell us a bit about what you need — a sentence is enough' });
+  if (message.length > 2000) return sendJSON(res, 400, { error: 'Keep it under 2000 characters' });
+
+  const inquiry = store.createEnterpriseInquiry(user.id, company, message);
+  knock.notifyEnterpriseInquiry(user, company, message).catch(() => {});
+  sendJSON(res, 200, { inquiry });
+});
+
 // --- Admin Command Center (session required, ADMIN_EMAILS allowlist required) ---
 //
 // Every route below re-checks isAdmin(user) itself rather than trusting any client-side gate —
@@ -1343,7 +1424,7 @@ route('POST', '/api/admin/users/:id/override', async (req, res, params, user) =>
   const targetId = Number(params.id);
   const tier = String(payload.tier || '');
   const credits = Number(payload.credits);
-  if (!pricing.TIERS[tier] && tier !== 'free') return sendJSON(res, 400, { error: 'Unknown plan tier' });
+  if (!pricing.anyTierDef(tier) && tier !== 'free' && tier !== 'enterprise') return sendJSON(res, 400, { error: 'Unknown plan tier' });
   if (!Number.isFinite(credits) || credits < 0) return sendJSON(res, 400, { error: 'Credits must be a non-negative number' });
   const updated = store.setUserTier(targetId, tier, credits);
   if (!updated) return sendJSON(res, 404, { error: 'No such user' });
@@ -1390,7 +1471,9 @@ route('POST', '/api/admin/flags/:id', async (req, res, params, user) => {
 // cost is a manually-maintained config value, not something this app can honestly measure, and
 // combining it with real numbers would imply a precision that doesn't exist (see admin_settings).
 function priceUsdForTier(tierKey) {
-  const tier = pricing.TIERS[tierKey];
+  // anyTierDef, not TIERS — legacy subscribers (starter/pro/teams) still contribute real MRR at
+  // their grandfathered price; using TIERS alone would silently zero out their revenue here.
+  const tier = pricing.anyTierDef(tierKey);
   if (!tier) return 0;
   const match = String(tier.priceLabel).match(/[\d.]+/);
   return match ? parseFloat(match[0]) : 0;
@@ -1609,6 +1692,21 @@ route('POST', '/api/analyze', async (req, res, params, user) => {
   }
 
   if (!fileText) return sendJSON(res, 400, { error: 'No file content received' });
+
+  // Project-limit enforcement is scoped to genuinely NEW project names only — re-scoring an
+  // existing project (the common case: someone re-uploading an updated export) never counts
+  // against the limit, regardless of how many active projects they currently have.
+  if (!store.projectExists(user.id, projectName)) {
+    const ent = entitlements.resolveEntitlements(user);
+    const activeCount = store.countActiveProjects(user.id);
+    if (activeCount >= ent.projectLimit) {
+      return sendJSON(res, 402, {
+        error: `You've reached your plan's active-project limit (${ent.projectLimit}). Archive an inactive project or upgrade to add another.`,
+        projectLimit: ent.projectLimit,
+        activeProjectCount: activeCount
+      });
+    }
+  }
 
   let result;
   try {
