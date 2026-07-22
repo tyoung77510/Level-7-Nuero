@@ -14,12 +14,82 @@
 //              callout treatment; a plain post can just use <p>/<h2> with no .flag markup at all.
 module.exports = [
   {
+    slug: 'founder-log-035-no-fabrication',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-035-cover.jpg',
+    title: "Founder Log 035: An Industry Report Just Proved Why Ordo7 Won't Guess",
+    headline: "Founder Log 035 — 44% of Schedule Updates Rewrite the Truth. Here's Why Ordo7 Never Will.",
+    description: "A leading schedule-analytics platform's own 2026 industry report found nearly half of schedule updates carry risky levels of changed actual dates. Here's why Ordo7 was built to never do that.",
+    category: 'Founder Log',
+    contentHtml: `
+<p class="lead">A leading schedule-analytics platform just published a 2026 industry report — survey responses plus a warehouse of real historic project schedules. Two numbers in it stopped me.</p>
+<p>44% of schedule updates in the study carried risky levels of changed actual dates. 32% walked back progress already claimed. Once an activity starts or finishes, that date is supposed to be a fact. When almost half of updates quietly rewrite it, percent-complete stops reflecting field reality and starts reflecting expectations instead.</p>
+<h2>The confidence gap is just as bad</h2>
+<p>The same report found teams rate their own schedule quality roughly 3x better than the data supports — 38% believe they're "high quality," the actual measurement found 13%. A separate cut found a third of schedules were objectively poor, but only 15% of the people running them knew it. You can't fix a gap you can't see, and most teams can't see it because self-rating and objective measurement aren't the same thing.</p>
+<h2>Why this is exactly the problem Ordo7 was built around</h2>
+<p>This is the whole reason Ordo7 doesn't fabricate a metric it can't actually compute. True cost-based EVM — CPI, cost variance — isn't shown in Ordo7's reports, because a schedule-only export genuinely doesn't carry cost data. Rather than estimate one, it's marked unavailable. The schedule-only performance signal Ordo7 does show is scored directly off what's actually in your uploaded file — no retrofitting, no rounding a number up because it "should" look better by now.</p>
+<p>An industry report just spent 80 pages proving, with real data, that self-reported schedule health can't be trusted at face value. That's not a knock on anyone doing the reporting — it's the exact argument for why an objective, honestly-scoped read matters more than a confident one.</p>
+`.trim()
+  },
+  {
+    slug: 'founder-log-014-ask-ordo',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-014-cover.jpg',
+    title: "Founder Log 014: We Already Built 'Chat With Your Schedule'",
+    headline: "Founder Log 014 — A Well-Funded Competitor Just Validated 'Chat With Your Schedule.' Ordo7's Had It Since Day One.",
+    description: "A well-funded, enterprise-priced competitor in this category just shipped an AI feature that answers plain-language questions about your schedule. Ask Ordo has done exactly that since the early build, on every plan including Free.",
+    category: 'Founder Log',
+    contentHtml: `
+<p class="lead">A well-funded competitor in this category just shipped a headline AI feature: ask your schedule questions in plain language, get an answer back. New VP hires, an enterprise sales cycle, the whole rollout. I'm glad to see it — it's a real signal the market wants exactly what I've been building.</p>
+<p>Here's the thing: Ordo7 already does this. Ask Ordo has been live since early in the build, and it's on every plan, including Free.</p>
+<h2>What Ask Ordo actually does</h2>
+<p>It's a permanently-docked chat panel, grounded in the real numbers of whatever schedule you've uploaded — score, open issues, float, dates. Ask it "why is my score low" or "what's driving the critical path" and it answers using your actual data, not a canned response. But it doesn't stop at the file you loaded: ask it a general project-controls question — how EVM works, what a DCMA check is checking for, how to read a critical path, PMBOK terminology — and it answers that too, the way a working PMO analyst would.</p>
+<h2>Why this matters more than the feature itself</h2>
+<p>The interesting part isn't that Ordo7 has AI chat. It's <em>how</em> you get to use it. The competitor I mentioned sells this through an enterprise sales cycle, gated behind procurement, priced for teams with a budget line for it. Months after launch, it has zero public reviews — which tells you it's landing with a handful of large accounts, not with the person actually doing the work.</p>
+<p>Ask Ordo doesn't require any of that. Upload a schedule, open the chat panel, ask your question. No sales call, no contract, no new headcount to justify the spend. That's not a smaller version of what the enterprise players are building toward — it's the same capability, available to the PM who doesn't have an enterprise budget or a procurement department behind them.</p>
+<h2>Why I'm saying this now</h2>
+<p>I'm not writing this to take a shot at anyone. I'm writing it because when a well-funded, well-staffed competitor validates that "plain-language AI conversation with your schedule" is what the market actually wants, and you already built that — the market deserves to know. This has been one of the most underused facts about Ordo7 so far, and that's on me for not saying it sooner.</p>
+`.trim()
+  },
+  {
+    slug: 'founder-log-003-logic',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-003-cover.jpg',
+    title: "Founder Log 003: Why 'Logic' Is DCMA Check #1",
+    headline: "Founder Log 003 — An Activity With No Predecessor Isn't a Schedule, It's a Guess",
+    description: "The first of the DCMA's 14 schedule-health checks is also the simplest: every activity needs something driving it and something depending on it. Here's why that rule catches so much.",
+    category: 'Founder Log',
+    contentHtml: `
+<p class="lead">I'm spending the next few months of Founder Log posts walking through the DCMA's 14-point schedule assessment, one check at a time, in plain language. Check #1 is Logic, and it's the simplest one to explain — which is exactly why it's first.</p>
+<p>Every activity in a schedule should have two things: a predecessor (something that has to happen before it can start) and a successor (something that depends on it finishing). When an activity is missing one or both, schedulers call it an "open end." It sits in the network disconnected from the rest of the plan.</p>
+<h2>Why open ends are dangerous</h2>
+<p>An open end isn't just messy — it's a blind spot. If an activity has no successor, it can slip by weeks and nothing downstream reacts to it. The finish date doesn't move. The schedule still looks green. But the work behind it is actually late, and nobody's watching because the software isn't set up to notice.</p>
+<p>I've seen this more than once in real schedules: hundreds of activities, a handful of them quietly floating free of the network, and nobody catches it until the work is already behind and there's no paper trail showing why.</p>
+<h2>Why this is check #1</h2>
+<p>Every other DCMA check — float, constraints, duration, all of it — assumes the network logic underneath is sound. If activities aren't properly linked, every other number in the schedule is built on a shaky foundation. That's why logic gets checked first, and why it's the first thing Ordo7 checks too: before it tells you anything else about your schedule's health, it tells you whether the logic holding it together is actually complete.</p>
+<p>Next up in this series: Leads — what happens when an activity is allowed to start before its predecessor actually finishes.</p>
+`.trim()
+  },
+  {
+    slug: 'founder-log-004-utility-safety',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-004-cover.jpg',
+    title: "Founder Log 004: What a Water Utility Program Taught Me About Schedule Discipline",
+    headline: "Founder Log 004 — In Utility Work, a Missed Schedule Isn't Just Late. It's a Safety Problem.",
+    description: "Compliance-driven maintenance schedules don't get extensions. A look back at a water utility program where enforcing schedule discipline cut safety incidents by 9%.",
+    category: 'Founder Log',
+    contentHtml: `
+<p class="lead">Most of the schedule-health conversation online is about construction — GCs, subs, baseline reviews. I've worked in construction too, but some of the sharpest lessons I've learned about why schedule discipline matters came from a water utility maintenance program.</p>
+<p>Utility maintenance work runs on a different clock than construction. A lot of it is compliance-driven — inspections, replacements, and repairs tied to regulatory requirements that don't move just because a team is behind. There's no negotiating a deadline with a regulator the way you might negotiate one with a client.</p>
+<h2>What happens when maintenance schedules slip</h2>
+<p>When maintenance work falls behind, the instinct is to compress it — do more in less time, skip steps, work around normal sequencing. That's exactly when safety incidents happen. On the program I worked on, enforcing real schedule discipline — sequencing work properly, not letting activities pile up against a compliance deadline — cut safety incidents by 9%. The schedule wasn't just a planning tool there. It was a safety control.</p>
+<h2>Why this shaped Ordo7</h2>
+<p>That experience is part of why I'm not building Ordo7 just for construction GCs. The DCMA-style checks — float, logic, constraints — are the same math no matter what industry you're in. What changes is the stakes. In utility work, in pharma, in oil & gas turnarounds, a schedule that's quietly falling apart isn't just a budget problem. Building something that works across all of that, in plain language, is the point.</p>
+`.trim()
+  },
+  {
     slug: 'founder-log-005-eight-years',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-005-cover.jpg',
     title: "Founder Log 005: Eight Years in Project Controls, One Recurring Problem",
     headline: "Founder Log 005 — Eight Years in Project Controls Taught Me One Thing Keeps Breaking",
     description: "PMP-certified, deep in Primavera P6 and EVM, across $100M+ in portfolios and five industries. The tools were always powerful. They were never built for the person actually running the schedule.",
     category: 'Founder Log',
-    ogImage: 'https://www.ordo7.pro/brand/founder-log-005-cover.jpg',
     contentHtml: `
 <p class="lead">I've spent more than eight years in project controls — PMP-certified, deep in Primavera P6, Excel, and Earned Value Management, supporting capital portfolios worth $100M+ across utility, manufacturing, pharmaceutical, oil & gas, and education projects.</p>
 <p>Different industries. Different scopes. Different stakeholders. But the same problem showed up everywhere: the tools I was using were genuinely powerful — Primavera can model almost anything — and they were never built for the person who actually has to sit down and figure out, in the next ten minutes, what's actually wrong with the schedule before a status meeting.</p>
@@ -28,6 +98,38 @@ module.exports = [
 <p>I'm finishing a degree in Construction Management right now, on top of the work — formal credentialing layered onto what I've already learned hands-on. But the instinct behind Ordo7 didn't come from a classroom. It came from years of being the person who had to translate a complicated schedule into something a PM, a director, or a superintendent could actually act on, over and over, for different employers and different projects, because nothing off-the-shelf did that translation for me.</p>
 <h2>What that means for Ordo7</h2>
 <p>Ordo7 isn't trying to replace Primavera or out-feature it. It's trying to be the plain-language layer on top — upload a schedule, get a health check you don't need eight years of experience to understand. That's the whole bet.</p>
+`.trim()
+  },
+  {
+    slug: 'founder-log-007-building-in-public',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-007-cover.jpg',
+    title: "Founder Log 007: Why I'm Building Ordo7 in Public",
+    headline: "Founder Log 007 — No Big Team. No Funding Round. Just the Work, in Public.",
+    description: "Building in public isn't a growth tactic here — it's the only way I know how to build something honest. Here's why the Founder Log exists, and what 'follow the journey' actually means right now.",
+    category: 'Founder Log',
+    contentHtml: `
+<p class="lead">I'm not raising a round before Ordo7 has a single real user. I'm not hiring a team before there's something worth a team building on. I'm building this myself, and I'm documenting it as it happens instead of disappearing for six months and reappearing with a polished launch.</p>
+<p>That's the whole idea behind the Founder Log: real milestones, real setbacks, no highlight reel. If a week is mostly bug fixes and nothing exciting shipped, that's what gets posted. If user feedback changes a feature I was sure about, that gets posted too. The point isn't to look impressive — it's to be honest about what building something from scratch actually looks like.</p>
+<h2>Why "follow the journey," not "buy now"</h2>
+<p>Right now, the call to action on every Founder Log post is "follow the journey," not "buy now." That's deliberate. I'd rather build an audience that's watched this get made — who understands why it exists and what problem it's solving — before I ask anyone for anything. Trust comes first. The ask comes later, and I'll say plainly when that shift happens.</p>
+<h2>What "in public" actually costs</h2>
+<p>Building in public means shipping things before they're perfect and saying so. It means posting about a feature that didn't work out. It's slower, in a sense, than building quietly and controlling the narrative until launch day. But it's the only version of this I actually want to do — and if you're the kind of person who'd rather watch something get built honestly than see it appear fully formed, that's exactly who this is for.</p>
+`.trim()
+  },
+  {
+    slug: 'founder-log-009-staffing-shortage',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-009-cover.jpg',
+    title: "Founder Log 009: The Project Controls Staffing Shortage Nobody's Fixing",
+    headline: "Founder Log 009 — There Aren't Enough Project Controls Analysts. Everyone Feels It.",
+    description: "A capital-projects boom is outpacing the supply of trained project controls talent — and the gap doesn't disappear, it gets absorbed by whoever's already on the project. Usually the PM.",
+    category: 'Founder Log',
+    contentHtml: `
+<p class="lead">There's a real, structural shortage of project controls talent right now, and it's not getting better on its own. Data centers, manufacturing plants, and major industrial capital projects are surging, and staffing agencies simply can't fill project controls and scheduling roles fast enough to keep up.</p>
+<p>I've seen this firsthand, including inside a manufacturing employer in California riding that same capital-projects boom. The demand for people who can actually run a schedule and control costs was there. The qualified people to fill those roles weren't — not because the roles weren't valuable, but because there just aren't enough trained project controls analysts relative to the number of active projects that need one.</p>
+<h2>Where the gap actually goes</h2>
+<p>A staffing gap doesn't mean the work doesn't get done. It means the work gets absorbed by whoever's already there — and on most projects, that's the Project Manager. PMs end up doing cost control and schedule maintenance on top of the job they were actually hired for, because there's no dedicated analyst to hand it to. That's not a training failure or a work-ethic problem. It's a structural mismatch between how fast project volume is growing and how fast the talent pipeline can grow to match it.</p>
+<h2>Why this is Ordo7's actual target user</h2>
+<p>Ordo7 isn't built for project controls departments with a full analyst bench. It's built for the PM who's already doing two jobs and doesn't have the bandwidth to become a Primavera expert on top of everything else. Upload a schedule, get a plain-language health check — the visibility a dedicated analyst would normally provide, without requiring the headcount to hire one.</p>
 `.trim()
   },
   {
