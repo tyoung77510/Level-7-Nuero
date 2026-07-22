@@ -307,6 +307,17 @@
     color: #fff; border-color: var(--orange); font-weight: 600;
     box-shadow: 0 2px 8px color-mix(in srgb, var(--orange) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.25);
   }
+  /* P-3: the Team tier CTA steps down from .cta's filled orange to an outline -- with Professional
+     and Team both filled, neither one read as the primary choice and the Professional POPULAR
+     badge was undercut by a second button of equal visual weight next to it. Same size/position/
+     font-weight as .cta, just no fill, so exactly one filled button remains on the page. */
+  button.btn.btn-cta-outline {
+    background: transparent; color: var(--orange); border-color: var(--orange); font-weight: 600;
+    box-shadow: none;
+  }
+  button.btn.btn-cta-outline:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--orange) 12%, transparent);
+  }
   button.btn.tiny { padding: 4px 10px; font-size: 11px; }
   button.btn:disabled { opacity: 0.6; cursor: default; }
   /* Ambient mouse-follow glow — --mouse-x/--mouse-y are set on these elements by the delegated
@@ -573,35 +584,67 @@
   .tier-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
   .tier-card { display: flex; flex-direction: column; position: relative; padding-top: 30px; min-height: 100%; }
   .tier-card-popular { border-color: var(--accent); box-shadow: 0 4px 16px rgba(45,214,196,0.14); }
-  .tier-badge { position: absolute; top: 12px; left: 16px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 10px; }
+  .tier-badge { position: absolute; top: 12px; left: 16px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 10px; }
   .tier-badge-free { background: var(--line); color: var(--muted); }
   .tier-badge-popular { background: var(--accent); color: #06231f; }
   .tier-badge-soon { background: var(--line); color: var(--muted); }
   .tier-name { margin: 0 0 2px; font-size: 16px; }
-  .tier-tagline { font-size: 12px; color: var(--muted); margin: 0 0 8px; min-height: 32px; }
+  /* P-2: type scale floor -- 13px is the page-wide minimum (labels/table/terms), 14px for card
+     bullets and body copy. min-height bumped 32->36 to still fit two lines of tagline at the
+     larger size without the card growing unevenly against its neighbors. */
+  .tier-tagline { font-size: 13px; color: var(--muted); margin: 0 0 8px; min-height: 36px; }
   .price-line { font-size: 28px; font-weight: 700; color: var(--accent); margin: 4px 0; overflow-wrap: break-word; white-space: normal; }
   .price-line span, .price-line .price-suffix { font-size: 13px; font-weight: 400; color: var(--muted); }
-  .paywall-features { list-style: none; padding: 0; margin: 10px 0 14px; font-size: 12px; flex: 1; }
+  /* Real bug found while working P-5: .price-amount is a <span> (needed so JS can rewrite it on
+     the monthly/annual toggle), which meant the generic ".price-line span" rule above was silently
+     shrinking the headline price itself to 13px/gray -- Free's "$0" and Enterprise's "Custom" are
+     bare text (not spans) so they were never affected, leaving them looking artificially larger
+     than Professional/Team's actual numbers. This restores the real price to the same size/weight/
+     color as the rest of .price-line; the two extra class selectors outweigh ".price-line span" in
+     specificity so this wins regardless of source order. */
+  .price-line .price-amount { font-size: 28px; font-weight: 700; color: var(--accent); }
+  /* P-5: with the bug above fixed, Enterprise's "Custom" would tie the numeric prices at 28px --
+     stepping it down further keeps Enterprise from visually competing with Professional's price. */
+  .price-line.price-line-custom { font-size: 22px; }
+  /* P-4: on annual, the headline figure becomes the monthly-equivalent (e.g. $66/mo), with the
+     actual once-a-year charge and the pre-discount monthly price demoted to this secondary line --
+     buyers compare plans by monthly cost, so that's what should dominate, while the real annual
+     charge stays clearly stated (never hidden) right underneath it. */
+  .price-annual-note { font-size: 13px; color: var(--muted); margin: 0 0 4px; }
+  .price-annual-note .price-was { text-decoration: line-through; opacity: 0.7; margin-right: 4px; }
+  .paywall-features { list-style: none; padding: 0; margin: 10px 0 14px; font-size: 14px; flex: 1; }
   .paywall-features li { padding: 4px 0 4px 20px; position: relative; }
   .paywall-features li::before { content: "\2713"; position: absolute; left: 0; color: var(--good); font-weight: 700; }
+  /* P-6: one differentiating bullet per card is emphasised by weight, not colour alone -- a card
+     of same-weight bullets makes the scan require reading every line to find what matters. */
+  .paywall-features li.bullet-emphasis { font-weight: 600; color: var(--ink); }
   /* B-4: buttons were landing at different vertical positions because .paywall-features already
      flexes to fill remaining space (flex:1) but the button itself wasn't pinned -- margin-top:auto
      on the button is what actually aligns every card's CTA to a shared baseline regardless of how
      many feature lines that tier has above it. */
   .tier-card > .btn, .tier-card > a.btn { margin-top: auto; }
-  .billing-toggle-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 16px; }
-  .billing-toggle-label { font-size: 12.5px; color: var(--muted); }
-  .billing-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 2px; }
-  .billing-toggle-btn { background: none; border: none; padding: 6px 14px; font-size: 12.5px; font-weight: 600; color: var(--muted); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-  .billing-toggle-btn.active { background: var(--accent); color: #06231f; }
-  .billing-save-badge { font-size: 10px; font-weight: 700; background: rgba(45,214,196,0.18); color: var(--accent); padding: 1px 6px; border-radius: 8px; }
+  .billing-toggle-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 20px; }
+  .billing-toggle-label { font-size: 14px; font-weight: 600; color: var(--ink); }
+  /* P-4: toggle was easy to miss despite annual prepay being materially more valuable to the
+     business than the discount costs -- bigger control, bigger badge, thicker active-state
+     contrast so it reads within the first scan of the page rather than blending into the header row. */
+  .billing-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; padding: 4px; gap: 4px; }
+  .billing-toggle-btn { background: none; border: none; padding: 9px 18px; font-size: 14px; font-weight: 600; color: var(--muted); border-radius: 7px; cursor: pointer; display: flex; align-items: center; gap: 7px; }
+  .billing-toggle-btn.active { background: var(--accent); color: #06231f; box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent); }
+  .billing-save-badge { font-size: 13px; font-weight: 700; background: rgba(45,214,196,0.18); color: var(--accent); padding: 2px 7px; border-radius: 8px; }
   .billing-toggle-btn.active .billing-save-badge { background: rgba(6,35,31,0.2); color: #06231f; }
-  .compare-table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 640px; }
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 640px; }
   .compare-table th, .compare-table td { padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--line); }
-  .compare-table th:first-child, .compare-table td:first-child { text-align: left; color: var(--ink); }
-  .compare-table th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; }
+  .compare-table th:first-child, .compare-table td:first-child { text-align: left; color: var(--ink); position: sticky; left: 0; background: var(--card); }
+  .compare-table th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.02em; }
   .compare-table td { color: var(--muted); }
   .compare-table td:first-child { color: var(--ink); }
+  /* P-1: billing content gets its own max-width, independent of #panel-central-workspace's full
+     flex width -- a 1750px-wide comparison-table row on a 2560px display makes the eye travel the
+     entire screen to track one feature from label to Enterprise column. 1240px keeps every card,
+     the table, and the terms block within one comfortable scan without a horizontal scrollbar
+     appearing at any of the standard breakpoints (1280/1440/1920/2560). */
+  .pricing-container { max-width: 1240px; margin: 0 auto; }
   @media (max-width: 1100px) {
     .tier-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
@@ -917,6 +960,7 @@
           <button data-step="pricing"><svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Billing / Plan</button>
         </div>
         <div class="sidebar-footer">
+          <button data-step="settings"><span class="sidebar-footer-icon">&#9881;</span> Account Settings</button>
           <button data-step="guide"><span class="sidebar-footer-icon">?</span> App Guide / Capabilities</button>
           <a id="replayTourLink">Replay tour</a>
         </div>
@@ -940,6 +984,7 @@
         </div>
 
     <div id="v-pricing" class="view">
+      <div class="pricing-container">
       <div class="billing-toggle-row">
         <span class="billing-toggle-label">Billing:</span>
         <div class="billing-toggle" role="tablist" aria-label="Billing interval">
@@ -955,8 +1000,8 @@
           <p class="tier-tagline">Check a single schedule, free forever</p>
           <p class="price-line">$0<span>/month</span></p>
           <ul class="paywall-features">
-            <li>1 active project</li>
-            <li>DCMA 14-point check included — not a paid add-on</li>
+            <li class="bullet-emphasis">1 active project</li>
+            <li>DCMA-style schedule checks included — not a paid add-on</li>
             <li>Full health scoring, issue punch list, critical path view</li>
             <li>3 snapshots of history per project</li>
             <li>10 Ask Ordo queries/mo, 5 AI narrative summaries/mo</li>
@@ -968,14 +1013,14 @@
           <h2 class="tier-name">Professional</h2>
           <p class="tier-tagline">For the planner running their own projects</p>
           <p class="price-line"><span class="price-amount">$79</span><span class="price-suffix">/month</span></p>
+          <p class="price-annual-note" style="display:none;"></p>
           <ul class="paywall-features">
             <li>Everything in Free, plus:</li>
             <li>10 active projects, unlimited snapshot history</li>
-            <li>Gantt timeline, what-if sandbox, snapshot comparison</li>
+            <li class="bullet-emphasis">Gantt timeline, what-if sandbox, snapshot comparison</li>
             <li>Earned value / Earned Schedule tracking</li>
             <li>Portfolio overview, 1-click PDF exports</li>
             <li>200 Ask Ordo queries/mo, 100 AI narrative summaries/mo</li>
-            <li>Email support</li>
           </ul>
           <button class="btn cta" data-tier="professional" style="width:100%;">Subscribe — Professional</button>
         </div>
@@ -983,25 +1028,25 @@
           <h2 class="tier-name">Team</h2>
           <p class="tier-tagline">For project controls teams reporting to clients</p>
           <p class="price-line"><span class="price-amount">$299</span><span class="price-suffix">/month</span></p>
+          <p class="price-annual-note" style="display:none;"></p>
           <ul class="paywall-features">
             <li>Everything in Professional, plus:</li>
             <li>40 active projects</li>
             <li>10 seats included ($29/seat after that)</li>
-            <li>Unwatermarked executive reports, custom branding</li>
+            <li class="bullet-emphasis">Unwatermarked executive reports, custom branding</li>
             <li>Slack / Zapier webhook integrations</li>
             <li>1,000 Ask Ordo queries/mo, 500 AI narrative summaries/mo — pooled across your team</li>
-            <li>Priority email support, DPA on request</li>
           </ul>
-          <button class="btn cta" data-tier="team" style="width:100%;">Subscribe — Team</button>
+          <button class="btn btn-cta-outline" data-tier="team" style="width:100%;">Subscribe — Team</button>
         </div>
         <div class="card tier-card" data-tier-key="enterprise">
           <span class="tier-badge tier-badge-soon">Custom</span>
           <h2 class="tier-name">Enterprise</h2>
           <p class="tier-tagline">For organisations with portfolio-wide requirements</p>
-          <p class="price-line">Custom</p>
+          <p class="price-line price-line-custom">Custom</p>
           <ul class="paywall-features">
             <li>Everything in Team, plus:</li>
-            <li>Unlimited projects and seats</li>
+            <li class="bullet-emphasis">Unlimited projects</li>
             <li>API access, SSO</li>
             <li>Role-based permissions</li>
             <li>Dedicated support with SLA, formal DPA</li>
@@ -1009,12 +1054,12 @@
           <button class="btn" id="enterpriseContactBtn" style="width:100%;">Contact us</button>
         </div>
       </div>
-      <p id="paywallError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
-      <p id="paywallNote" style="font-size:12px; color:var(--muted); text-align:center; margin:10px 0 0;"></p>
+      <p id="paywallError" class="error" style="display:none; padding:6px 0 0; font-size:13px;"></p>
+      <p id="paywallNote" style="font-size:13px; color:var(--muted); text-align:center; margin:10px 0 0;"></p>
 
       <div id="enterpriseForm" class="card" style="margin-top:16px; display:none;">
         <h2 style="margin:0 0 4px; font-size:15px;">Tell us about your organization</h2>
-        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">This goes straight to the Ordo7 team, not a shared mailbox — we'll follow up directly.</p>
+        <p style="font-size:14px; color:var(--muted); margin:0 0 12px;">This goes straight to the Ordo7 team, not a shared mailbox — we'll follow up directly.</p>
         <div style="display:flex; flex-direction:column; gap:8px;">
           <input type="text" id="enterpriseCompany" placeholder="Company name" style="padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
           <textarea id="enterpriseMessage" placeholder="What are you looking to do with Ordo7? (portfolio size, number of seats, timeline, etc.)" rows="4" style="padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-family:inherit; resize:vertical;"></textarea>
@@ -1023,8 +1068,8 @@
           <button class="btn cta" id="enterpriseSubmitBtn">Send inquiry</button>
           <button class="btn" id="enterpriseCancelBtn">Cancel</button>
         </div>
-        <p id="enterpriseError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
-        <p id="enterpriseNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
+        <p id="enterpriseError" class="error" style="display:none; padding:6px 0 0; font-size:13px;"></p>
+        <p id="enterpriseNote" style="font-size:13px; color:var(--muted); margin:8px 0 0;"></p>
       </div>
 
       <div class="card" style="margin-top:16px; overflow-x:auto;">
@@ -1038,7 +1083,7 @@
             <tr><td>Seats</td><td>1</td><td>1</td><td>10 included</td><td>Custom</td></tr>
             <tr><td>Additional seats</td><td>—</td><td>—</td><td>$29/seat/mo</td><td>Custom</td></tr>
             <tr><td>Snapshot history</td><td>3</td><td>Unlimited</td><td>Unlimited</td><td>Unlimited</td></tr>
-            <tr><td>Health score, DCMA-14, issue punch list, critical path</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+            <tr><td>Health score, DCMA-style checks, issue punch list, critical path</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
             <tr><td>Gantt timeline, what-if sandbox, snapshot comparison</td><td>—</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
             <tr><td>Earned value / Earned Schedule</td><td>—</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
             <tr><td>Trend history</td><td>30 days</td><td>Full</td><td>Full</td><td>Full</td></tr>
@@ -1062,7 +1107,7 @@
 
       <div class="card" style="margin-top:16px;">
         <h2 style="margin:0 0 4px; font-size:15px;">Need more AI usage without changing plans?</h2>
-        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Buy AI credits any time, on top of whatever plan you're on — $10 minimum, in $10 increments. Credits don't expire and stack on top of your plan's monthly Ask Ordo / narrative allowance.</p>
+        <p style="font-size:14px; color:var(--muted); margin:0 0 12px;">Buy AI credits any time, on top of whatever plan you're on — $10 minimum, in $10 increments. Credits don't expire and stack on top of your plan's monthly Ask Ordo / narrative allowance.</p>
         <div class="row" style="justify-content:flex-start; flex-wrap:wrap; gap:8px; margin-top:0;">
           <button class="btn topup-btn" data-amount="10">$10 (50 credits)</button>
           <button class="btn topup-btn" data-amount="20">$20 (100 credits)</button>
@@ -1072,46 +1117,33 @@
             <button class="btn topup-btn" id="topupCustomBtn">Buy</button>
           </span>
         </div>
-        <p id="topupError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
-        <p id="topupNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
-        <p style="font-size:12px; color:var(--muted); margin:10px 0 0;">Or <a href="#" id="pricingReferralLink" style="color:var(--accent);">refer a friend</a> — you both get bonus credits, free.</p>
+        <p id="topupError" class="error" style="display:none; padding:6px 0 0; font-size:13px;"></p>
+        <p id="topupNote" style="font-size:13px; color:var(--muted); margin:8px 0 0;"></p>
+        <p style="font-size:14px; color:var(--muted); margin:10px 0 0;">Or <a href="#" id="pricingReferralLink" style="color:var(--accent);">refer a friend</a> — you both get bonus credits, free.</p>
       </div>
 
       <div id="teamOwnerCard" class="card" style="margin-top:16px; display:none;">
         <h2 style="margin:0 0 4px; font-size:15px;">Team members</h2>
-        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Invite people onto your Team plan — they get full access and share your pooled AI allowance, no separate subscription needed. <span id="teamSeatCount"></span></p>
+        <p style="font-size:14px; color:var(--muted); margin:0 0 12px;">Invite people onto your Team plan — they get full access and share your pooled AI allowance, no separate subscription needed. <span id="teamSeatCount"></span></p>
         <ul id="teamMemberList" style="list-style:none; padding:0; margin:0 0 12px;"></ul>
         <div class="row" style="justify-content:flex-start; gap:8px; margin-top:0;">
           <input type="email" id="teamInviteEmail" placeholder="teammate@company.com" style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
           <button class="btn cta" id="teamInviteBtn">Send invite</button>
         </div>
-        <p id="teamError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
-        <p id="teamNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
+        <p id="teamError" class="error" style="display:none; padding:6px 0 0; font-size:13px;"></p>
+        <p id="teamNote" style="font-size:13px; color:var(--muted); margin:8px 0 0;"></p>
       </div>
 
       <div id="teamMemberCard" class="card" style="margin-top:16px; display:none;">
         <h2 style="margin:0 0 4px; font-size:15px;">Team</h2>
         <p id="teamMemberOwnerLine" style="font-size:13px; margin:0 0 12px;"></p>
         <button class="btn" id="teamLeaveBtn">Leave team</button>
-        <p id="teamMemberNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
-      </div>
-
-      <div class="card" style="margin-top:16px;">
-        <h2 style="margin:0 0 4px; font-size:15px;">Integrations</h2>
-        <p style="font-size:12px; color:var(--muted); margin:0 0 12px;">Get a notification every time a schedule finishes analyzing. Paste a Slack "Incoming Webhook" URL to post to a channel, or a Zapier/Make "catch webhook" URL to trigger anything else. Team plan and above.</p>
-        <div class="row" style="justify-content:flex-start; gap:8px; margin-top:0;">
-          <input type="url" id="webhookUrlInput" placeholder="https://hooks.slack.com/services/..." style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
-          <button class="btn cta" id="webhookSaveBtn">Save</button>
-          <button class="btn" id="webhookTestBtn">Send test</button>
-          <button class="btn" id="webhookClearBtn" style="display:none;">Clear</button>
-        </div>
-        <p id="webhookError" class="error" style="display:none; padding:6px 0 0; font-size:12px;"></p>
-        <p id="webhookNote" style="font-size:12px; color:var(--muted); margin:8px 0 0;"></p>
+        <p id="teamMemberNote" style="font-size:13px; color:var(--muted); margin:8px 0 0;"></p>
       </div>
 
       <div class="card" style="margin-top:16px;">
         <h2 style="margin:0 0 8px; font-size:15px;">Good to know</h2>
-        <ul style="font-size:12.5px; color:var(--muted); margin:0; padding-left:18px; line-height:1.7;">
+        <ul style="font-size:13px; color:var(--muted); margin:0; padding-left:18px; line-height:1.7;">
           <li>All prices are in USD.</li>
           <li>An <strong>active project</strong> is one uploaded or re-scored within the last 90 days. Projects outside that window still count toward nothing and stay fully readable — they're just not counted against your plan's project limit, and reappear in the count the moment you re-score them.</li>
           <li>If you hit your plan's active-project limit, uploading a new project is blocked until you archive an existing one or upgrade — nothing already analyzed is ever deleted or hidden.</li>
@@ -1119,6 +1151,25 @@
           <li>Annual plans are billed once for the year (2 months free vs. paying monthly) and are non-refundable pro-rata after the first 14 days; monthly plans can be cancelled any time with no further charges.</li>
           <li>Every account existing before this pricing update keeps its original price and terms indefinitely — nothing changes for existing subscribers.</li>
         </ul>
+      </div>
+      </div>
+    </div>
+
+    <div id="v-settings" class="view">
+      <div class="pricing-container">
+      <p class="section-title" style="margin-bottom:14px;">Account Settings</p>
+      <div class="card" style="margin-top:0;">
+        <h2 style="margin:0 0 4px; font-size:15px;">Integrations</h2>
+        <p style="font-size:14px; color:var(--muted); margin:0 0 12px;">Get a notification every time a schedule finishes analyzing. Paste a Slack "Incoming Webhook" URL to post to a channel, or a Zapier/Make "catch webhook" URL to trigger anything else. Requires the Team plan or above — <a href="#" onclick="event.preventDefault(); setView('pricing');" style="color:var(--accent);">see plans</a>.</p>
+        <div class="row" style="justify-content:flex-start; gap:8px; margin-top:0;">
+          <input type="url" id="webhookUrlInput" placeholder="https://hooks.slack.com/services/..." style="flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;">
+          <button class="btn cta" id="webhookSaveBtn">Save</button>
+          <button class="btn" id="webhookTestBtn">Send test</button>
+          <button class="btn" id="webhookClearBtn" style="display:none;">Clear</button>
+        </div>
+        <p id="webhookError" class="error" style="display:none; padding:6px 0 0; font-size:13px;"></p>
+        <p id="webhookNote" style="font-size:13px; color:var(--muted); margin:8px 0 0;"></p>
+      </div>
       </div>
     </div>
 
@@ -1164,7 +1215,7 @@
             </div>
             <div>
               <p class="wygp-title">A single health score</p>
-              <p class="wygp-sub" id="uploadRingSub">Benchmarked against your baseline &amp; the DCMA 14-point check.</p>
+              <p class="wygp-sub" id="uploadRingSub">Benchmarked against your baseline &amp; DCMA-style schedule checks.</p>
             </div>
           </div>
           <div class="wygp-feature"><span class="wygp-feature-icon bad">!</span><span>Ranked <strong>fix-first</strong> actions — each with what's driving the risk.</span></div>
@@ -1352,6 +1403,7 @@ function setView(step, sourceBtn){
   if (step === 'projects') renderActiveProjects();
   if (step === 'activity') renderActivityFeedTab();
   if (step === 'pricing') renderPricing();
+  if (step === 'settings') renderWebhookSection();
   if (step === 'health' && currentSnapshot) renderHealth(currentSnapshot);
   updateBreadcrumb();
 }
@@ -1431,7 +1483,8 @@ const STANDALONE_STEP_LABELS = {
   pricing: 'Billing / Plan',
   projects: 'Active Projects',
   issues: 'Issue Punch List',
-  portfolio: 'Portfolio Overview'
+  portfolio: 'Portfolio Overview',
+  settings: 'Account Settings'
 };
 function updateBreadcrumb(){
   const el = document.getElementById('breadcrumb');
@@ -2146,15 +2199,19 @@ function renderPricing(){
   });
   updatePricingPrices();
   renderTeamSection();
-  renderWebhookSection();
 }
 
 // --- Annual/monthly billing toggle (default annual — 2 months free, see docs/pricing-restructure.md S-2) ---
-let pricingBillingInterval = 'annual';
+// P-4: persisted across refresh via localStorage -- falls back to the 'annual' default if unset
+// or unavailable (private browsing etc.), never throws.
+let pricingBillingInterval = (function(){
+  try { return localStorage.getItem('ordo7BillingInterval') || 'annual'; } catch (e) { return 'annual'; }
+})();
 const TIER_PRICES = {
-  professional: { monthly: '$79', annual: '$790' },
-  team: { monthly: '$299', annual: '$2,990' }
+  professional: { monthly: 79, annual: 790 },
+  team: { monthly: 299, annual: 2990 }
 };
+function formatUsd(n){ return '$' + n.toLocaleString('en-US'); }
 function updatePricingPrices(){
   document.querySelectorAll('#v-pricing .tier-card').forEach(card => {
     const key = card.dataset.tierKey;
@@ -2162,19 +2219,39 @@ function updatePricingPrices(){
     if (!prices) return; // Free and Enterprise have fixed, non-toggling price text
     const amountEl = card.querySelector('.price-amount');
     const suffixEl = card.querySelector('.price-suffix');
+    const noteEl = card.querySelector('.price-annual-note');
     if (!amountEl || !suffixEl) return;
-    amountEl.textContent = prices[pricingBillingInterval];
-    suffixEl.textContent = pricingBillingInterval === 'annual' ? '/year' : '/month';
+    if (pricingBillingInterval === 'annual') {
+      // P-4: headline becomes the monthly-equivalent (790/12 = 65.83 -> $66, 2990/12 = 249.17 ->
+      // $249, matching the spec's own worked examples) -- the actual once-a-year charge moves to
+      // the secondary line so it's still stated plainly, never hidden, right under the headline.
+      const monthlyEquivalent = Math.round(prices.annual / 12);
+      amountEl.textContent = formatUsd(monthlyEquivalent);
+      suffixEl.textContent = '/mo';
+      if (noteEl) {
+        noteEl.innerHTML = '<span class="price-was">' + formatUsd(prices.monthly) + '/mo</span>billed annually at ' + formatUsd(prices.annual);
+        noteEl.style.display = '';
+      }
+    } else {
+      amountEl.textContent = formatUsd(prices.monthly);
+      suffixEl.textContent = '/month';
+      if (noteEl) noteEl.style.display = 'none';
+    }
   });
 }
 function setBillingInterval(interval){
   pricingBillingInterval = interval;
   document.getElementById('billingMonthlyBtn').classList.toggle('active', interval === 'monthly');
   document.getElementById('billingAnnualBtn').classList.toggle('active', interval === 'annual');
+  try { localStorage.setItem('ordo7BillingInterval', interval); } catch (e) {}
   updatePricingPrices();
 }
 document.getElementById('billingMonthlyBtn').addEventListener('click', () => setBillingInterval('monthly'));
 document.getElementById('billingAnnualBtn').addEventListener('click', () => setBillingInterval('annual'));
+// Reflect a persisted interval in the toggle's initial active state -- the HTML hardcodes Annual
+// as active by default, which is only wrong if the user had switched to Monthly on a prior visit.
+document.getElementById('billingMonthlyBtn').classList.toggle('active', pricingBillingInterval === 'monthly');
+document.getElementById('billingAnnualBtn').classList.toggle('active', pricingBillingInterval === 'annual');
 
 // --- Enterprise inquiry form (replaces a plain mailto: -- docs/pricing-restructure.md S-8) ---
 document.getElementById('enterpriseContactBtn').addEventListener('click', () => {
@@ -2892,7 +2969,7 @@ async function renderChat(){
         "What's driving my health score?",
         'What should I fix first?',
         'Explain my critical path in plain terms',
-        "What's the DCMA 14-point check?"
+        "What checks does Ordo7 run on my schedule?"
       ];
       box.innerHTML = '<p class="empty" style="padding:10px 0 4px;">Ask anything about this schedule — what\'s driving the score, what to fix first, whatever you need. Or ask about project controls in general.</p>' +
         '<div class="chat-suggestions">' + suggestions.map(q => '<button class="chat-suggest-chip" data-q="' + escapeHtml(q) + '">' + escapeHtml(q) + '</button>').join('') + '</div>';
@@ -3884,7 +3961,7 @@ async function renderUploadRing(){
   const score = mostRecent.score;
   const color = scoreColor(score);
   ring.style.setProperty('--ring-color', color);
-  subEl.textContent = 'Last analysis: ' + mostRecent.name + ' — benchmarked against the DCMA 14-point check.';
+  subEl.textContent = 'Last analysis: ' + mostRecent.name + ' — benchmarked against DCMA-style schedule checks.';
   const start = performance.now();
   const duration = 900;
   function tick(now){

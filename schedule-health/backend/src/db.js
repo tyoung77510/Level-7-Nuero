@@ -278,7 +278,7 @@ const FEATURE_FLAG_SEEDS = [
   { id: 'sandbox-simulator', name: 'Sandbox Simulator', description: 'Interactive "What-If" schedule duration overrides.' },
   { id: 'milestone-hygiene', name: 'Milestone Hygiene', description: 'Milestone logical-anchoring check view.' },
   { id: 'critical-path-engine', name: 'Critical Path Engine', description: 'Lists activities currently on the critical path.' },
-  { id: 'dcma-14-check', name: 'DCMA 14-Point Check', description: 'Federal schedule-quality issue detection — the core scoring engine for every new analysis.' },
+  { id: 'dcma-14-check', name: 'DCMA-Style Schedule Checks', description: 'Federal schedule-quality issue detection (6 of DCMA\'s 14 checks automated: Logic, Hard Constraints, High Float, Negative Float, High Duration, Invalid Dates, plus Out-of-Sequence work) — the core scoring engine for every new analysis. Flag ID kept as dcma-14-check for backward compatibility; display name corrected 2026-07-22.' },
   { id: 'ask-ordo-ai', name: 'Ask Ordo AI', description: 'Claude-powered schedule Q&A in the sidebar.' },
   { id: 'earned-value-metrics', name: 'Earned Value Metrics', description: 'Earned Schedule progress tracking + optional manual-budget cost variance (CPI/CV).' }
 ];
