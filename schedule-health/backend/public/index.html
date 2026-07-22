@@ -956,7 +956,7 @@
           <p class="price-line">$0<span>/month</span></p>
           <ul class="paywall-features">
             <li>1 active project</li>
-            <li>DCMA 14-point check included — not a paid add-on</li>
+            <li>DCMA-style schedule checks included — not a paid add-on</li>
             <li>Full health scoring, issue punch list, critical path view</li>
             <li>3 snapshots of history per project</li>
             <li>10 Ask Ordo queries/mo, 5 AI narrative summaries/mo</li>
@@ -1038,7 +1038,7 @@
             <tr><td>Seats</td><td>1</td><td>1</td><td>10 included</td><td>Custom</td></tr>
             <tr><td>Additional seats</td><td>—</td><td>—</td><td>$29/seat/mo</td><td>Custom</td></tr>
             <tr><td>Snapshot history</td><td>3</td><td>Unlimited</td><td>Unlimited</td><td>Unlimited</td></tr>
-            <tr><td>Health score, DCMA-14, issue punch list, critical path</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+            <tr><td>Health score, DCMA-style checks, issue punch list, critical path</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
             <tr><td>Gantt timeline, what-if sandbox, snapshot comparison</td><td>—</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
             <tr><td>Earned value / Earned Schedule</td><td>—</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
             <tr><td>Trend history</td><td>30 days</td><td>Full</td><td>Full</td><td>Full</td></tr>
@@ -1164,7 +1164,7 @@
             </div>
             <div>
               <p class="wygp-title">A single health score</p>
-              <p class="wygp-sub" id="uploadRingSub">Benchmarked against your baseline &amp; the DCMA 14-point check.</p>
+              <p class="wygp-sub" id="uploadRingSub">Benchmarked against your baseline &amp; DCMA-style schedule checks.</p>
             </div>
           </div>
           <div class="wygp-feature"><span class="wygp-feature-icon bad">!</span><span>Ranked <strong>fix-first</strong> actions — each with what's driving the risk.</span></div>
@@ -2892,7 +2892,7 @@ async function renderChat(){
         "What's driving my health score?",
         'What should I fix first?',
         'Explain my critical path in plain terms',
-        "What's the DCMA 14-point check?"
+        "What checks does Ordo7 run on my schedule?"
       ];
       box.innerHTML = '<p class="empty" style="padding:10px 0 4px;">Ask anything about this schedule — what\'s driving the score, what to fix first, whatever you need. Or ask about project controls in general.</p>' +
         '<div class="chat-suggestions">' + suggestions.map(q => '<button class="chat-suggest-chip" data-q="' + escapeHtml(q) + '">' + escapeHtml(q) + '</button>').join('') + '</div>';
@@ -3884,7 +3884,7 @@ async function renderUploadRing(){
   const score = mostRecent.score;
   const color = scoreColor(score);
   ring.style.setProperty('--ring-color', color);
-  subEl.textContent = 'Last analysis: ' + mostRecent.name + ' — benchmarked against the DCMA 14-point check.';
+  subEl.textContent = 'Last analysis: ' + mostRecent.name + ' — benchmarked against DCMA-style schedule checks.';
   const start = performance.now();
   const duration = 900;
   function tick(now){
