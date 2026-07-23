@@ -2322,11 +2322,14 @@ function chipCategoriesFrom(posts) {
 }
 
 function serveBlogIndex(req, res) {
-  // Founder Log has its own tab (A6) — the main index only ever shows non-Founder-Log posts, so it
-  // never surfaces Founder Log as a category chip or featured/list slot here.
-  const posts = store.listBlogPosts().map(postViewModel).filter(p => p.category !== 'Founder Log');
-  const featured = posts[0];
-  const rest = posts.slice(1);
+  // Founder Log has its own tab (A6), but until there's enough non-Founder-Log content to carry the
+  // main index on its own, Founder Log posts are shown here too so the blog doesn't read as empty.
+  // The featured hero still prefers a non-Founder-Log post (A6: Founder Log shouldn't own the featured
+  // slot); any remaining posts, Founder Log included, fill the list below. Revisit tightening this once
+  // the cornerstone guides are live and can lead the page on their own.
+  const allPosts = store.listBlogPosts().map(postViewModel);
+  const featured = allPosts.find(p => p.category !== 'Founder Log') || allPosts[0];
+  const rest = featured ? allPosts.filter(p => p.slug !== featured.slug) : allPosts;
 
   let bodyHtml;
   if (!featured) {
@@ -2355,7 +2358,7 @@ function serveBlogIndex(req, res) {
 
       <div class="chips rise" id="blogChips">
         <button type="button" class="chip-active" data-cat="all">All</button>
-        ${chipCategoriesFrom(posts).map(cat => `<button type="button" class="chip" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`).join('\n        ')}
+        ${chipCategoriesFrom(allPosts).map(cat => `<button type="button" class="chip" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`).join('\n        ')}
       </div>
 
       <div class="featured rise" data-cat="${escapeHtml(featured.category)}">
