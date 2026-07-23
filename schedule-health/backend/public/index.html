@@ -1493,7 +1493,7 @@ function setView(step, sourceBtn){
   if (step === 'sandbox') renderSandbox();
   if (step === 'projects') renderActiveProjects();
   if (step === 'activity') renderActivityFeedTab();
-  if (step === 'pricing') renderPricing();
+  if (step === 'pricing') { renderPricing(); trackEvent('view_pricing', { tier: (currentUser && currentUser.effectiveTier) || 'free' }); }
   if (step === 'settings') renderWebhookSection();
   if (step === 'health' && currentSnapshot) renderHealth(currentSnapshot);
   updateBreadcrumb();
@@ -1868,6 +1868,25 @@ function updateCreditPill(user){
   el.textContent = tierLabel(user.effectiveTier) + ' plan';
 }
 
+// --- Product analytics: fan a funnel event out to whatever trackers the visitor actually
+// consented to. consent.js only defines window.gtag / window.fbq AFTER the visitor accepts the
+// matching category (and only when the corresponding ID is configured server-side), so every call
+// here is inherently consent-gated: if they declined, or no tracker is set up at all, these globals
+// don't exist and the call is a silent no-op. GA4 event names use Google's recommended vocabulary
+// where one exists (sign_up, login, begin_checkout, purchase); the optional metaStandard maps to a
+// Meta standard event when there's a clean equivalent, otherwise the event is sent as a Meta custom
+// event. Never throws -- analytics must never be able to break the actual product flow.
+function trackEvent(name, params, metaStandard){
+  params = params || {};
+  try { if (typeof window.gtag === 'function') window.gtag('event', name, params); } catch (e) {}
+  try {
+    if (typeof window.fbq === 'function') {
+      if (metaStandard) window.fbq('track', metaStandard, params);
+      else window.fbq('trackCustom', name, params);
+    }
+  } catch (e) {}
+}
+
 // Tier-gates for features that don't exist as their own routes/checks yet — each one will grow
 // its own UI (Gantt view, sandbox, etc.) as it's built; this is just the access-check they'll all
 // share, kept in one place so the tier list per feature isn't duplicated at every call site.
@@ -1955,6 +1974,10 @@ document.getElementById('authSubmit').addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+    // Funnel: signup is the top of the activation funnel (Meta CompleteRegistration is its standard
+    // equivalent); login is tracked too so returning-user sessions are distinguishable from new ones.
+    if (authMode === 'signup') trackEvent('sign_up', { method: 'password' }, 'CompleteRegistration');
+    else trackEvent('login', { method: 'password' });
     routeForUser(result.user);
     setView('upload');
   } catch (e) {
@@ -2563,6 +2586,15 @@ document.querySelectorAll('#v-pricing [data-tier]').forEach(btn => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tier, interval: pricingBillingInterval })
       });
+      // Funnel: begin_checkout fires only once Stripe actually hands back a checkout URL (a real
+      // intent, not a mis-click). We stash tier/interval/value in sessionStorage so the matching
+      // `purchase` event -- which happens AFTER the round-trip to Stripe and back -- can report the
+      // accurate charge amount instead of guessing it post-redirect. sessionStorage survives the
+      // same-origin return from Stripe; value is derived from TIER_PRICES, never client-trusted for
+      // anything real (the server still derives the actual charge from Stripe's price ID).
+      const checkoutValue = (TIER_PRICES[tier] && TIER_PRICES[tier][pricingBillingInterval]) || null;
+      try { sessionStorage.setItem('ordo7_pending_purchase', JSON.stringify({ tier, interval: pricingBillingInterval, value: checkoutValue })); } catch (e) {}
+      trackEvent('begin_checkout', { tier: tier, interval: pricingBillingInterval, value: checkoutValue, currency: 'USD' }, 'InitiateCheckout');
       window.location.href = url;
     } catch (e) {
       errEl.textContent = e.message;
@@ -2582,6 +2614,11 @@ async function startTopup(amountUsd){
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amountUsd })
     });
+    // Funnel: a credit top-up is its own small checkout. Stash the amount so topup-success can
+    // report an accurate purchase value after the Stripe round-trip. Credits = amount x 5
+    // ($0.20/credit, TOPUP_CREDIT_PRICE_USD in pricing.js).
+    try { sessionStorage.setItem('ordo7_pending_topup', JSON.stringify({ value: amountUsd, credits: amountUsd * TOPUP_CREDITS_PER_USD })); } catch (e) {}
+    trackEvent('begin_checkout', { content_type: 'credits', value: amountUsd, currency: 'USD' }, 'InitiateCheckout');
     window.location.href = url;
   } catch (e) {
     errEl.textContent = e.message;
@@ -2669,6 +2706,18 @@ async function handleCheckoutRedirect(){
         updateCreditPill(result.user);
         renderPricing();
         document.getElementById('paywallNote').textContent = 'You\'re on the ' + tierLabel(result.user.planTier) + ' plan.';
+        // Funnel: purchase is the conversion. Value/interval come from the begin_checkout stash so
+        // the number is the real charge, not a post-hoc guess; sessionId is the transaction id so
+        // GA4/Meta dedupe repeat verifies of the same checkout.
+        let pending = {};
+        try { pending = JSON.parse(sessionStorage.getItem('ordo7_pending_purchase') || '{}'); sessionStorage.removeItem('ordo7_pending_purchase'); } catch (e) {}
+        trackEvent('purchase', {
+          transaction_id: sessionId,
+          tier: result.user.planTier,
+          interval: pending.interval || null,
+          value: (typeof pending.value === 'number') ? pending.value : null,
+          currency: 'USD'
+        }, 'Purchase');
       }
       else { document.getElementById('paywallNote').textContent = 'Payment is still processing — refresh in a moment.'; }
     } catch (e) {
@@ -2685,6 +2734,15 @@ async function handleCheckoutRedirect(){
         currentUser = result.user;
         updateCreditPill(result.user);
         document.getElementById('topupNote').textContent = 'Credits added — new balance: ' + result.user.creditBalance + '.';
+        // Funnel: credit top-up conversion, value from the startTopup stash.
+        let pendingTopup = {};
+        try { pendingTopup = JSON.parse(sessionStorage.getItem('ordo7_pending_topup') || '{}'); sessionStorage.removeItem('ordo7_pending_topup'); } catch (e) {}
+        trackEvent('purchase', {
+          transaction_id: sessionId,
+          content_type: 'credits',
+          value: (typeof pendingTopup.value === 'number') ? pendingTopup.value : null,
+          currency: 'USD'
+        }, 'Purchase');
       }
       else { document.getElementById('topupNote').textContent = 'Payment is still processing — refresh in a moment.'; }
     } catch (e) {
@@ -4042,6 +4100,13 @@ async function submitAnalysis(projectName, filename, content){
     updateBreadcrumb();
     renderChat();
     setView('health');
+    // Funnel: a completed analysis is the activation event -- the first time someone actually gets
+    // the product's core value (a scored schedule). The first-ever analysis is the strongest lead
+    // signal, so it maps to Meta's standard Lead event; subsequent analyses stay a custom event.
+    trackEvent('schedule_analyzed', {
+      first_analysis: !!result.isFirstAnalysis,
+      health_score: (currentSnapshot && typeof currentSnapshot.score === 'number') ? currentSnapshot.score : null
+    }, result.isFirstAnalysis ? 'Lead' : undefined);
     if (result.isFirstAnalysis && currentUser && !currentUser.profileSurveyDismissed) {
       openProfileSurveyModal();
     }
