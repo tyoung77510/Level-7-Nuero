@@ -37,6 +37,11 @@ Production (ordo7.pro) deploys from **`main`**. All posting work — blog append
 
 The **company pages already post native images** (the full 4:5 graphic in-feed). The **personal profile cannot** through Zapier's only personal action — it attaches the graphic as a link-card preview, not a native image. Making the personal post native (matching the company pages) requires posting via LinkedIn's API directly — tracked as **Phase 2** below.
 
+### Image hosting — serve from ordo7.pro, never raw.githubusercontent.com
+LinkedIn fetches the post image at publish time. GitHub's raw host (`raw.githubusercontent.com`) rate-limits that fetcher, which makes the **native company-image post fail intermittently** (`Could not find entity` / `DataMap should have no more than one entry for a union type`) — this was the exact bug that blocked the 2026-07-23 run. Every day's feed graphic is deployed to `backend/public/brand/` and served from `https://www.ordo7.pro/brand/…`, which is reliable.
+
+**Always post the company-page image using its `https://www.ordo7.pro/brand/founder-log-0NN-feed-1200x1500.jpg` URL — never the raw.githubusercontent.com URL.** For a new day: after rendering, copy the feed image into `backend/public/brand/`, commit + deploy so the ordo7.pro URL returns 200, then post (same gate as the blog link). Verified: on 2026-07-23 the Ordo7 native post that failed 3× on the raw-GitHub URL succeeded first-try on the ordo7.pro URL.
+
 ## Caption formula (from `brand-narrative.md`)
 hook line → the problem/story → what Ordo7 does → `Read the full post → <blog URL>` → `Follow Ordo7 on LinkedIn → https://www.linkedin.com/company/ordo7/` → `Try It For Free → https://ordo7.pro` → 4–5 hashtags. **`#Ordo7` is mandatory every time**, plus 3–4 topic-relevant tags. The blog link is mandatory (every day has a matching blog post).
 
