@@ -167,5 +167,127 @@ module.exports = [
   <p>You don't have to become a scheduler to hold one accountable. These five checks catch the large majority of baselines that are unrealistic on the day they're submitted — and asking about them, by name, changes how a contractor builds the next one.</p>
 </section>
 `.trim()
+  },
+  {
+    slug: 'dcma-14-point-check-guide',
+    ogImage: 'https://www.ordo7.pro/brand/dcma-14-point-check-cover.jpg',
+    title: "The DCMA 14-Point Check: A Complete Guide",
+    headline: "The DCMA 14-Point Check, Explained Without the Jargon",
+    description: "The DCMA 14-point check, explained: all 14 official metrics, real thresholds, and which ones Ordo7 automates today, sourced from DCMA's own standard.",
+    category: 'DCMA & compliance',
+    toc: [
+      { id: 'origin', label: 'Where it came from' },
+      { id: 'definitions', label: 'Two definitions first' },
+      { id: 'check-1', label: 'Check 1 \u00b7 Logic' },
+      { id: 'check-5', label: 'Check 5 \u00b7 Hard Constraints' },
+      { id: 'check-6', label: 'Check 6 \u00b7 High Float' },
+      { id: 'check-9', label: 'Check 9 \u00b7 Invalid Dates' },
+      { id: 'coverage', label: 'Where Ordo7 fits in today' },
+      { id: 'sources', label: 'Sources' }
+    ],
+    contentHtml: `
+<p class="lead">If you've been asked to "run the DCMA 14-point check" on your schedule, here's the short answer: it's a set of 14 ratio-based tests — things like what percentage of your activities are missing logic, how many have excessive float, whether your critical path actually behaves like a critical path — that the Defense Contract Management Agency (DCMA) built to flag potential quality problems in a Primavera P6 or MS Project schedule. Most of the 14 checks compare a count of "bad" activities to a total, express it as a percentage, and flag anything over 5%. A few work differently — one is a stress test you run directly on the schedule, and two are index numbers instead of percentages. None of them tell you your schedule is wrong. They tell you where to look.</p>
+<p>I'm Taj, building Ordo7 — a plain-language schedule health tool. Before I explain what my own tool checks, I want to walk through what DCMA actually published, because most of what's online about "the DCMA 14-point check" is a paraphrase of a paraphrase. I went to the source for this one: DCMA's own EVMS Program Analysis Pamphlet, <a href="https://mosaicprojects.com.au/PDF-Gen/DCMA-PAM-200-1.pdf" target="_blank" rel="noopener">DCMA-EA PAM 200.1</a> (October 2012) — the last version of this standard DCMA itself published, Section 4.0. Every threshold below is quoted or closely paraphrased from that document, not from memory or from a vendor's marketing page.</p>
+
+<h2 id="origin">Where the DCMA 14-point check came from</h2>
+<p>In March 2005, the Under Secretary of Defense for Acquisition and Technology mandated that contracts over $20 million maintain an Integrated Master Schedule (IMS) — the master CPM (Critical Path Method) schedule tying together all the work on a program. That memo also told DCMA to come up with a way to evaluate those schedules consistently across every contract they oversee. What came out of that is the 14-point check: a standardized set of ratio tests any analyst can run against an IMS, regardless of which contractor built it, and get a comparable answer.</p>
+<p>It was never meant to be a pass/fail law. DCMA's own document frames it as a way to "provide a catalyst for constructive discussions" and "a baseline for tracking IMS improvement over time" — a flag for a conversation, not a verdict. A schedule that trips one of these thresholds isn't automatically broken; it's a place to ask a follow-up question.</p>
+
+<h2 id="definitions">The two definitions you need before any of the 14 checks make sense</h2>
+<p>DCMA's math only works if you're clear on what counts in the denominator. Two terms come up in almost every check below:</p>
+<p><strong>Incomplete task</strong> (DCMA also calls this a "Total Task"): any real, working activity — not a milestone, not a summary/WBS bar, not Level of Effort, and not already 100% complete. A concrete-pour activity that's 40% done counts. A "Foundation Complete" milestone doesn't. Neither does a rolled-up "Sitework" summary bar.</p>
+<p><strong>Logic link:</strong> the predecessor/successor relationship connecting two activities — Finish-to-Start (FS, "the next activity can't start until this one finishes"), Start-to-Start (SS), Finish-to-Finish (FF), or Start-to-Finish (SF).</p>
+<p>With those two definitions in hand, here are the 14 checks, in DCMA's own order.</p>
+
+<h2 id="check-1">Check 1 — Logic: are your activities actually connected?</h2>
+<p><strong>What it measures:</strong> the percentage of incomplete activities missing a predecessor, a successor, or both. DCMA's formula: (# of tasks missing logic ÷ # of incomplete tasks) × 100. The threshold is 5% — go over that and the check is flagged.</p>
+<p>Picture a schedule where "Install Rebar" has a predecessor (Excavation) but nothing scheduled after it — no successor pulling it toward "Pour Concrete." That activity is dangling. If float and dates calculate off of logic links, an activity with no logic at all just sits wherever it was manually placed — its float number is meaningless because nothing is actually driving or constraining it.</p>
+<p><strong>Takeaway:</strong> every real activity should have at least one predecessor tied to its start and one successor tied to its finish. If more than 1 in 20 don't, that's your first thing to run down. I've written a longer walkthrough of just this one check, with more real-world examples, in <a href="/blog/missing-predecessors-successors-p6-dcma-check-1">An Activity With No Predecessor Isn't a Schedule, It's a Guess</a>.</p>
+
+<h2 id="check-2-3">Check 2 &amp; 3 — Leads and Lags: don't let the schedule lie about sequencing</h2>
+<p><strong>Leads (negative lags):</strong> a lead is a logic link with a negative time value — it lets a successor start before its predecessor is actually done. DCMA's position is blunt: leads shouldn't exist at all. The target is 0%.</p>
+<p><strong>Lags (positive lags):</strong> a lag is a built-in waiting period on a logic link — "Concrete Cure" as a 3-day lag on the link between "Pour Slab" and "Frame Walls," instead of its own activity. DCMA allows some lag, capped at 5% of logic links.</p>
+<p>Why the asymmetry? A lead hides the fact that two activities are really overlapping, which can distort your float calculations and hide resource conflicts. A lag, used sparingly, can reasonably represent real non-work time like curing or inspection turnaround — though DCMA and most schedulers would rather see that curing time as its own activity than buried in a lag value nobody questions later.</p>
+<p><strong>Takeaway:</strong> if you see a negative-duration relationship anywhere in your logic, that's worth a conversation before it's worth a workaround.</p>
+
+<h2 id="check-4">Check 4 — Relationship Types: is Finish-to-Start actually your default?</h2>
+<p><strong>What it measures:</strong> what fraction of your logic links are Finish-to-Start (FS) — "the next activity can't start until this one finishes." DCMA's bar: FS links should make up at least 90% of the logic in the schedule.</p>
+<p>FS is the relationship type that produces a genuinely traceable critical path. Start-to-Start and Finish-to-Finish have real, legitimate uses — "Install Drywall" (SS) can start two days after "Rough Electrical" starts, for instance, without waiting for it to finish. But a schedule leaning heavily on SS/FF/SF links gets harder to reason about, and a Start-to-Finish link in particular is rare enough that DCMA calls for it to be used only with real justification.</p>
+<p><strong>Takeaway:</strong> FS should be your default relationship. If it's under 90%, look at why — it's often a sign logic was patched in after the fact rather than planned.</p>
+
+<h2 id="check-5">Check 5 — Hard Constraints: is the schedule still logic-driven?</h2>
+<p><strong>What it measures:</strong> the percentage of incomplete activities carrying a hard constraint. DCMA's current list of hard constraints: Must-Finish-On (MFO), Must-Start-On (MSO), Start-No-Later-Than (SNLT), and Finish-No-Later-Than (FNLT). Threshold: 5%.</p>
+<p>A hard constraint locks a date in place regardless of what the network logic calculates. If "Deliver Equipment" carries a Must-Start-On date, that date holds even if every upstream activity finishes late — which means the schedule stops reflecting reality and starts reflecting wishful thinking. DCMA distinguishes these from soft constraints — As-Soon-As-Possible (ASAP), Start-No-Earlier-Than (SNET), Finish-No-Earlier-Than (FNET) — which nudge a date without overriding the logic that calculates it.</p>
+<p><strong>Takeaway:</strong> a handful of hard constraints tied to real contractual milestones is normal. A schedule where 1 in 10 activities is pinned to a fixed date usually means the logic isn't doing the driving anymore — the constraints are.</p>
+
+<h2 id="check-6">Check 6 — High Float: is 44 days of slack believable?</h2>
+<p><strong>What it measures:</strong> the percentage of incomplete activities with more than 44 working days (about two calendar months) of total float (TF — the amount of time an activity can slip before it delays the project). Threshold: 5%.</p>
+<p>If "Install Signage" shows 90 working days of float on an 8-month project, that's not necessarily wrong — but it's worth asking why. Often it's a sign the activity is genuinely low-priority and correctly floats late. Just as often, it means logic is missing somewhere upstream or downstream, and the float number is an artifact of that gap rather than a real scheduling decision.</p>
+<p><strong>Takeaway:</strong> high float isn't automatically bad, but a cluster of it is a prompt to check whether those activities are missing logic, not evidence they're safe to ignore.</p>
+
+<h2 id="check-7">Check 7 — Negative Float: the one DCMA wants at zero</h2>
+<p><strong>What it measures:</strong> the percentage of incomplete activities with total float below zero. DCMA's target here is 0% — no negative float without an explanation and a corrective action plan attached.</p>
+<p>Negative float means an activity's calculated dates would finish after the date it's actually constrained or required to finish by — the schedule is telling you, mathematically, that the current plan can't hit its own commitment date without intervention. If "Substantial Completion" is carrying -12 days of float, that's not a rounding error; it's the schedule saying the current sequence of work runs 12 days past where it needs to land.</p>
+<p><strong>Takeaway:</strong> negative float is the metric with the least room for "it's probably fine." Every negative-float activity should have a known cause and a plan, not just a number sitting there unexamined.</p>
+
+<h2 id="check-8">Check 8 — High Duration: is 44 days too long for one activity?</h2>
+<p><strong>What it measures:</strong> incomplete activities with a duration longer than 44 working days, with a baseline start inside your detailed planning window. Threshold: 5%.</p>
+<p>An activity like "Structural Steel Erection" scheduled as a single 60-day bar is hard to status honestly — is it 20% done, 50% done, on track? A long single bar hides the internal milestones (steel delivered, first level erected, topped out) that would actually tell you whether it's on pace. DCMA's rolling-wave exception recognizes that far-future work is sometimes legitimately planned at a coarser level — the flag is really about near-term, detailed-planning-period activities.</p>
+<p><strong>Takeaway:</strong> if a near-term activity runs longer than about two months, ask whether it should be broken into smaller, individually trackable pieces.</p>
+
+<h2 id="check-9">Check 9 — Invalid Dates: is the schedule internally consistent?</h2>
+<p><strong>What it measures:</strong> whether any incomplete activity has a forecast date before the schedule's status date, or a completed activity has an actual date after the status date. DCMA doesn't publish this one as a percentage threshold — it's zero tolerance. Either your dates are logically consistent with "today," or they're not.</p>
+<p>An activity can't be forecast to start yesterday if it hasn't started yet, and it can't show an actual finish date next month if today is the 1st. Both are signs of a data entry error or, less innocently, of someone backdating progress to make the schedule look better than it is.</p>
+<p><strong>Takeaway:</strong> invalid dates are a straightforward data-integrity check, not a judgment call — any hit here should get fixed, not investigated for nuance.</p>
+
+<h2 id="check-10">Check 10 — Resources: is the schedule loaded the way it claims to be?</h2>
+<p><strong>What it measures:</strong> whether incomplete activities with a duration of at least one day have resources or cost assigned. DCMA doesn't set a pass/fail threshold here — some schedules are legitimately never resource-loaded, and that's a valid choice, not a violation. This one is reported as a ratio for context, not scored against a cutoff.</p>
+<p><strong>Takeaway:</strong> if your organization has committed to resource- or cost-loading a schedule, this check tells you how completely that commitment was actually carried out.</p>
+
+<h2 id="check-11">Check 11 — Missed Tasks: how well is the plan tracking to its own baseline?</h2>
+<p><strong>What it measures:</strong> the percentage of activities that were supposed to finish on or before the status date (per the baseline) but actually finished — or are forecast to finish — later than that. Threshold: 5%.</p>
+<p>This is the check most directly about performance rather than structure. If "Rough-In Inspection Pass" baselined for finishing three weeks ago and it's still open today, that's a missed task. A schedule can have perfect logic and still fail this check if the work itself is falling behind.</p>
+<p><strong>Takeaway:</strong> this is your best single signal for "is the plan still tracking to what we said we'd do," separate from whether the schedule was built well in the first place.</p>
+
+<h2 id="check-12">Check 12 — Critical Path Test: does the logic actually hold together?</h2>
+<p><strong>What it measures:</strong> not a percentage — a stress test. Take a critical activity, artificially stretch its remaining duration by a large amount (DCMA's training uses 600 working days), recalculate, and see whether the project completion date moves by a proportional amount. If it does, the logic holds. If completion barely budges despite a 600-day hit to a "critical" activity, the logic is broken somewhere — probably a missing successor link that lets the delay dead-end instead of flowing through to the finish.</p>
+<p><strong>Takeaway:</strong> this is the check that catches broken logic the other 13 checks might miss — it's worth running whenever you don't fully trust your critical path.</p>
+
+<h2 id="check-13">Check 13 — Critical Path Length Index (CPLI): is your critical path believable?</h2>
+<p><strong>What it measures:</strong> CPLI = (Critical Path Length + Total Float) ÷ Critical Path Length, where Critical Path Length is the number of working days from today to the milestone you're measuring. A CPLI of 1.00 means you need to accomplish exactly one day of progress for every calendar day that passes — no slack, no cushion. Below 0.95, DCMA flags it: the schedule is aggressive relative to its own target date and increasingly unlikely to hit it without recovery. Above 1.00 suggests room to spare.</p>
+<p><strong>Takeaway:</strong> CPLI answers a different question than float alone — it tells you how realistic your target completion date is given how the whole network is currently shaped, not just whether any one activity is late.</p>
+
+<h2 id="check-14">Check 14 — Baseline Execution Index (BEI): are you completing work at the rate you planned?</h2>
+<p><strong>What it measures:</strong> the ratio of tasks actually completed to the number of tasks that were supposed to be completed by now per the baseline. Target is 1.00; DCMA flags anything below 0.95. A BEI of 0.85 means you're completing roughly 15% fewer tasks than the original plan called for by this point — a leading indicator of schedule trouble, often visible before cost or float numbers catch up to it.</p>
+<p><strong>Takeaway:</strong> BEI is a throughput measure, not a "how late is any one thing" measure — it's the metric most likely to give you an early warning that the overall pace of execution has slipped.</p>
+
+<h2 id="coverage">Where Ordo7 fits into this today</h2>
+<p>Ordo7 runs a DCMA-style health check, automating <strong>6 of these 14</strong> checks directly against a Primavera .xer, MS Project XML, or CSV export: <strong>Logic (Check 1)</strong>, <strong>Hard Constraints (Check 5)</strong>, <strong>High Float (Check 6)</strong>, <strong>Negative Float (Check 7)</strong>, <strong>High Duration (Check 8)</strong>, and <strong>Invalid Dates (Check 9)</strong> — using the same thresholds described above: 5% for the ratio checks, the 44-working-day cutoff for float and duration, and Must-Start-On/Must-Finish-On for hard constraints.</p>
+<p>Two honest caveats, because I'd rather tell you the exact shape of the tool than round up: Ordo7's Logic check flags a regular activity only when it's missing <strong>both</strong> a predecessor and a successor — narrower than DCMA's own definition, which flags an activity missing <em>either</em> one (milestones do get DCMA's broader either/or rule). And the Hard Constraints check currently looks for Mandatory Start/Finish dates specifically (P6's MSO/MEO constraint codes, on .xer files) — not the full DCMA list, which also includes Start-No-Later-Than and Finish-No-Later-Than — and it isn't implemented yet for CSV or MS Project XML uploads.</p>
+<p>For .xer files specifically, Ordo7 also flags out-of-sequence progress — work that started before its predecessor actually finished — which is a real schedule-quality signal, but it isn't one of the official 14 checks above.</p>
+<p>If you're specifically reviewing a contractor's baseline before you sign off on it, a handful of these same checks — negative float, hard constraints, open ends, long durations — are exactly what to look for first; see <a href="/blog/contractor-baseline-red-flags-checklist">5 Red Flags to Check in a Contractor's Baseline Schedule</a> for the plain-language version of that walkthrough.</p>
+<p>If you've read this far, the fastest way to make any of this concrete is to run it against a real file. Upload your .xer, MS Project XML, or CSV export to Ordo7 and see which of these checks your own schedule trips — in plain language, not a spreadsheet of raw percentages you have to interpret yourself.</p>
+
+<h2 id="sources">Sources</h2>
+<p>Every threshold above comes from one document: DCMA's own EVMS Program Analysis Pamphlet, DCMA-EA PAM 200.1 (October 2012). Section references below, so you can check any number yourself rather than take my word for it:</p>
+<ul>
+<li>"Total Task" / incomplete-task scope (excludes completed, LOE, summary/subproject, and milestone activities) — Section 4.0</li>
+<li>Check 1, Logic (≤5%) — Section 4.1</li>
+<li>Check 2, Leads (target 0%) — Section 4.2</li>
+<li>Check 3, Lags (≤5% of links) — Section 4.3</li>
+<li>Check 4, Relationship Types (FS ≥90%) — Section 4.4</li>
+<li>Check 5, Hard Constraints (≤5%) — Section 4.5</li>
+<li>Check 6, High Float (&gt;44 working days, ≤5%) — Section 4.6</li>
+<li>Check 7, Negative Float (target 0%) — Section 4.7</li>
+<li>Check 8, High Duration (&gt;44 working days, ≤5%) — Section 4.8</li>
+<li>Check 9, Invalid Dates (zero tolerance) — Section 4.9</li>
+<li>Check 10, Resources (no threshold, reported as a ratio) — Section 4.10</li>
+<li>Check 11, Missed Tasks (≤5%) — Section 4.11</li>
+<li>Check 12, Critical Path Test (600-working-day what-if) — Section 4.12</li>
+<li>Check 13, Critical Path Length Index (target 1.00, flag &lt;0.95) — Section 3.1.2.3</li>
+<li>Check 14, Baseline Execution Index (target 1.00, flag &lt;0.95) — Section 3.1.2.4</li>
+</ul>
+<p>Full document: <a href="https://mosaicprojects.com.au/PDF-Gen/DCMA-PAM-200-1.pdf" target="_blank" rel="noopener">DCMA-EA PAM 200.1</a>. Background on the March 2005 USD(AT&amp;L) memo that created this standard: <a href="https://www.ronwinterconsulting.com/DCMA_14-Point_Assessment.pdf" target="_blank" rel="noopener">Ron Winter Consulting, "DCMA 14-Point Schedule Assessment"</a> (2011).</p>
+`.trim()
   }
 ];
