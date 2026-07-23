@@ -1702,6 +1702,7 @@ let currentStep = 'health';
 let currentHasDates = false;
 let currentEarnedSchedule = null;
 let currentRecoveryAlert = null;
+let currentFinishForecast = null;
 let currentBudgetAtCompletion = null;
 let currentActualCostToDate = null;
 let sandboxState = {}; // per-activity float/duration overrides for the What-If sandbox, keyed by activity code
@@ -3471,6 +3472,7 @@ async function openProject(name){
     currentHasDates = currentActivities.some(a => a.start);
     currentEarnedSchedule = result.earnedSchedule || null;
     currentRecoveryAlert = result.recoveryAlert || null;
+    currentFinishForecast = result.finishForecast || null;
     currentBudgetAtCompletion = result.budgetAtCompletion ?? null;
     currentActualCostToDate = result.actualCostToDate ?? null;
     sandboxState = {};
@@ -3835,8 +3837,30 @@ function renderEarnedValue(){
       '</div>' +
     '</div>';
 
+  html += renderFinishForecastSection();
   html += renderEarnedValueCostSection(es);
   el.innerHTML = html;
+}
+
+// Independent Estimated Completion Date, rendered as two scenarios (not a fabricated confidence
+// range) -- see analyze.js's computeFinishForecast for the underlying Earned Schedule math.
+function renderFinishForecastSection(){
+  const f = currentFinishForecast;
+  if (!f) return '';
+  if (!f.available) {
+    return '<div class="card" style="margin-top:14px;"><h2 style="margin:0 0 4px; font-size:15px;">Finish forecast</h2><p class="empty" style="margin:0;">' + escapeHtml(f.reason) + '</p></div>';
+  }
+  const paceLate = f.atCurrentPace && f.atCurrentPace > f.plannedFinishDate;
+  const paceColor = paceLate ? 'var(--bad)' : 'var(--good)';
+  return '<div class="card" style="margin-top:14px;">' +
+    '<h2 style="margin:0 0 4px; font-size:15px;">Finish forecast</h2>' +
+    '<p style="font-size:12px; color:var(--muted); margin:0 0 14px;">Two scenarios projected from the same Earned Schedule method above — not a probabilistic range, since a real confidence interval needs per-activity duration-risk data this schedule doesn\'t provide.</p>' +
+    '<div class="metric-grid">' +
+      '<div class="metric"><div class="lab">Planned finish</div><div class="val">' + escapeHtml(f.plannedFinishDate) + '</div></div>' +
+      '<div class="metric"><div class="lab">At current pace</div><div class="val" style="color:' + paceColor + ';">' + (f.atCurrentPace ? escapeHtml(f.atCurrentPace) : '—') + '</div></div>' +
+      '<div class="metric"><div class="lab">If back on plan</div><div class="val">' + (f.ifBackOnPlan ? escapeHtml(f.ifBackOnPlan) : '—') + '</div></div>' +
+    '</div>' +
+  '</div>';
 }
 
 function renderEarnedValueCostSection(es){
@@ -4091,6 +4115,7 @@ async function submitAnalysis(projectName, filename, content){
     currentHasDates = !!result.hasDates;
     currentEarnedSchedule = result.earnedSchedule || null;
     currentRecoveryAlert = result.recoveryAlert || null;
+    currentFinishForecast = result.finishForecast || null;
     currentBudgetAtCompletion = result.budgetAtCompletion ?? null;
     currentActualCostToDate = result.actualCostToDate ?? null;
     sandboxState = {};

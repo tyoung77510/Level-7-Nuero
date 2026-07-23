@@ -560,6 +560,63 @@ function computeEarnedSchedule(activities, asOfDate) {
   };
 }
 
+// Independent Estimated Completion Date (IECD) — the standard Earned Schedule forecasting
+// formula (Lipke's IEAC(t) = AT + (PD - ES) / PF), built on the exact same duration-weighted
+// proxy computeEarnedSchedule already uses, so it inherits that function's honesty caveats
+// (schedule-only, no cost/resource weighting, real baseline dates required). Two scenarios are
+// returned instead of one over-precise number: "at current pace" (PF = SPI(t), i.e. if the recent
+// trend holds) and "if back on plan" (PF = 1.0, the best case where all remaining work proceeds
+// exactly as originally planned from today forward). This is NOT a Monte Carlo / probabilistic
+// risk simulation -- that needs per-activity duration-variance data Ordo7 doesn't have. It's the
+// same published formula EVM tools use for a schedule-only IEAC(t), presented as exactly what it
+// is: two scenario estimates, not a confidence interval.
+function computeFinishForecast(activities, asOfDate, earnedScheduleResult) {
+  const asOf = asOfDate ? new Date(asOfDate) : new Date();
+  const nonMilestones = (activities || []).filter(a => !a.milestone);
+  const weighted = nonMilestones.filter(a => a.plannedStart && a.plannedEnd && a.durationDays > 0);
+  if (!weighted.length) {
+    return { available: false, reason: 'No planned/baseline dates found in this file — a finish forecast needs a baseline to project from.' };
+  }
+
+  const projectStart = new Date(Math.min(...weighted.map(a => new Date(a.plannedStart))));
+  const projectPlannedFinish = new Date(Math.max(...weighted.map(a => new Date(a.plannedEnd))));
+  const plannedDurationDays = (projectPlannedFinish - projectStart) / 86400000;
+  if (!(plannedDurationDays > 0)) {
+    return { available: false, reason: 'Planned start and finish collapse to zero duration in this baseline — cannot project a forecast from it.' };
+  }
+
+  const es = earnedScheduleResult || computeEarnedSchedule(activities, asOf);
+  if (!es.available) return { available: false, reason: es.reason };
+  if (es.spi == null) {
+    return { available: false, reason: 'Not enough elapsed planned progress yet to compute a performance factor — check back once the project is further along.' };
+  }
+  if (es.actualProgressPct <= 0) {
+    return { available: false, reason: 'No actual progress recorded yet against this baseline — nothing to project a trend from.' };
+  }
+
+  // Earned schedule (in days) is the time-equivalent of progress actually achieved, under the
+  // same linear/uniform assumption already implicit in computeEarnedSchedule's duration weighting.
+  const actualTimeElapsedDays = Math.max(0, (asOf - projectStart) / 86400000);
+  const earnedScheduleDays = (es.actualProgressPct / 100) * plannedDurationDays;
+  const remainingScheduleDays = plannedDurationDays - earnedScheduleDays;
+
+  function forecastFinish(performanceFactor) {
+    if (!(performanceFactor > 0)) return null;
+    const iecdDays = actualTimeElapsedDays + remainingScheduleDays / performanceFactor;
+    return new Date(projectStart.getTime() + iecdDays * 86400000).toISOString().slice(0, 10);
+  }
+
+  return {
+    available: true,
+    asOfDate: asOf.toISOString().slice(0, 10),
+    plannedFinishDate: projectPlannedFinish.toISOString().slice(0, 10),
+    atCurrentPace: forecastFinish(es.spi),
+    ifBackOnPlan: forecastFinish(1.0),
+    performanceFactorUsed: es.spi,
+    method: 'Earned Schedule IEAC(t) — duration-weighted proxy, schedule-only (no cost/resource data)'
+  };
+}
+
 // 0.90 is a common EVM/DCMA convention for "at risk" (as opposed to 1.0 = exactly on plan) —
 // used here, not 1.0, so ordinary day-to-day noise around plan doesn't trip the alert.
 const RECOVERY_ALERT_SPI_THRESHOLD = 0.9;
@@ -601,4 +658,4 @@ function computeRecoveryAlert(spiHistory) {
   };
 }
 
-module.exports = { parseXER, parseCSV, parseMspXml, analyzeXER, analyzeCSVTasks, analyzeMspXml, analyzeFile, computeEarnedSchedule, computeRecoveryAlert };
+module.exports = { parseXER, parseCSV, parseMspXml, analyzeXER, analyzeCSVTasks, analyzeMspXml, analyzeFile, computeEarnedSchedule, computeRecoveryAlert, computeFinishForecast };

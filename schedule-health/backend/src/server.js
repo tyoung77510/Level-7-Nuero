@@ -983,10 +983,11 @@ route('GET', '/api/projects/:name/latest', async (req, res, params, user) => {
   const project = store.getProjectByName(user.id, params.name);
   const earnedSchedule = analyzeMod.computeEarnedSchedule(activities);
   const recoveryAlert = computeRecoveryAlertForProject(user.id, params.name);
+  const finishForecast = analyzeMod.computeFinishForecast(activities, undefined, earnedSchedule);
   sendJSON(res, 200, {
     snapshot, issues, activities,
     earnedSchedule, budgetAtCompletion: project?.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null,
-    recoveryAlert
+    recoveryAlert, finishForecast
   });
 });
 
@@ -1744,11 +1745,12 @@ route('POST', '/api/analyze', async (req, res, params, user) => {
   // before" flag so it can't drift out of sync with the actual snapshot rows.
   const isFirstAnalysis = store.countSnapshotsForUser(user.id) === 1;
   const recoveryAlert = computeRecoveryAlertForProject(user.id, projectName);
+  const finishForecast = analyzeMod.computeFinishForecast(result.activities || [], undefined, earnedSchedule);
 
   sendJSON(res, 200, {
     project, snapshot, issues, activities: result.activities || [], hasDates: !!result.hasDates,
     earnedSchedule, budgetAtCompletion: project.budget_at_completion ?? null, actualCostToDate: snapshot.actual_cost_to_date ?? null,
-    isFirstAnalysis, recoveryAlert
+    isFirstAnalysis, recoveryAlert, finishForecast
   });
 });
 
