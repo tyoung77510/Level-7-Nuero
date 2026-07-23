@@ -2321,6 +2321,29 @@ function chipCategoriesFrom(posts) {
   return seen;
 }
 
+// /sitemap.xml is generated from the live post list so new posts are always included. The old
+// hand-maintained public/sitemap.xml drifted (new posts went missing, and it kept colliding with the
+// daily SEO pass that rewrote it). Static pages + every current blog post, straight from the DB.
+function serveSitemap(req, res) {
+  const base = 'https://www.ordo7.pro';
+  const staticPages = [
+    ['/', '1.0', 'weekly'],
+    ['/blog', '0.8', 'weekly'],
+    ['/blog/founder-log', '0.5', 'weekly'],
+    ['/privacy', '0.3', 'yearly'],
+    ['/terms', '0.3', 'yearly'],
+  ];
+  const urls = staticPages.map(([loc, priority, changefreq]) =>
+    `  <url>\n    <loc>${base}${loc}</loc>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`);
+  for (const p of store.listBlogPosts()) {
+    const lastmod = (p.published_at || '').slice(0, 10);
+    urls.push(`  <url>\n    <loc>${base}/blog/${p.slug}</loc>\n${lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : ''}    <changefreq>monthly</changefreq>\n    <priority>0.7</priority>\n  </url>`);
+  }
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
+  res.writeHead(200, { 'Content-Type': 'application/xml' });
+  res.end(xml);
+}
+
 function serveBlogIndex(req, res) {
   // Founder Log has its own tab (A6), but until there's enough non-Founder-Log content to carry the
   // main index on its own, Founder Log posts are shown here too so the blog doesn't read as empty.
@@ -2698,6 +2721,8 @@ const server = http.createServer(async (req, res) => {
     }
     return serveBlogPost(req, res, slug);
   }
+
+  if (pathname === '/sitemap.xml') return serveSitemap(req, res);
 
   serveStatic(req, res, pathname);
 });
