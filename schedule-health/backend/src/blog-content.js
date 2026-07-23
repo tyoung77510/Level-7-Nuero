@@ -14,6 +14,193 @@
 //              callout treatment; a plain post can just use <p>/<h2> with no .flag markup at all.
 module.exports = [
   {
+    slug: 'negative-float-p6',
+    ogImage: 'https://www.ordo7.pro/brand/negative-float-p6-cover.jpg',
+    title: "How to Fix Negative Float in Primavera P6",
+    headline: "How to Fix Negative Float in Primavera P6 (Before It Fixes Your Finish Date for You)",
+    description: "Negative float in P6 means your schedule can't hit its finish date as currently logic-driven. Here's why it shows up, how to find it, and how to fix it.",
+    category: 'DCMA & compliance',
+    contentHtml: `
+<p class="lead">Negative float in Primavera P6 (P6) means one or more activities have a total float (TF) value below zero — the schedule's own math is telling you that, given the logic and dates sitting in the file right now, the project (or some milestone inside it) is forecast to finish <em>after</em> the date it's supposed to. It's DCMA (Defense Contract Management Agency) schedule-health Check 7 of 14, and it's the bluntest one on the list: there's no version of "a little negative float is fine." If it's there, the schedule as currently built can't produce an on-time finish.</p>
+<p>I've been staring at P6 schedules for 8+ years, and negative float is the one number that never lies to you gently. Everything else in a schedule review can get argued about — is 40 days of float too much, is a lag defensible, is a constraint reasonable. Negative float doesn't leave room for that conversation. It just says: as logic-driven, this is late.</p>
+
+<h2>What negative float means for your finish date</h2>
+<p>Total float (TF) is the amount of time an activity can slip before it pushes out the project finish date, or the next constrained milestone downstream of it. Positive float means there's room. Zero float means the activity is on the critical path — any slip there is a day-for-day slip on the finish. Negative float means there's no room left, and some slip has already happened, at least according to the schedule's own logic and dates.</p>
+<p>The direct consequence: if nothing changes, the activity — and by extension the milestone or finish date it drives — is calculated to land after its required date. Not "at risk of." Actually forecast to. That's the whole reason DCMA treats it as a fail-condition rather than a warning: it's not measuring risk, it's measuring a schedule that's mathematically already behind.</p>
+<p><strong>Takeaway:</strong> the first thing to check isn't the individual activity with the worst TF number — it's whether the project finish milestone itself has negative float. That tells you whether this is a local problem or the whole schedule is off the rails.</p>
+
+<h2>Why negative float shows up in a P6 schedule</h2>
+<p>Negative float isn't random. In a real P6 file it almost always comes from one of three places:</p>
+<p><strong>Date constraints fighting logic.</strong> A hard constraint — Must Finish On, Start On or Before, Finish On or Before — forces an activity or milestone to a fixed date regardless of what the network logic calculates. If the logic-driven path to that point actually needs more time than the constraint allows, P6 doesn't move the constraint. It shows you negative float instead, as its way of saying the plan and the deadline disagree.</p>
+<p><strong>Imposed finish dates.</strong> Related but worth calling out separately: a contract milestone, a regulatory date, or a client-mandated finish gets typed in as a constraint before the underlying activities are actually sequenced to support it. The date goes in first, the logic gets built (or half-built) after. Negative float shows up the moment the two don't match.</p>
+<p><strong>Out-of-sequence work.</strong> An activity gets marked in-progress or complete before its predecessor logic says it's allowed to start — common on fast-moving field work where the schedule update lags the actual work by a few days. P6's out-of-sequence logic options (retained vs. progress override) can quietly manufacture negative float on downstream activities that never had a real problem, just a scheduling artifact.</p>
+<p><strong>Takeaway:</strong> before you touch a single date, filter your activities by constraint type. If the negative float clusters around Must Finish On or Finish On or Before constraints, you've probably found the actual cause in under five minutes.</p>
+
+<h2>How to diagnose negative float in P6</h2>
+<p>Diagnosis is mechanical, which is the good news:</p>
+<ol>
+<li>Add the Total Float column to your activity table (or use the built-in filter for it) and sort ascending. Everything below zero is your list.</li>
+<li>Group by the project finish milestone's driving path — trace backward from the finish (or the nearest constrained milestone) rather than starting from a random negative-float activity in the middle of the network. The root cause is usually upstream of where the worst number shows up.</li>
+<li>Cross-reference against the constraint type and relationship type columns for every activity on that list. A hard constraint sitting a few activities downstream of a long chain of logic is the single most common pattern.</li>
+<li>Check whether the negative float is new this update or has been there for several — a persistent negative float that nobody's addressed is a different conversation than one that just appeared.</li>
+</ol>
+<p><strong>Takeaway:</strong> trace from the finish backward, not from the worst number forward. It's faster, and it actually finds the driver instead of a symptom.</p>
+
+<h2>How to fix negative float</h2>
+<p>Once you know why it's there, the fix is usually one of a few moves — not a mystery, just a decision.</p>
+<p><strong>Example 1 — concrete cure vs. a constrained milestone.</strong> Say a foundation pour has a 7-day cure activity before the next trade can mobilize, but the schedule has a Finish On or Before constraint on the steel-erection milestone that assumes cure finishes in 3. The logic is honest — cure takes 7 days no matter what the schedule says — so the fix isn't to shrink the cure activity, it's to either move the constraint to reflect reality or resequence upstream work to buy back the 4 days some other way (earlier pour date, overlapping prep work that doesn't depend on cure).</p>
+<p><strong>Example 2 — steel erection pushed past a constrained milestone.</strong> A steel package is logically ready to start on day 40, but a Must Start On constraint on a downstream inspection milestone was set based on an earlier plan where steel started on day 30. The steel activity itself isn't the problem — the constraint is stale. Update the constraint to match the current logic-driven plan, or if the date really is fixed contractually, that's your signal to fast-track (overlap steel and inspection prep) or crash (add a shift, add a crew) the activities between now and that date.</p>
+<p>In both cases the pattern is the same: negative float is the schedule telling you where the plan and a fixed date disagree. The fix is either changing the plan (resequence, fast-track, crash) or changing the date (renegotiate, correct a stale constraint) — never deleting the float by quietly loosening logic just to make the number look better. That just hides the problem from the next person who opens the file.</p>
+<p><strong>Takeaway:</strong> decide explicitly whether you're fixing the plan or fixing the date. Don't let a constraint edit be the accidental answer to that question.</p>
+
+<h2>What Ordo7 checks for</h2>
+<div class="callout"><div class="callout-kicker">HOW ORDO7 CATCHES IT</div><div class="callout-body">Ordo flags every activity with total float below zero the moment you upload a .xer, MS Project XML, or CSV export — at the individual-activity level and, separately, for milestones — so you don't have to sort a float column by hand to find where the schedule's already behind.</div></div>
+<p>Negative float is one of 14 checks in the DCMA schedule-health framework — DCMA's own EVMS Program Analysis Pamphlet, <a href="https://mosaicprojects.com.au/PDF-Gen/DCMA-PAM-200-1.pdf" target="_blank" rel="noopener">DCMA-EA PAM 200.1</a> (October 2012), Section 4.7, sets the target at 0% — no negative float without an explanation and a corrective action plan attached. If you want the full picture of what the other 13 checks catch, I put together a complete walkthrough: <a href="/blog/dcma-14-point-check-guide">The DCMA 14-Point Check: A Complete Guide</a>.</p>
+<p>If you want to see where negative float is actually sitting in your own schedule instead of hunting for it column by column, upload your P6, MS Project, or CSV export to Ordo7 and it'll flag every activity with negative total float automatically, in plain language, no analyst required.</p>
+`.trim()
+  },
+  {
+  slug: 'out-of-sequence-progress',
+  ogImage: 'https://www.ordo7.pro/brand/out-of-sequence-progress-cover.jpg',
+  title: "Out-of-Sequence Progress: Causes and Fixes",
+  headline: "Your Schedule Says This Can't Start Yet. The Field Already Did It Anyway.",
+  description: "Out-of-sequence progress means an activity was reported started before its Finish-to-Start predecessor actually finished. Here's why it happens in P6, how it skews float, and how to fix it.",
+  category: 'DCMA & compliance',
+  toc: [
+    { id: 'definition', label: 'What it means' },
+    { id: 'why-it-happens', label: 'Why it happens' },
+    { id: 'float-impact', label: 'Float & critical path impact' },
+    { id: 'finding-it', label: 'Finding it in P6' },
+    { id: 'fixing-it', label: 'How to fix it' }
+  ],
+  contentHtml: `
+<p class="lead">Out-of-sequence progress is what happens when an activity gets marked started or complete before its predecessor's logic says it's allowed to — a concrete pour reported "in progress" while the excavation it depends on hasn't finished, a wall going up before the inspection that's supposed to gate it. The schedule's network logic says one thing has to happen before another; the field update says it didn't work out that way. In Primavera P6 (Oracle's project-scheduling software, the standard on most capital construction and DCMA-compliant programs) and the DCMA 14-point assessment (a set of schedule-health checks originally built by the Defense Contract Management Agency, now used broadly across construction and project controls), this gets treated as a real defect, not a rounding error. I'm Taj, building Ordo7 — here's what causes it, why it quietly wrecks your float and critical path, and what to do about it.</p>
+
+<h2 id="definition">What out-of-sequence progress actually means</h2>
+<p>Every activity in a well-built schedule sits inside a chain of logic: a predecessor that has to happen first, a successor that depends on it finishing. Out-of-sequence progress shows up specifically on Finish-to-Start (FS) relationships — the most common link type in a P6 schedule, where Activity B isn't supposed to start until Activity A finishes. When B gets an actual start date while A is still open, the two disagree with each other. That specific mismatch — a predecessor with no actual finish date, paired with a successor that already has an actual start date — is the textbook definition, and it's exactly what the DCMA's Relationship Types check (Check 4 of the 14-point assessment) is watching for when it evaluates how much of your logic is genuinely FS-driven.</p>
+<p><strong>Takeaway:</strong> if an activity has an actual start date but its FS predecessor doesn't have an actual finish date yet, that's out-of-sequence progress — regardless of how healthy the rest of the schedule looks.</p>
+
+<h2 id="why-it-happens">Why it happens: the field doesn't wait for the network diagram</h2>
+<p>Out-of-sequence progress usually isn't a data-entry mistake. It's what happens when field reality moves faster, or in a different order, than the logic anticipated. A sub gets ahead on rough-in because access opened up early. A punch item nobody planned around gets waived so the finish crew can keep moving. The plan assumed a strict order; the job site found a faster or just different one.</p>
+<p>P6 gives you two settings — retained logic and progress override — that decide what happens to the remaining schedule once that gap shows up. Retained logic keeps the predecessor relationship in force for whatever duration is left, even though the successor already started; it's conservative but can produce dates that don't match the field. Progress override lets the successor's actual progress stand and effectively ignores the unfinished predecessor going forward. Neither setting fixes the underlying problem — they just decide how the schedule copes with it.</p>
+<p><strong>Takeaway:</strong> don't just toggle retained logic vs. progress override to make the dates look better — go find out why the field got out of sequence in the first place.</p>
+
+<h2 id="float-impact">Why it distorts your critical path and float</h2>
+<p>This is the part that actually costs you. Total float and the critical path are both calculated from the network logic — what's actually driving what. When an activity's real-world progress no longer matches its logic, the float and critical-path math downstream of it is being computed against a network that no longer reflects what's true. An activity can show float it doesn't really have, because the calculation still assumes a predecessor relationship the field has already broken. Or the reported critical path quietly shifts to a chain of activities that isn't actually what's driving the finish date anymore.</p>
+<p>Left uncorrected, it compounds. Every recalculation after the first out-of-sequence update inherits the same distortion, and a scheduler trusting the critical path at face value ends up managing the wrong activities.</p>
+<p><strong>Takeaway:</strong> treat every out-of-sequence flag as a signal to re-verify float and critical path on everything downstream of it, not just the one flagged activity.</p>
+
+<h2 id="finding-it">How to find it in P6 — and where Ordo7 fits in today</h2>
+<p>In P6, run the schedule log or a filter for activities with an actual start date whose FS predecessor has no actual finish date — that combination is out-of-sequence progress, activity by activity. Most schedulers catch it during the routine update review, which is exactly the kind of check that's easy to skip when there are 2,000 activities and a status meeting in twenty minutes.</p>
+<p>This is where Ordo7 fits in today, and I'd rather be precise about the boundary than let you assume more than what's actually built: Ordo7's out-of-sequence check currently runs on Primavera P6 <strong>.xer</strong> files only (P6's native export format). It looks for exactly the pattern above — an FS predecessor relationship where the predecessor has no actual finish date but the successor already has an actual start date — and flags it as a critical issue. That check isn't yet implemented for the CSV or Microsoft Project XML import paths Ordo7 also accepts, so if you're working from one of those formats, this specific check won't run on your file yet.</p>
+<p><strong>Takeaway:</strong> if you're scheduling in P6 and exporting .xer, this is a check you can automate instead of eyeballing row by row. If you're on CSV or MS Project XML today, keep doing this one manually until that coverage lands.</p>
+
+<h2 id="fixing-it">How to fix it</h2>
+<p>Fixing out-of-sequence progress means going back to the logic, not just the dates. Talk to the field about why the sequence didn't hold — was the original logic wrong, was there a real acceleration, was a step skipped that shouldn't have been? Then either correct the relationship (add a lag, change the relationship type, or split the activity to reflect what actually happens in what order) or correct the field process so the real sequence matches the plan going forward. A schedule "fixed" by just picking retained logic or progress override without addressing the why will keep generating the same distortion on the next update.</p>
+<p>For the rest of the DCMA-style checks Ordo7 runs today — missing logic, negative float, hard constraints, high duration, invalid dates, and this one — see the full walkthrough in <a href="/blog/dcma-14-point-check-guide">The DCMA 14-Point Check, Explained Without the Jargon</a>.</p>
+<p>If you're carrying a P6 schedule right now and want to see where your own out-of-sequence flags are, upload the .xer file to Ordo7 and get a plain-language read on it in a few minutes.</p>
+`.trim()
+},
+  {
+  slug: 'what-is-schedule-health-scoring',
+  ogImage: 'https://www.ordo7.pro/brand/what-is-schedule-health-scoring-cover.jpg',
+  title: "What Is Schedule Health Scoring?",
+  headline: "What Is a Schedule Health Score? (And Why One Number Actually Helps)",
+  description: "A schedule health score is a 0-100 number built from real DCMA-style checks on your P6 or MS Project file. Here's exactly what it measures, dimension by dimension.",
+  category: 'DCMA & compliance',
+  toc: [
+    { id: 'why-one-number', label: 'Why one number' },
+    { id: 'logic', label: 'Logic quality' },
+    { id: 'float', label: 'Float distribution' },
+    { id: 'constraints', label: 'Constraint hygiene' },
+    { id: 'milestones', label: 'Milestone health' },
+    { id: 'add-up', label: 'How it adds up' },
+    { id: 'see-score', label: 'See your own score' }
+  ],
+  contentHtml: `
+<p class="lead">A schedule health score is a single 0-100 number that tells you how structurally sound your project schedule is, computed from a set of objective checks modeled on the Defense Contract Management Agency's (DCMA) 14-point schedule assessment — checks run against the actual logic, float, constraints, and milestones in your Primavera P6 or MS Project file. It's not a gut-check, and it's not a grade on whether the project itself is going well. It's a grade on whether the <em>schedule</em> is built the way a schedule is supposed to be built, so that everything else you read off it — dates, float, the critical path — is trustworthy in the first place.</p>
+
+<h2 id="why-one-number">Why One Number, When Schedule Quality Is So Many Things</h2>
+<p>A real schedule review means running a stack of separate checks — is the logic connected, is float behaving, are there hard constraints lying around, are milestones anchored to anything — and holding all of it in your head at once. That's fine if you're a full-time project controls analyst with an afternoon free. It's not fine if you're a PM with fifteen minutes before a status meeting who just needs to know: is this schedule okay, or is it hiding something?</p>
+<p>That's the job a single score does — not a replacement for the detail underneath it, a triage signal. A low score says stop and look before you trust anything else in the file. A high score says the foundation is sound enough to move on to whether the work itself is on track.</p>
+<p><strong>Takeaway:</strong> treat the score as a "should I dig in" signal, not a final verdict — the dimension breakdown underneath it is where the real diagnosis happens.</p>
+
+<h2 id="logic">Logic Quality — Is the Network Actually Connected?</h2>
+<p>Logic quality asks the most basic question a schedule can be asked: is every activity actually wired into the network, with something driving it and something depending on it? It's built from two checks: activities with no predecessor <em>and</em> no successor at all — schedulers call these "open ends" — and activities that started before their predecessor actually finished, a sign the plan's sequencing has quietly come apart from reality. A good result means almost nothing is floating free of the network; a bad one usually means activities were added late, copy-pasted from a template, or hand-updated without anyone re-linking them.</p>
+<p><strong>Construction example:</strong> a "submittal review — HVAC equipment" activity sitting in the schedule with no predecessor and no successor. It can slip by three weeks and nothing downstream reacts, because nothing downstream is actually watching it — the finish date won't move even though real work behind it is late.</p>
+<p><strong>Takeaway:</strong> open ends are the cheapest fix in the whole schedule — find them and tie them into the network before anything else.</p>
+
+<h2 id="float">Float Distribution — Is Slack Spread Sensibly?</h2>
+<p>Total float (TF) is the number of days an activity can slip before it delays the project finish, and it's supposed to sit in a reasonable middle range. Float distribution checks both edges of that range: activities that have already gone negative — meaning they're already behind and eating into the finish date — and activities carrying more than roughly 44 working days of float, the general DCMA guidance threshold for "high float." Negative float is an urgent, already-happening problem. Excessive float is a quieter one — it rarely means an activity genuinely has two months of slack; it usually means logic is missing somewhere and the engine can't see what should be constraining it.</p>
+<p><strong>Construction example:</strong> a foundation pour activity sitting at -12 days of float means the whole project finish is already slipping. An "interior finishes — level 3" activity sitting at 210 days of float almost certainly isn't really that flexible — it's more likely missing a tie to the activities that should be driving it.</p>
+<p><strong>Takeaway:</strong> don't just watch the critical path — a pile of suspiciously high-float activities is often the same missing-logic problem wearing a different disguise.</p>
+
+<h2 id="constraints">Constraint Hygiene — Not Just About Constraints</h2>
+<p>This one's worth being precise about, because the name undersells what it actually measures: it's built from <em>two</em> separate checks — hard, date-locking constraints (a "mandatory start" or "mandatory finish" date, sometimes labeled MSO/MEO in P6), and activities with unusually long durations, using that same roughly 44-working-day guidance threshold. Both are DCMA-style checks about how an activity is <em>built</em>, but only one is technically a "constraint" — the long-duration check is really about whether work is broken into pieces small enough to track. They're grouped together because both come from the same root cause: activities built the way a scheduler found convenient in the moment, not the way good practice recommends.</p>
+<p>A hard constraint overrides the schedule's own logic — the date holds regardless of what upstream work actually does, defeating the point of a logic-driven network. A long-duration activity hides progress: if "structural steel erection" is one 90-day line item, nobody can tell whether it's 10% or 90% done until someone says so directly — the schedule itself can't show partial progress on something that granular.</p>
+<p><strong>Construction example:</strong> a "final inspection" activity with a mandatory finish constraint locking it to a date set in a contract, disconnected from whether the work driving up to it is actually going to be done by then.</p>
+<p><strong>Takeaway:</strong> hunt for hard constraints first — they're usually a handful of activities, and each one is a specific, findable override. Long-duration activities take more work to break down, but flag them the same way.</p>
+
+<h2 id="milestones">Milestone Health — The Optional Fourth Dimension</h2>
+<p>Milestones get their own check, separate from ordinary activities, because a zero-duration point in time doesn't have a "duration" or "float" the same way a task does — so the long-duration and excessive-float checks don't apply. A milestone gets flagged if it has no predecessor or successor (it's not anchored to anything real around it), or if it's carrying negative float (it's already behind). This is the one dimension that's genuinely optional: if a file has zero milestones, there's nothing to score, and Ordo7 shows a dash rather than inventing a number that implies "milestones are fine" when there simply aren't any to check.</p>
+<p><strong>Construction example:</strong> a "Substantial Completion" milestone sitting with no logic tying it to any of the actual finishing work — it exists in the schedule as a date, not as something the rest of the plan is actually building toward.</p>
+<p><strong>Takeaway:</strong> if your schedule has milestones, check that every one of them is actually load-bearing — connected to real logic, not just placed on a calendar.</p>
+
+<h2 id="add-up">How the Four Pieces Add Up to One Score</h2>
+<p>Here's the part that's easy to assume and worth getting exactly right: the overall 0-100 score is <strong>not</strong> a simple average of the four dimension scores above. It's calculated independently, directly from the full list of issues found across every check, weighting critical-severity issues (negative float, missing logic, out-of-sequence work) four times as heavily as risk-level issues (excessive float, hard constraints, long duration), as a share of total activity count. The four dimension breakdowns are a separate, plainer read of the same underlying issues — each is just "what percentage of relevant activities are clean" for that group, no severity weighting at all.</p>
+<p>The practical effect: it's possible for the overall score to look worse than any single dimension suggests, because a small number of critical issues concentrated in one dimension pull the overall number down hard, even while that same dimension's breakdown still shows a reasonably high percentage clean. Use the overall score to decide whether to look closer. Use the four dimensions to find out exactly where.</p>
+<p>For the complete methodology behind these checks — all 14 official DCMA metrics, not just the four covered here — see <a href="/blog/dcma-14-point-check-guide">The DCMA 14-Point Check: A Complete Guide</a>.</p>
+
+<h2 id="see-score">See Your Own Score</h2>
+<p>The fastest way to know where your schedule actually stands on all four of these is to run it through the checks yourself. Upload a .xer, MS Project XML, or CSV export to Ordo7 and get the breakdown — logic, float, constraints, and milestones — in plain language, in the time it takes to read this sentence.</p>
+`.trim()
+},
+  {
+  slug: 'missing-logic-open-ends',
+  ogImage: 'https://www.ordo7.pro/brand/missing-logic-open-ends-cover.jpg',
+  title: "Missing Logic: Finding Open Ends",
+  headline: "An Open End Won't Slow Down. It'll Just Stop Reporting.",
+  description: "An open end in a P6 schedule is an activity with no predecessor or successor. Here's why it breaks float and the critical path, and how to find and fix it.",
+  category: 'DCMA & compliance',
+  contentHtml: `
+<p class="lead">An open end in a Primavera P6 schedule (P6 is the scheduling software most capital-projects teams run on) is an activity or milestone missing a predecessor, a successor, or both — a task sitting in the network with nothing driving it and nothing depending on it. It looks like part of the plan. It isn't actually connected to it.</p>
+
+<h2>What Counts as an Open End</h2>
+<p>Every activity in a sound schedule should have two things: something that has to happen before it can start (a predecessor), and something that depends on it finishing (a successor). When either one is missing, the industry term is "open end," sometimes called a "dangling" activity.</p>
+<p>This is DCMA Check 1 — Logic, the first of the 14 checks in the DCMA (Defense Contract Management Agency) 14-point schedule assessment, a widely used schedule-quality standard in government and capital-projects work. The way DCMA defines it, an activity is flagged the moment it's missing <em>either</em> a predecessor <em>or</em> a successor — not only when it's missing both. As ScheduleReader's summary of the standard puts it: "Logic measures the percentage of incomplete tasks missing a predecessor or successor — called 'dangling' activities."</p>
+<p><strong>Takeaway:</strong> if you're checking your own schedule against the DCMA standard by hand, the bar is "missing one end," not "missing both ends."</p>
+
+<h2>Why Open Ends Break Float and the Critical Path</h2>
+<p>Float — more precisely total float (TF), the number of days an activity can slip before it delays the project finish — is calculated by walking the network forward and backward through every logic tie. An activity with no successor has nowhere for that backward pass to land, so P6 has no choice but to treat its late finish as the project finish date itself, which usually hands it a huge, meaningless float number. An activity with no predecessor has the mirror problem on the forward pass.</p>
+<p>Either way, the float number in front of you stops meaning anything, and so does the critical path built from it. An open-ended activity can slip for weeks and the schedule won't react — nothing downstream is watching it, because nothing downstream is tied to it. The finish date stays green while the real work behind it quietly falls behind.</p>
+<p><strong>Takeaway:</strong> if a total float number looks suspiciously large, check the activity's logic before you trust the float.</p>
+
+<h2>How to Find Open Ends in P6</h2>
+<p>You don't need a script for this — P6 already has the columns. In the Activities view:</p>
+<ol>
+<li>Add the <strong>Predecessors</strong> and <strong>Successors</strong> columns (or use the Predecessors/Successors tabs in Activity Details for a single activity).</li>
+<li>Group or sort by whichever column is blank. An activity with an empty Predecessors cell, an empty Successors cell, or both, is an open end.</li>
+<li>Cross-check against Total Float: activities with unusually high float (well beyond what the rest of the schedule shows) are worth a second look even if a column isn't literally blank — a bad relationship type can produce the same symptom as a missing one.</li>
+</ol>
+<p>On a schedule of any real size — a few hundred activities or more — this is a five-minute scan, not a research project. The bug is almost always the same shape: a handful of activities quietly floating free while everything else in the network is tied together correctly.</p>
+<p><strong>Takeaway:</strong> sort by blank Predecessors, then blank Successors — that's the whole check.</p>
+
+<h2>Fixing Open Ends With Sound Logic</h2>
+<p>The fix is always the same: give the activity a real relationship, in the direction the work actually flows — not just any link that makes the blank cell go away. Two examples that show up constantly in construction schedules:</p>
+<ul>
+<li><strong>A permit or approval activity with no successor.</strong> "Permit Approval" finishes, and nothing in the schedule is waiting on it — but the foundation pour obviously can't start until the permit's in hand. The fix is a finish-to-start (FS) relationship, the most common link type in a schedule, meaning the successor can't start until the predecessor finishes, from "Permit Approval" to "Foundation Pour."</li>
+<li><strong>A long-lead procurement activity with no successor.</strong> "Switchgear Procurement — Long Lead" gets entered so the schedule shows when the order goes in, but nobody ties the delivery to the installation activity that actually needs the equipment. If that link is missing, the schedule can show "on track" right up until the switchgear doesn't show up and installation has nothing to start from.</li>
+</ul>
+<p>In both cases the missing link isn't a data-entry afterthought — it's the one piece of information that makes the float number, and the critical path, mean something. Add the relationship, and the schedule can finally tell you whether that permit or that delivery is actually threatening the finish date.</p>
+<p><strong>Takeaway:</strong> every open end you close should tie to the specific downstream activity that depends on it — not just to the nearest convenient neighbor.</p>
+
+<h2>What Ordo7 Actually Checks Today</h2>
+<p>In the interest of not overselling this: Ordo7's engine applies the full DCMA "missing either end" threshold to milestones — a milestone is flagged if it's missing a predecessor <em>or</em> a successor. For regular activities, the current check is narrower: it only flags an activity when it's missing <em>both</em> a predecessor <em>and</em> a successor. That means an activity with a predecessor but no successor — like the procurement example above — won't currently get flagged by Ordo7 as an open end, even though it is one by the DCMA standard. This is a known gap on our list to close, not a design choice, and worth knowing if you're running Ordo7 alongside a manual DCMA check rather than in place of one.</p>
+<p>I've written about this same check before, from a narrower angle focused on the milestone/activity distinction itself — see <a href="/blog/missing-predecessors-successors-p6-dcma-check-1">An Activity With No Predecessor Isn't a Schedule, It's a Guess</a>. And if you want the full walkthrough of all 14 DCMA checks, start with <a href="/blog/dcma-14-point-check-guide">the DCMA 14-point check guide</a> — Logic is check 1, and it's the one everything else depends on.</p>
+<p>Upload a schedule to Ordo7 and see what it finds in yours — no Primavera analyst required.</p>
+`.trim()
+},
+  {
     slug: 'why-ordo7-never-fabricates-a-metric',
     ogImage: 'https://www.ordo7.pro/brand/founder-log-035-cover.jpg',
     title: "Why Ordo7 Never Fabricates a Schedule Metric",
