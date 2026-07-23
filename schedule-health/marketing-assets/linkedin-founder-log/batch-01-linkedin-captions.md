@@ -20,7 +20,7 @@ Logic is the first of the DCMA's 14 schedule-health checks, and it's the simples
 
 I'm running through all 14 DCMA checks here over the next few months — plain language, no scheduling certification required. Ordo7 flags every one of these automatically the moment you upload a schedule.
 
-Read the full post → https://www.ordo7.pro/blog/founder-log-003-logic
+Read the full post → https://www.ordo7.pro/blog/missing-predecessors-successors-p6-dcma-check-1
 Follow the journey → https://ordo7.pro
 
 #BuildInPublic #ProjectControls #Scheduling #DCMA #FounderJourney
@@ -35,7 +35,7 @@ I spent time on a water utility maintenance program early in my career. Complian
 
 That's part of why I'm building Ordo7 to work across industries, not just construction. The DCMA checks are the same math everywhere. The stakes aren't.
 
-Read the full post → https://www.ordo7.pro/blog/founder-log-004-utility-safety
+Read the full post → https://www.ordo7.pro/blog/utility-maintenance-schedule-discipline-safety
 Try It For Free → https://ordo7.pro
 
 #BuildInPublic #ProjectControls #UtilityIndustry #FounderJourney #Ordo7
@@ -50,7 +50,7 @@ PMP-certified. Deep in Primavera P6, Excel, and Earned Value Management. I've su
 
 That's not a knock on the software. It's a gap. Ordo7 is my attempt to close it — plain-language schedule health, from one upload, no analyst required.
 
-Read the full post → https://www.ordo7.pro/blog/founder-log-005-eight-years
+Read the full post → https://www.ordo7.pro/blog/eight-years-in-project-controls
 Follow Ordo7 on LinkedIn → https://www.linkedin.com/company/ordo7/
 Try It For Free → https://ordo7.pro
 
@@ -66,7 +66,7 @@ I'm not raising a round or hiring a team before Ordo7 has a single real user. I'
 
 Right now the ask isn't "buy this." It's "follow along." That changes once there's something real to stand behind — and I'll say so plainly when it does.
 
-Read the full post → https://www.ordo7.pro/blog/founder-log-007-building-in-public
+Read the full post → https://www.ordo7.pro/blog/building-ordo7-in-public
 Try It For Free → https://ordo7.pro
 
 #BuildInPublic #Bootstrapped #FounderJourney #ProjectControls #Ordo7
@@ -81,7 +81,7 @@ Staffing agencies can't fill project controls and scheduling roles fast enough t
 
 Ordo7 exists for that person — plain-language schedule health without needing to become a Primavera analyst first.
 
-Read the full post → https://www.ordo7.pro/blog/founder-log-009-staffing-shortage
+Read the full post → https://www.ordo7.pro/blog/project-controls-staffing-shortage
 Try It For Free → https://ordo7.pro
 
 #BuildInPublic #ProjectControls #ConstructionTech #FounderJourney #Ordo7
