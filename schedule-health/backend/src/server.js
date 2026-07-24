@@ -114,7 +114,7 @@ const PORT = process.env.PORT || 3000;
 // something that could be silently changed by writing to the database. Staff log in through the
 // same real /api/auth/login as any other account; this only gates what an already-authenticated
 // session is additionally allowed to do.
-const ADMIN_EMAILS = ['admin@ordo7.pro', 'taj.young77@gmail.com'];
+const ADMIN_EMAILS = ['admin@ordo7.pro', 'taj.young77@gmail.com', 'taj.young510@gmail.com'];
 function isAdmin(user) {
   return !!user && ADMIN_EMAILS.includes(user.email.toLowerCase());
 }
