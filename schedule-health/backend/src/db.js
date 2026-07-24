@@ -528,6 +528,17 @@ function setUserTier(userId, tier, monthlyCredits) {
   return getUserById(userId);
 }
 
+// Deliberately separate from setUserTier, and never called automatically by it: an admin tier
+// override should NOT silently un-grandfather a real legacy customer just because their tier was
+// touched for an unrelated reason (a support fix, a manual comp, etc.) -- resolveEntitlements()
+// checks legacy_plan before plan_tier specifically so that never happens by accident. This exists
+// as an explicit, opt-in escape hatch for the rare case an admin actually needs plan_tier to take
+// effect (e.g. an internal test/admin account that happens to predate the pricing restructure).
+function clearLegacyPlan(userId) {
+  db.prepare('UPDATE users SET legacy_plan = NULL WHERE id = ?').run(userId);
+  return getUserById(userId);
+}
+
 // --- Teams (multi-seat) ---
 //
 // A Team member's own plan_tier/credit_balance are irrelevant while team_owner_id is set — they
@@ -1179,7 +1190,7 @@ module.exports = {
   createPendingOAuthSignup, consumePendingOAuthSignup,
   getUserByReferralCode, getReferralStats,
   getUserByStripeCustomerId, getUserByStripeSubscriptionId, setStripeCustomerId, setSubscriptionStatus,
-  setUserTier, deductCredits, addCredits, logAiUsage, countAiUsageThisMonth, countAiUsageThisMonthPooled,
+  setUserTier, clearLegacyPlan, deductCredits, addCredits, logAiUsage, countAiUsageThisMonth, countAiUsageThisMonthPooled,
   getEffectiveTierUser, addTeamMember, removeTeamMember, getTeamMembers,
   createTeamInvite, getTeamInviteByToken, deleteTeamInvite, listPendingInvitesForOwner, deleteExpiredTeamInvites,
   getCreditPurchaseBySessionId, recordCreditPurchase,

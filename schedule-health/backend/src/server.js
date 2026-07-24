@@ -1431,8 +1431,12 @@ route('POST', '/api/admin/users/:id/override', async (req, res, params, user) =>
   const credits = Number(payload.credits);
   if (!pricing.anyTierDef(tier) && tier !== 'free' && tier !== 'enterprise') return sendJSON(res, 400, { error: 'Unknown plan tier' });
   if (!Number.isFinite(credits) || credits < 0) return sendJSON(res, 400, { error: 'Credits must be a non-negative number' });
-  const updated = store.setUserTier(targetId, tier, credits);
+  let updated = store.setUserTier(targetId, tier, credits);
   if (!updated) return sendJSON(res, 404, { error: 'No such user' });
+  // Opt-in only -- a tier override must never silently un-grandfather a real legacy customer.
+  // This exists for the rare case an admin genuinely needs plan_tier to take effect (e.g. an
+  // internal test account that happens to predate the pricing restructure).
+  if (payload.clearLegacy === true) updated = store.clearLegacyPlan(targetId);
   sendJSON(res, 200, { user: publicUser(updated) });
 });
 
