@@ -2572,6 +2572,11 @@ function serveBlogPost(req, res, slug) {
       datePublished: post.date.toISOString(),
       mainEntityOfPage: post.url,
       url: post.url,
+      author: {
+        '@type': 'Organization',
+        name: 'Ordo7 Team',
+        url: 'https://www.ordo7.pro/'
+      },
       publisher: {
         '@type': 'Organization',
         name: 'Ordo7',
