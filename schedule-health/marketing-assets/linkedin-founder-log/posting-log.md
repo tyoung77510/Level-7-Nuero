@@ -16,6 +16,16 @@
 
 **Next up: Day 010** — 007 was posted 2026-07-23 (catch-up for the missed scheduled run); 006 (Slot F) and 008 (Slot A) are skipped, no real content yet; Days 010+ get drafted per the calendar. **The 035 timely insert is on hold** — its caption cites unsourced third-party statistics (work-order B3); do not post it until those numbers are sourced or cut. Graphics rendered in `../renders/`; blog posts live in production.
 
+**Days 010–012 pre-drafted (batch-04, 2026-07-25) — ready content, no live drafting needed at fire time.** Cresco pre-drafted all three so the Routine can just post from what's already committed:
+
+| Day | Slot | Topic | Blog slug | Deployed images (`backend/public/brand/`) |
+|---|---|---|---|---|
+| 010 | C | Leads — negative lag, DCMA Check 2 | [leads-negative-lag-p6-dcma-check-2](https://www.ordo7.pro/blog/leads-negative-lag-p6-dcma-check-2) | `leads-negative-lag-p6-dcma-check-2-feed-1200x1500.jpg` / `-cover.jpg` |
+| 011 | D | Manufacturing's capital boom, seen from the inside | [manufacturing-capital-boom-project-controls](https://www.ordo7.pro/blog/manufacturing-capital-boom-project-controls) | `manufacturing-capital-boom-project-controls-feed-1200x1500.jpg` / `-cover.jpg` |
+| 012 | E | 17% baseline accuracy on a $1M–$25M energy portfolio | [schedule-baseline-accuracy-energy-portfolio](https://www.ordo7.pro/blog/schedule-baseline-accuracy-energy-portfolio) | `schedule-baseline-accuracy-energy-portfolio-feed-1200x1500.jpg` / `-cover.jpg` |
+
+LinkedIn captions: `batch-04-linkedin-captions.md`. Render source data: `render/batch-04-data.json`. All three blog entries verified locally (200 on `/blog/<slug>` and on both image paths under `/brand/`, isolated `DATA_DIR`/port, server killed after). Day 010 is deliberately educational-only — Ordo7's engine does not automate a Leads check (verified against `backend/src/analyze.js`), so neither the blog post nor the caption claims Ordo7 detects leads automatically. Day 012's 17% figure is quoted to `docs/brand-narrative.md`'s confirmed track record, verbatim, no embellishment, no client name. Not yet marked "Posted" below — the Routine still records the actual post date/links here once each goes live.
+
 **Day 014 is no longer postable** — it was unpublished (competitor post, work-order B2); its blog page 301-redirects to `/blog`, so it must not be posted. Removed from the queue.
 
 **Caption blog-links fixed (2026-07-23):** the B5 slug rename (numbered → descriptive slugs) left every `batch-0N` caption pointing at an old `/blog/founder-log-0NN-…` URL that now 301-redirects — which tripped the Routine's dead-blog-link stop and is why the 2026-07-23 run posted nothing. All caption blog links were updated to the current canonical slugs (verified 200). Any new caption must use the live descriptive slug from `backend/src/blog-content.js`, not a numbered one.
