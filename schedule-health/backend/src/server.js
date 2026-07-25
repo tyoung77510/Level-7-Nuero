@@ -2554,11 +2554,12 @@ function serveBlogPost(req, res, slug) {
     ${relatedHtml}
   </main>`;
 
+  const ogImage = (blogContent.find(p => p.slug === post.slug) || {}).ogImage || 'https://www.ordo7.pro/brand/musk/icon-512.png';
   const html = renderBlogPage({
     title: `${post.title} — Ordo7 Blog`,
     description: post.description,
     canonicalPath: `/blog/${post.slug}`,
-    ogImage: (blogContent.find(p => p.slug === post.slug) || {}).ogImage || 'https://www.ordo7.pro/brand/musk/icon-512.png',
+    ogImage,
     isArticle: true,
     active: 'blog',
     bodyHtml,
@@ -2569,6 +2570,7 @@ function serveBlogPost(req, res, slug) {
       '@type': 'BlogPosting',
       headline: post.headline,
       description: post.description,
+      image: ogImage,
       datePublished: post.date.toISOString(),
       mainEntityOfPage: post.url,
       url: post.url,
