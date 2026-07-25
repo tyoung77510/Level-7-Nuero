@@ -1,0 +1,26 @@
+[
+  {
+    "day": 10,
+    "headline": "A **lead** is a lie your schedule's logic is telling you.",
+    "body": "Leads let a successor start before its predecessor actually finishes. DCMA's target is a flat 0% — no tolerance, unlike most of the other 13 checks. Nothing crashes when one's there. It just means the logic driving your dates isn't telling the truth anymore.",
+    "footer": "DCMA Check 2, plain language · ordo7.pro",
+    "portraitSide": "right",
+    "types": ["feed", "cover"]
+  },
+  {
+    "day": 11,
+    "headline": "Manufacturing's capital boom, **seen from the inside.**",
+    "body": "Plant expansions and new equipment lines are getting funded faster than the project controls function meant to run them can scale. I watched that gap firsthand, inside a manufacturing employer riding the wave — not in an industry report.",
+    "footer": "Built for whoever's holding the schedule now · ordo7.pro",
+    "portraitSide": "left",
+    "types": ["feed", "cover"]
+  },
+  {
+    "day": 12,
+    "headline": "**17% better baseline accuracy.** Here's what that took.",
+    "body": "On a $1M–$25M energy project portfolio, disciplined schedule logic and real milestone placement — not new software, not new headcount — moved baseline accuracy 17%. That discipline is the whole thesis behind Ordo7.",
+    "footer": "The discipline behind the number · ordo7.pro",
+    "portraitSide": "right",
+    "types": ["feed", "cover"]
+  }
+]
