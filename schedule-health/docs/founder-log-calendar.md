@@ -133,6 +133,8 @@ Days 001–002 are already published (see `../marketing-assets/linkedin-founder-
 
 Full copy + rendered graphics get produced in small batches, not all 90 at once — this keeps Slots A and F honest (nothing gets written before it's true) and keeps quality consistent (each batch gets reviewed against voice guidelines before it ships). First batch: Days 003–009 (closes out the rest of week one). See `../marketing-assets/linkedin-founder-log/render/` for the pipeline that turns a finished batch into graphics.
 
+**Batch 04 (Days 010–012, 2026-07-25):** pre-drafted by Cresco so the daily posting Routine has ready-made content and never has to draft live — blog posts in `backend/src/blog-content.js`, captions in `../marketing-assets/linkedin-founder-log/batch-04-linkedin-captions.md`, graphics rendered and deployed to `backend/public/brand/` under descriptive slugs (`leads-negative-lag-p6-dcma-check-2`, `manufacturing-capital-boom-project-controls`, `schedule-baseline-accuracy-energy-portfolio`). Full status in `../marketing-assets/linkedin-founder-log/posting-log.md`.
+
 ## GTM action items (non-content — tracked here for visibility, not part of the daily posting cadence)
 
 The Founder Log is one channel, not the whole go-to-market plan. These are the near-term, low-cost moves worth doing alongside it — sequenced cheap-and-true-to-brand first, expensive and enterprise-shaped later, since Ordo7 is bootstrapped and self-serve rather than funded like the larger players in this category. (Full research and reasoning behind this sequencing lives in the private competitive-intelligence tracking — ask before assuming any specific claim about a competitor's marketing is fair game for public content.)

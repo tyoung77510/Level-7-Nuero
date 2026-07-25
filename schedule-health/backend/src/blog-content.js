@@ -493,5 +493,59 @@ module.exports = [
 </ul>
 <p>Full document: <a href="https://mosaicprojects.com.au/PDF-Gen/DCMA-PAM-200-1.pdf" target="_blank" rel="noopener">DCMA-EA PAM 200.1</a>. Background on the March 2005 USD(AT&amp;L) memo that created this standard: <a href="https://www.ronwinterconsulting.com/DCMA_14-Point_Assessment.pdf" target="_blank" rel="noopener">Ron Winter Consulting, "DCMA 14-Point Schedule Assessment"</a> (2011).</p>
 `.trim()
+  },
+  {
+    slug: 'leads-negative-lag-p6-dcma-check-2',
+    ogImage: 'https://www.ordo7.pro/brand/leads-negative-lag-p6-dcma-check-2-cover.jpg',
+    title: "Leads and Negative Lag in P6: DCMA Check 2",
+    headline: "A Lead Is a Lie Your Schedule's Logic Is Telling You",
+    description: "The second of the DCMA's 14 checks flags something most schedulers have used without naming: an activity starting before its predecessor is actually done. Here's why DCMA wants leads at zero.",
+    category: 'Founder Log',
+    contentHtml: `
+<p class="lead">Second post in this DCMA walkthrough, and it's the one that catches schedulers off guard the most: a lead. Not because the math is complicated — it's the opposite, one negative number — but because most people have used one without knowing it had a name, let alone that DCMA wants it gone entirely.</p>
+<h2>What a lead actually is</h2>
+<p>Every logic link between two activities can carry a lag — extra time tacked onto the relationship. A positive lag is a wait: "start 3 days after this finishes." A lead is the opposite, a <em>negative</em> lag: "start 3 days before this finishes." Say "Install Rebar" has a Finish-to-Start link to "Pour Concrete" with a 2-day lead. The schedule is telling P6 that concrete can start two days before rebar is actually done.</p>
+<h2>Why that quietly breaks your logic</h2>
+<p>A lead doesn't throw an error. The schedule still calculates, dates still populate, the Gantt still looks normal. What it actually does is let two activities overlap in a way the logic link is supposed to prevent — the whole point of a Finish-to-Start relationship is that the successor waits for the predecessor. A lead reintroduces that overlap through the back door, and it drags your float calculations along with it: an activity's float is only meaningful if the logic driving it is real, and a negative lag means part of that logic isn't holding the line it claims to hold.</p>
+<h2>Why DCMA sets the bar at zero</h2>
+<p>Unlike most of the DCMA's 14 checks, which allow some tolerance — 5% here, 44 days there — leads get a flat target: 0%. Not "keep it under a threshold." None. DCMA's own reasoning is straightforward: if two activities are genuinely meant to overlap, model that overlap honestly — as a Start-to-Start relationship, or as two separate real activities — instead of hiding it inside a negative number on a Finish-to-Start link that's supposed to mean "wait."</p>
+<h2>What Ordo7 checks today</h2>
+<p>In the interest of being exact: Ordo7's engine doesn't automate a Leads check yet. It automates Logic (Check 1), Hard Constraints, High Float, Negative Float, High Duration, and Invalid Dates, plus out-of-sequence progress detection — Leads isn't in that list today. I'm explaining the concept here because it's DCMA Check 2 and it's worth understanding on its own terms, not because Ordo7 is flagging it in your file yet.</p>
+<p>Read the full 14-point breakdown, including exactly where Ordo7's coverage stands today, in <a href="/blog/dcma-14-point-check-guide">the DCMA 14-point check guide</a>. Next in this series: Lags — the built-in waiting periods DCMA actually tolerates, up to a point.</p>
+`.trim()
+  },
+  {
+    slug: 'manufacturing-capital-boom-project-controls',
+    ogImage: 'https://www.ordo7.pro/brand/manufacturing-capital-boom-project-controls-cover.jpg',
+    title: "Manufacturing's Capital Boom Is Outrunning Project Controls",
+    headline: "Manufacturing's Capital Boom, Seen From the Inside",
+    description: "Data centers and manufacturing plants are surging right now — and the project controls function meant to run them hasn't scaled to match. A firsthand look at what that stretch actually looks like.",
+    category: 'Founder Log',
+    contentHtml: `
+<p class="lead">Manufacturing plants are being built and reinvested in at a pace I haven't seen before — and I didn't watch that from an industry report. I watched it from inside one.</p>
+<h2>The investment is real</h2>
+<p>Data centers and major manufacturing capital projects are surging right now. I spent time inside a manufacturing employer in California riding that exact wave — multiple concurrent capital projects, all competing for the same internal bandwidth.</p>
+<h2>What gets stretched first</h2>
+<p>The capital keeps flowing before the organization around it catches up. New equipment lines, plant expansions, retrofits — the work gets approved and funded faster than the project controls function can scale to run it. Schedule maintenance and cost tracking — the day-to-day "is this actually on track" visibility — is the layer that gets thin first, because it's the layer that doesn't show up in a capex approval meeting. Nobody budgets a new project controls hire in the same motion as approving a new production line.</p>
+<h2>Why this shaped Ordo7</h2>
+<p>That gap — real capital moving faster than the controls function built to manage it — is one of the clearest patterns I've seen across industries, and manufacturing is where I watched it happen up close. Ordo7 doesn't fix the staffing shortage. It gives whoever's holding the schedule right now — PM, engineer, whoever inherited it — a plain-language read on whether it's actually healthy, without needing to become a full-time project controls analyst first.</p>
+`.trim()
+  },
+  {
+    slug: 'schedule-baseline-accuracy-energy-portfolio',
+    ogImage: 'https://www.ordo7.pro/brand/schedule-baseline-accuracy-energy-portfolio-cover.jpg',
+    title: "How I Improved Baseline Accuracy 17% on an Energy Portfolio",
+    headline: "Improving Baseline Accuracy 17%, One Portfolio at a Time",
+    description: "On a $1M–$25M energy project portfolio, disciplined schedule logic and milestone placement improved baseline accuracy by 17%. Here's what that actually took.",
+    category: 'Founder Log',
+    contentHtml: `
+<p class="lead">One of the results I point to most from my project-controls career, because it's exact and it's the clearest example of what "disciplined schedule logic" actually buys you: I improved schedule baseline accuracy by 17% on a $1M–$25M energy project portfolio, through disciplined schedule logic and milestone placement.</p>
+<h2>What "baseline accuracy" actually means</h2>
+<p>A baseline is the schedule you commit to before work starts — the yardstick every future update gets measured against. Baseline accuracy is how well that original commitment matches how the work actually plays out. A baseline that's wrong from day one doesn't just make status reporting messy later — it means every downstream forecast, every "are we on track" answer, is being measured against a target that was never realistic to begin with.</p>
+<h2>Where the 17% actually came from</h2>
+<p>Two things drove it, and neither is glamorous: schedule logic that was actually sound — no dangling activities, no shortcuts patched in to make dates line up — and milestone placement that reflected real decision points in the work, not arbitrary markers dropped in to look thorough. Across that $1M–$25M portfolio of energy projects, tightening those two things directly, consistently, is what moved baseline accuracy 17%. No new software, no new headcount — just enforcing the same discipline DCMA's 14-point checklist exists to catch violations of.</p>
+<h2>Why this is the whole thesis behind Ordo7</h2>
+<p>That result didn't come from a tool that told me the answer. It came from knowing which parts of a schedule's logic to actually go check. Ordo7 exists to shortcut that — the same discipline, applied automatically the moment you upload a schedule, instead of requiring eight years of doing it by hand first.</p>
+`.trim()
   }
 ];
