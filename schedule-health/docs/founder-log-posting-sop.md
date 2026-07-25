@@ -1,6 +1,6 @@
 # Founder Log Posting — Standard Operating Procedure
 
-> **Status:** ✅ Active | **Purpose:** The single, authoritative standard for how each Founder Log day gets posted — same format, same surfaces, same order, every time. The daily posting Routine and any human doing it by hand both follow this exact procedure. | **Last Updated:** 2026-07-22
+> **Status:** ✅ Active | **Purpose:** The single, authoritative standard for how each Founder Log day gets posted — same format, same surfaces, same order, every time. The daily posting Routine and any human doing it by hand both follow this exact procedure. | **Last Updated:** 2026-07-25
 
 This is the source of truth. Companion files: the day-by-day topic bank is `founder-log-calendar.md`; the locked voice + caption formula is `brand-narrative.md`; pre-approved copy is `../marketing-assets/linkedin-founder-log/batch-0N-linkedin-captions.md`; the graphic pipeline is `../marketing-assets/linkedin-founder-log/render/`; the dedup ledger is `../marketing-assets/linkedin-founder-log/posting-log.md`; matching blog posts live in `../backend/src/blog-content.js`.
 
@@ -29,13 +29,13 @@ Production (ordo7.pro) deploys from **`main`**. All posting work — blog append
 7. **Report** one line: which day posted, or "skipped, holiday", or "skipped, no real content for day 00N".
 
 ## LinkedIn surfaces, IDs, and format
-| Surface | How | Image format |
+| Surface | How | Format |
 |---|---|---|
-| **Taj's personal profile** | Zapier `linkedin_create_share_update` | **Link-card** today (Zapier limitation). Native image is Phase 2 — see below. |
-| **Ordo7 company page** (`142904113`) | Zapier `linkedin_create_company_update`, `image_type: post_media` | **Native image** ✅ |
-| **Level 7 Consulting page** (`142899041`) | Zapier `linkedin_create_company_update`, `image_type: post_media` | **Native image** ✅ |
+| **Taj's personal profile** | Zapier `linkedin_create_share_update` — `content__submitted_url` = blog URL, `content__submitted_image_url` = ordo7.pro cover | **Link-card** |
+| **Ordo7 company page** (`142904113`) | Zapier `linkedin_create_company_update` — `image_type: preview_thumbnail`, `submitted_url` = blog URL, `image` = ordo7.pro cover, `title` + `description`, `allow_reserved_characters: false` | **Link-card** |
+| **Level 7 Consulting page** (`142899041`) | same call as Ordo7, `company_id: 142899041` | **Link-card** |
 
-The **company pages already post native images** (the full 4:5 graphic in-feed). The **personal profile cannot** through Zapier's only personal action — it attaches the graphic as a link-card preview, not a native image. Making the personal post native (matching the company pages) requires posting via LinkedIn's API directly — tracked as **Phase 2** below.
+**Use link-cards on ALL THREE surfaces — do NOT use `image_type: post_media` (native image) for the company pages.** Native company posts fail with LinkedIn's `DataMap should have no more than one entry for a union type` error: when the caption contains URLs (the blog link, ordo7.pro, the company-page link), LinkedIn tries to unfurl one as an article AND attach the media image → two content entries in one union → rejected. A link-card is a single article entity (the blog post, previewed with its cover), so there's no conflict — it posts first-try every time (proven across Days 005/007/010, after native posts failed repeatedly). The blog's `ogImage` (cover) is what shows in the card. **Also use the ordo7.pro-hosted image URL, never raw.githubusercontent.com** (GitHub rate-limits LinkedIn's image fetcher). Making all three surfaces native-image posts requires posting via LinkedIn's API directly — tracked as **Phase 2** below.
 
 ### Image hosting — serve from ordo7.pro, never raw.githubusercontent.com
 LinkedIn fetches the post image at publish time. GitHub's raw host (`raw.githubusercontent.com`) rate-limits that fetcher, which makes the **native company-image post fail intermittently** (`Could not find entity` / `DataMap should have no more than one entry for a union type`) — this was the exact bug that blocked the 2026-07-23 run. Every day's feed graphic is deployed to `backend/public/brand/` and served from `https://www.ordo7.pro/brand/…`, which is reliable.
