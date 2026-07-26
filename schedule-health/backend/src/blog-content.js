@@ -301,6 +301,23 @@ module.exports = [
 `.trim()
   },
   {
+    slug: 'leads-negative-lag-p6-dcma-check-2',
+    ogImage: 'https://www.ordo7.pro/brand/founder-log-010-cover.jpg',
+    title: "Leads (Negative Lag) in P6: DCMA Check 2",
+    headline: "A Lead Isn't a Shortcut. It's a Hidden Promise Your Schedule Might Not Keep.",
+    description: "The second of the DCMA's 14 checks catches a subtler problem than check #1: a negative lag lets a successor start before its predecessor is actually done. Here's why that quietly breaks your logic — and where Ordo7's coverage actually stands today.",
+    category: 'Founder Log',
+    contentHtml: `
+<p class="lead">Second in the DCMA-14 series: Leads, also called negative lag. Check #1 was Logic — does every activity have a predecessor and a successor. Check #2 goes a layer deeper: even when the logic is connected, is it lying about when things can actually start?</p>
+<p>A lead is a negative lag applied to a relationship — it lets a successor begin some number of days before its predecessor actually finishes. A finish-to-start relationship with a -5 day lead means the successor can start 5 days before the predecessor is done. On paper, the dependency still exists. In practice, it's been quietly overridden.</p>
+<h2>Why leads are a red flag, not just a technique</h2>
+<p>Leads aren't inherently wrong — there are legitimate cases where overlapping work makes sense. The problem is how often they get used to make an unrealistic schedule look compressed instead of actually planning the overlap. A schedule padded with leads can hit an aggressive finish date on paper while the real sequence of work never gets stress-tested. The DCMA flags leads for exactly this reason: they're one of the easiest ways to make a schedule's logic technically present but practically meaningless.</p>
+<h2>Where Ordo7 stands on this one</h2>
+<p>I'd rather say this plainly than let the DCMA-series format imply otherwise: Ordo7 automates six of the fourteen checks today — logic, hard constraints, high float, negative float, high duration, and invalid dates. Leads detection isn't live yet. Until it is, catching a lead problem means opening the schedule and checking relationship lag values by hand, activity by activity. That's exactly the kind of check this project exists to keep adding — but it's not done pretending it's already there.</p>
+<p>Next up in this series: Lags — the DCMA's cousin check to this one, and just as easy to miss.</p>
+`.trim()
+  },
+  {
     slug: 'contractor-baseline-red-flags-checklist',
     title: "5 Red Flags to Check in a Contractor's Baseline Schedule",
     headline: "The Non-Scheduler's Survival Guide: 5 Red Flags to Check Before You Accept a Contractor's Baseline",
