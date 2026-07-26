@@ -1,10 +1,12 @@
 # Founder Log — Batch 04 (Days 010–012) — LinkedIn post captions
 
-> **Status:** ✅ Ready to post | **Last Updated:** 2026-07-25
+> **Status:** ✅ Ready to post | **Last Updated:** 2026-07-26
 
-Full LinkedIn caption text for each rendered graphic in this batch (graphics: `../renders/founder-log-0NN-feed-1200x1500.jpg` and `-cover-1200x627.jpg`, deployed copies under their descriptive slugs at `../../backend/public/brand/`; blog companions live in `backend/src/blog-content.js`). Caption formula per `../../docs/brand-narrative.md`: hook line → problem/story → what Ordo7 does → `Read the full post → blog link` → `Follow Ordo7 on LinkedIn → https://www.linkedin.com/company/ordo7/` → `Try It For Free → https://ordo7.pro` → `#Ordo7` + 3–4 more hashtags.
+Full LinkedIn caption text for each rendered graphic in this batch (graphics: `../renders/founder-log-0NN-feed-1200x1500.jpg` and `-cover-1200x627.jpg`, deployed copies under their descriptive slugs at `../../backend/public/brand/`; blog companions live in `backend/src/blog-content.js`).
 
 Pre-drafted by Cresco (Growth & SEO analyst) so the daily posting Routine has ready-made content for these three days — no live drafting at fire time. All blog links use the live descriptive slug (verified against `blog-content.js`), not a numbered `founder-log-0NN` URL — see `posting-log.md`'s 2026-07-23 note on why that matters.
+
+**Day 011 and 012 use the revised formula (2026-07-26, see `../../docs/brand-narrative.md`'s changelog):** hook → problem/story → what Ordo7 does, one line, no link → a direct question inviting a reply → hashtags. **No URLs in the caption body, including the blog link** — the post is already a link-card off the blog URL (`content__submitted_url` in the Zapier call, per `founder-log-posting-sop.md`), so it gets its own rich preview automatically without being typed out in the text. Post the "First comment" block immediately after publishing — that's just the product link, which has no card and needs somewhere to live. Day 010 is left as originally drafted (three links in-body) since it was already posted under the old formula before this was found; not retroactively edited.
 
 ---
 
@@ -32,11 +34,12 @@ I spent time inside a manufacturing employer in California riding that exact wav
 
 That gap is part of why I'm building Ordo7 — plain-language schedule health for whoever's actually holding the schedule right now, no full-time analyst required.
 
-Read the full post → https://www.ordo7.pro/blog/manufacturing-capital-boom-project-controls
-Follow Ordo7 on LinkedIn → https://www.linkedin.com/company/ordo7/
-Try It For Free → https://ordo7.pro
+If you've lived this: when capital outpaces controls headcount on your projects, what actually breaks first — the schedule, the cost report, or the person holding both?
 
 #Ordo7 #BuildInPublic #ProjectControls #Manufacturing #FounderJourney
+
+**First comment (post immediately after publishing):**
+Try Ordo7 free → https://ordo7.pro
 
 ---
 
@@ -48,8 +51,9 @@ Two things, neither glamorous: schedule logic that was actually sound — no dan
 
 That result didn't come from a tool that handed me the answer — it came from knowing which parts of a schedule's logic to go check. Ordo7 exists to shortcut that: the same discipline, applied the moment you upload a schedule.
 
-Read the full post → https://www.ordo7.pro/blog/schedule-baseline-accuracy-energy-portfolio
-Follow Ordo7 on LinkedIn → https://www.linkedin.com/company/ordo7/
-Try It For Free → https://ordo7.pro
+What's the first thing you check when a baseline stops looking trustworthy — logic, milestones, or something else entirely?
 
 #Ordo7 #BuildInPublic #ProjectControls #EVM #FounderJourney
+
+**First comment (post immediately after publishing):**
+Try Ordo7 free → https://ordo7.pro
