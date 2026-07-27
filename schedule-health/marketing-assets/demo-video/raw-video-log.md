@@ -1,6 +1,6 @@
 # Raw LinkedIn Video — rotation and log
 
-> **Status:** ✅ Active (5-day trial) | **Purpose:** Dedup ledger and topic rotation for the raw video routine. The routine reads this file first on every run to find the next topic and to check whether the 5-video trial is complete. | **Last Updated:** 2026-07-26
+> **Status:** ✅ Active (5-day trial) | **Purpose:** Dedup ledger and topic rotation for the raw video routine. The routine reads this file first on every run to find the next topic and to check whether the 5-video trial is complete. | **Last Updated:** 2026-07-27
 
 **Rule for the routine:** never re-record a topic already logged below. Take the next unlogged row from the rotation table, in order. If 5 rows are logged, disable the trigger and stop — do not produce a 6th.
 
@@ -18,6 +18,6 @@
 
 | # | Date | Topic | File | Caption | Posted? |
 |---|---|---|---|---|---|
-| 1 | 2026-07-26 | Upload → health score | `ordo7-raw-01-upload-to-score.mp4` | "I ran a real project schedule through this. Failed 5 checks. Instantly." / real flagged issues / "This is Ordo7." / "Try it free — link in the comments." (no closing question — produced before this SOP's question requirement; later entries should end on a real question instead of a flat CTA line) | not yet — staged, awaiting manual post |
+| 1 | 2026-07-26 | Upload → health score | `ordo7-raw-01-upload-to-score.mp4` | "I ran a real project schedule through this. Failed 5 checks. Instantly." / real flagged issues / "This is Ordo7." / "Try it free — link in the comments." (no closing question — produced before this SOP's question requirement; later entries should end on a real question instead of a flat CTA line) | **Posted 2026-07-27, 9:28 AM** — [post](https://www.linkedin.com/posts/taj-young_projectmanagement-schedulerisk-constructionmanagement-ugcPost-7487544355545718784-J-Z4) (hashtags added at publish time, not part of the original caption). Real analytics pulled shortly after posting: 18 impressions, 11 reached, 6 video views, 22s avg watch time, **1 real comment** (0 reactions, 0 reposts, 0 saves) — the first non-zero organic comment on any Ordo7 post tracked in this project so far. Sample is tiny and very early (pulled within roughly an hour of posting), so treat the reach numbers as noise, but the comment is a real, if single, data point in favor of the format's core hypothesis. |
 
 **Note on entry 1:** produced during the same session that diagnosed Day 009 and designed this format, before the formal SOP (this file, `raw-linkedin-video-sop.md`) was written down. Its caption doesn't yet end on a question, unlike the blueprint this SOP locks in — future entries (2 onward) should. Not re-cut retroactively; it's still a valid, real, un-fabricated raw video and is fine to post as-is if the owner wants variety in what "close" looks like, but the routine's own output going forward should follow the SOP exactly.
