@@ -20,7 +20,8 @@
 |---|---|---|---|---|---|
 | 1 | 2026-07-26 | Upload → health score | `ordo7-raw-01-upload-to-score.mp4` | "I ran a real project schedule through this. Failed 5 checks. Instantly." / real flagged issues / "This is Ordo7." / "Try it free — link in the comments." (no closing question — produced before this SOP's question requirement; later entries should end on a real question instead of a flat CTA line) | **Posted 2026-07-27, 9:28 AM** — [post](https://www.linkedin.com/posts/taj-young_projectmanagement-schedulerisk-constructionmanagement-ugcPost-7487544355545718784-J-Z4) (hashtags added at publish time, not part of the original caption). Real analytics pulled shortly after posting: 18 impressions, 11 reached, 6 video views, 22s avg watch time, 1 comment — **that comment is Taj's own first-comment CTA link, not an organic reply**, so organic engagement so far is actually 0/0/0/0 (reactions/comments/reposts/saves), same pattern as everything else tracked. Sample is tiny and very early (pulled roughly an hour after posting) — too early to read anything into the reach numbers or conclude the format isn't working yet. |
 
-| 2 | 2026-07-28 | Issue Punch List + "How to fix" | `ordo7-raw-02-issue-fix-guidance.mp4` | "A schedule fails 5 checks." / "Ordo7 doesn't just flag it — it tells you how to fix each one." / "Real, specific guidance per issue. Not one generic tip." / "What's the first fix you'd make here?" | not yet — staged, awaiting manual post |
+| 2 | 2026-07-28 | Issue Punch List + "How to fix" | `ordo7-raw-02-issue-fix-guidance.mp4` | "A schedule fails 5 checks." / "Ordo7 doesn't just flag it — it tells you how to fix each one." / "Real, specific guidance per issue. Not one generic tip." / "What's the first fix you'd make here?" | **Posted 2026-07-28** (confirmed by Taj on 2026-07-29) — exact post time/URL not captured; add here if/when Taj shares the link. |
+| 3 | 2026-07-29 | What-if Sandbox | `ordo7-raw-03-sandbox.mp4` | "A schedule scored 2 out of 100." / "The Sandbox tests recovery scenarios live -- before you touch anything real." / "Fix the float. Fix the duration. Watch the score react instantly." / "What's the first fix you'd try on a 2 out of 100 schedule?" | not yet — staged, awaiting manual post |
 
 **Note on entry 1:** produced during the same session that diagnosed Day 009 and designed this format, before the formal SOP (this file, `raw-linkedin-video-sop.md`) was written down. Its caption doesn't yet end on a question, unlike the blueprint this SOP locks in — future entries (2 onward) should. Not re-cut retroactively; it's still a valid, real, un-fabricated raw video and is fine to post as-is if the owner wants variety in what "close" looks like, but the routine's own output going forward should follow the SOP exactly.
 
@@ -33,6 +34,20 @@
 > This is Ordo7: upload a schedule, see what's actually wrong, know what to do about it.
 >
 > What's the first fix you'd make on a schedule like this — the negative float, or the missing logic?
+>
+> #Ordo7 #ProjectControls #Scheduling #ConstructionManagement
+
+First comment (post immediately after publishing): `Try Ordo7 free → https://ordo7.pro`
+
+**Note on entry 3:** produced manually per Taj's request ("we need a video and caption for today"). Verified live before recording, per the SOP's hard rule: confirmed the demo account (still Professional tier from entry 2's DB change) can reach the Sandbox tab, and that `checkFlagEnabled('sandbox-simulator')` fails open (flags default to enabled unless explicitly turned off server-side) — so the tab renders real controls, not an upgrade/unavailable message. Recorded three genuine edits against the built-in sample data's real activities: Steel delivery's float (-1 → 3, clears the one negative-float issue the sandbox can affect), Roofing's float (50 → 20, clears its excessive-float risk), and MEP rough-in's duration (62.5 → 30, clears its long-duration risk) — all three are real, live inputs into the same `sandboxScoreFrom`/`sandboxContribution` formula documented in `index.html`, not scripted/faked numbers. The score moved 2 → 30 (+28), confirmed via frame capture at each step, matching a hand-computed check of the formula before recording. Deliberately did **not** claim the sandbox reaches "DCMA compliant" or any dramatic before/after framing — with this sample data the other 4 critical + 1 at-risk issues (missing logic, hard constraints, out-of-sequence, invalid dates) aren't editable via float/duration, so 30/100 is the honest ceiling here, not a stronger number. Styling matches entry 2's final version exactly (`ordo7-raw-03-captions.ass`: Courier 10 Pitch Bold, FontSize 64, yellow `&H0000FFFF`, near-opaque black box, letter-by-letter typewriter reveal with cursor) for visual consistency across the trial. Full caption text for the LinkedIn post:
+
+> A schedule scored 2 out of 100. That's a real, flawed sample schedule — not a hypothetical.
+>
+> Ordo7's What-If Sandbox lets you test recovery scenarios live, before you touch anything real: fix a negative-float item, bring an over-extended float back into range, shorten a duration that's run too long — and watch the health score react instantly, right in the browser. Nothing is saved until you decide it should be.
+>
+> This is Ordo7: see what's wrong, test the fix, know it works before you commit to it.
+>
+> What's the first fix you'd try on a schedule scoring 2 out of 100 — the float, or the duration?
 >
 > #Ordo7 #ProjectControls #Scheduling #ConstructionManagement
 
