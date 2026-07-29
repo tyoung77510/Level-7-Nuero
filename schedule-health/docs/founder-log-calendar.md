@@ -1,6 +1,6 @@
 # Founder Log — 90-day content calendar
 
-> **Status:** 🟡 Active build-out | **Purpose:** One distinct, on-topic post per day for 90 days, posted identically to LinkedIn and the ordo7.pro blog, with consistent Nocturne visuals throughout. | **Last Updated:** 2026-07-20
+> **Status:** 🟡 Active build-out | **Purpose:** One distinct, on-topic post per day for 90 days, posted identically to LinkedIn and the ordo7.pro blog, with consistent Nocturne visuals throughout. | **Last Updated:** 2026-07-29
 
 Companion to `brand-narrative.md`, which holds the locked voice rules and the "don't fabricate" standard this calendar is built to honor. This doc is the day-by-day topic bank; `render/` (in `marketing-assets/linkedin-founder-log/`) is the graphic pipeline; `backend/src/blog-content.js` is where the matching blog post for each day gets appended.
 
@@ -161,6 +161,17 @@ The three relationship-building items (earned-coverage outreach, referral channe
 **Longer-term commercial target (harder):** *project controls software* — 320/mo, difficulty 24, $13.03 CPC. Worth a dedicated product/comparison page once the domain has authority.
 
 **Gate on all of the above:** ordo7.pro has *zero* organic footprint until Google indexes it — connect Google Search Console and submit the sitemap first (Cresco Brief #1).
+
+### Week 2 check-in (2026-07-29) — gate still active, no new inserts
+
+Ran the weekly re-check. Nothing below changes the four inserts above; recorded here so the next run has a real baseline to diff against.
+
+- **Indexing: still zero.** `site:ordo7.pro` returns no results (WebSearch, 2026-07-29). Semrush `domain_rank`/`resource_organic` for ordo7.pro (us): `NOTHING FOUND` — 0 organic keywords, 0 traffic, unchanged from Brief #1. This is expected at ~1 week; not a regression.
+- **Connectors: GSC and GA4 still not connected.** `get_connectors` (Windsor.ai) returns an empty connected-account list — no source has been authorized yet. The Brief #1 gate (connect GSC, submit sitemap) has not been actioned. This is the highest-leverage open task — it's the only way to see real query/impression data once Google starts crawling, and it can't be substituted with Semrush (which only sees confirmed rankings, not pre-ranking impressions).
+- **Keyword volumes refreshed, same shortlist.** Re-pulled all 4 Brief #1 targets: `dcma 14 point assessment` (320/mo, KD 14) and `xer file viewer` (40/mo, KD 0) are unchanged. `what is schedule performance index` and `which type of dependency is most common in project schedules` moved from 90/KD12 and 70/KD11 (Brief #1) to 320/KD15 and 110/KD13 respectively — Semrush's own monthly volume-model update, not anything Ordo7 caused. Doesn't change the priority order.
+- **Site audit: stable, minor-only.** Semrush Site Audit (project `ordo7.pro`, snapshot 2026-07-28) score 89/100, delta 0 vs. the 2026-07-21 snapshot — 1 error (structured-data markup), a handful of 1-count perf warnings (uncompressed/unminified/uncached JS-CSS, low text/HTML ratio), notices (multiple H1, no `llms.txt`, no HSTS, pages with only one internal link). Nothing new broke; nothing new fixed.
+- **Backlinks: still no real authority.** `backlinks_overview` shows 25 links / 5 referring domains, but Authority Score 0 and 0 follow links — and `backlinks_refdomains` shows all 5 are `fiverr-*-seo-*.site` scraper/spam domains (domain score 2–3). Functionally zero backlink profile; not worth chasing yet.
+- **Net:** week-over-week is "as expected, nothing to react to." No new calendar inserts this run — see the SEO-fixes list and recommendation in this week's Cresco brief for the prioritized next actions (GSC connection first).
 
 ## Obsidian / cross-references
 
