@@ -1,0 +1,261 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1600
+PlayResY: 1000
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Courier 10 Pitch,64,&H0000FFFF,&H0000FFFF,&H00000000,&HE0000000,1,0,0,0,100,100,0,0,3,3,0,2,60,60,70,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:00.04,Default,,0,0,0,,A_
+Dialogue: 0,0:00:00.04,0:00:00.09,Default,,0,0,0,,A _
+Dialogue: 0,0:00:00.09,0:00:00.13,Default,,0,0,0,,A r_
+Dialogue: 0,0:00:00.13,0:00:00.17,Default,,0,0,0,,A re_
+Dialogue: 0,0:00:00.17,0:00:00.21,Default,,0,0,0,,A rea_
+Dialogue: 0,0:00:00.21,0:00:00.26,Default,,0,0,0,,A real_
+Dialogue: 0,0:00:00.26,0:00:00.30,Default,,0,0,0,,A real _
+Dialogue: 0,0:00:00.30,0:00:00.34,Default,,0,0,0,,A real s_
+Dialogue: 0,0:00:00.34,0:00:00.38,Default,,0,0,0,,A real sc_
+Dialogue: 0,0:00:00.38,0:00:00.43,Default,,0,0,0,,A real sch_
+Dialogue: 0,0:00:00.43,0:00:00.47,Default,,0,0,0,,A real sche_
+Dialogue: 0,0:00:00.47,0:00:00.51,Default,,0,0,0,,A real sched_
+Dialogue: 0,0:00:00.51,0:00:00.55,Default,,0,0,0,,A real schedu_
+Dialogue: 0,0:00:00.55,0:00:00.60,Default,,0,0,0,,A real schedul_
+Dialogue: 0,0:00:00.60,0:00:00.64,Default,,0,0,0,,A real schedule_
+Dialogue: 0,0:00:00.64,0:00:00.68,Default,,0,0,0,,A real schedule._
+Dialogue: 0,0:00:00.68,0:00:00.73,Default,,0,0,0,,A real schedule.\N_
+Dialogue: 0,0:00:00.73,0:00:00.77,Default,,0,0,0,,A real schedule.\NH_
+Dialogue: 0,0:00:00.77,0:00:00.81,Default,,0,0,0,,A real schedule.\NHe_
+Dialogue: 0,0:00:00.81,0:00:00.85,Default,,0,0,0,,A real schedule.\NHea_
+Dialogue: 0,0:00:00.85,0:00:00.90,Default,,0,0,0,,A real schedule.\NHeal_
+Dialogue: 0,0:00:00.90,0:00:00.94,Default,,0,0,0,,A real schedule.\NHealt_
+Dialogue: 0,0:00:00.94,0:00:00.98,Default,,0,0,0,,A real schedule.\NHealth_
+Dialogue: 0,0:00:00.98,0:00:01.02,Default,,0,0,0,,A real schedule.\NHealth _
+Dialogue: 0,0:00:01.02,0:00:01.07,Default,,0,0,0,,A real schedule.\NHealth s_
+Dialogue: 0,0:00:01.07,0:00:01.11,Default,,0,0,0,,A real schedule.\NHealth sc_
+Dialogue: 0,0:00:01.11,0:00:01.15,Default,,0,0,0,,A real schedule.\NHealth sco_
+Dialogue: 0,0:00:01.15,0:00:01.19,Default,,0,0,0,,A real schedule.\NHealth scor_
+Dialogue: 0,0:00:01.19,0:00:01.24,Default,,0,0,0,,A real schedule.\NHealth score_
+Dialogue: 0,0:00:01.24,0:00:01.28,Default,,0,0,0,,A real schedule.\NHealth score:_
+Dialogue: 0,0:00:01.28,0:00:01.32,Default,,0,0,0,,A real schedule.\NHealth score: _
+Dialogue: 0,0:00:01.32,0:00:01.37,Default,,0,0,0,,A real schedule.\NHealth score: 5_
+Dialogue: 0,0:00:01.37,0:00:01.41,Default,,0,0,0,,A real schedule.\NHealth score: 50_
+Dialogue: 0,0:00:01.41,0:00:01.45,Default,,0,0,0,,A real schedule.\NHealth score: 50 _
+Dialogue: 0,0:00:01.45,0:00:01.49,Default,,0,0,0,,A real schedule.\NHealth score: 50 o_
+Dialogue: 0,0:00:01.49,0:00:01.54,Default,,0,0,0,,A real schedule.\NHealth score: 50 ou_
+Dialogue: 0,0:00:01.54,0:00:01.58,Default,,0,0,0,,A real schedule.\NHealth score: 50 out_
+Dialogue: 0,0:00:01.58,0:00:01.62,Default,,0,0,0,,A real schedule.\NHealth score: 50 out _
+Dialogue: 0,0:00:01.62,0:00:01.66,Default,,0,0,0,,A real schedule.\NHealth score: 50 out o_
+Dialogue: 0,0:00:01.66,0:00:01.71,Default,,0,0,0,,A real schedule.\NHealth score: 50 out of_
+Dialogue: 0,0:00:01.71,0:00:01.75,Default,,0,0,0,,A real schedule.\NHealth score: 50 out of _
+Dialogue: 0,0:00:01.75,0:00:01.79,Default,,0,0,0,,A real schedule.\NHealth score: 50 out of 1_
+Dialogue: 0,0:00:01.79,0:00:01.83,Default,,0,0,0,,A real schedule.\NHealth score: 50 out of 10_
+Dialogue: 0,0:00:01.83,0:00:01.88,Default,,0,0,0,,A real schedule.\NHealth score: 50 out of 100_
+Dialogue: 0,0:00:01.88,0:00:01.92,Default,,0,0,0,,A real schedule.\NHealth score: 50 out of 100.
+Dialogue: 0,0:00:01.92,0:00:02.40,Default,,0,0,0,,A real schedule.\NHealth score: 50 out of 100.
+Dialogue: 0,0:00:02.40,0:00:02.44,Default,,0,0,0,,P_
+Dialogue: 0,0:00:02.44,0:00:02.48,Default,,0,0,0,,Pl_
+Dialogue: 0,0:00:02.48,0:00:02.52,Default,,0,0,0,,Pla_
+Dialogue: 0,0:00:02.52,0:00:02.56,Default,,0,0,0,,Plan_
+Dialogue: 0,0:00:02.56,0:00:02.60,Default,,0,0,0,,Plann_
+Dialogue: 0,0:00:02.60,0:00:02.64,Default,,0,0,0,,Planne_
+Dialogue: 0,0:00:02.64,0:00:02.68,Default,,0,0,0,,Planned_
+Dialogue: 0,0:00:02.68,0:00:02.72,Default,,0,0,0,,Planned _
+Dialogue: 0,0:00:02.72,0:00:02.75,Default,,0,0,0,,Planned p_
+Dialogue: 0,0:00:02.75,0:00:02.79,Default,,0,0,0,,Planned pr_
+Dialogue: 0,0:00:02.79,0:00:02.83,Default,,0,0,0,,Planned pro_
+Dialogue: 0,0:00:02.83,0:00:02.87,Default,,0,0,0,,Planned prog_
+Dialogue: 0,0:00:02.87,0:00:02.91,Default,,0,0,0,,Planned progr_
+Dialogue: 0,0:00:02.91,0:00:02.95,Default,,0,0,0,,Planned progre_
+Dialogue: 0,0:00:02.95,0:00:02.99,Default,,0,0,0,,Planned progres_
+Dialogue: 0,0:00:02.99,0:00:03.03,Default,,0,0,0,,Planned progress_
+Dialogue: 0,0:00:03.03,0:00:03.07,Default,,0,0,0,,Planned progress:_
+Dialogue: 0,0:00:03.07,0:00:03.11,Default,,0,0,0,,Planned progress: _
+Dialogue: 0,0:00:03.11,0:00:03.15,Default,,0,0,0,,Planned progress: 9_
+Dialogue: 0,0:00:03.15,0:00:03.19,Default,,0,0,0,,Planned progress: 90_
+Dialogue: 0,0:00:03.19,0:00:03.23,Default,,0,0,0,,Planned progress: 90._
+Dialogue: 0,0:00:03.23,0:00:03.27,Default,,0,0,0,,Planned progress: 90.5_
+Dialogue: 0,0:00:03.27,0:00:03.31,Default,,0,0,0,,Planned progress: 90.5%_
+Dialogue: 0,0:00:03.31,0:00:03.35,Default,,0,0,0,,Planned progress: 90.5%._
+Dialogue: 0,0:00:03.35,0:00:03.39,Default,,0,0,0,,Planned progress: 90.5%. _
+Dialogue: 0,0:00:03.39,0:00:03.42,Default,,0,0,0,,Planned progress: 90.5%. A_
+Dialogue: 0,0:00:03.42,0:00:03.46,Default,,0,0,0,,Planned progress: 90.5%. Ac_
+Dialogue: 0,0:00:03.46,0:00:03.50,Default,,0,0,0,,Planned progress: 90.5%. Act_
+Dialogue: 0,0:00:03.50,0:00:03.54,Default,,0,0,0,,Planned progress: 90.5%. Actu_
+Dialogue: 0,0:00:03.54,0:00:03.58,Default,,0,0,0,,Planned progress: 90.5%. Actua_
+Dialogue: 0,0:00:03.58,0:00:03.62,Default,,0,0,0,,Planned progress: 90.5%. Actual_
+Dialogue: 0,0:00:03.62,0:00:03.66,Default,,0,0,0,,Planned progress: 90.5%. Actual:_
+Dialogue: 0,0:00:03.66,0:00:03.70,Default,,0,0,0,,Planned progress: 90.5%. Actual: _
+Dialogue: 0,0:00:03.70,0:00:03.74,Default,,0,0,0,,Planned progress: 90.5%. Actual: 5_
+Dialogue: 0,0:00:03.74,0:00:03.78,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54_
+Dialogue: 0,0:00:03.78,0:00:03.82,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54._
+Dialogue: 0,0:00:03.82,0:00:03.86,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1_
+Dialogue: 0,0:00:03.86,0:00:03.90,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%_
+Dialogue: 0,0:00:03.90,0:00:03.94,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%._
+Dialogue: 0,0:00:03.94,0:00:03.98,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\N_
+Dialogue: 0,0:00:03.98,0:00:04.02,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NS_
+Dialogue: 0,0:00:04.02,0:00:04.05,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSP_
+Dialogue: 0,0:00:04.05,0:00:04.09,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI_
+Dialogue: 0,0:00:04.09,0:00:04.13,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI _
+Dialogue: 0,0:00:04.13,0:00:04.17,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0_
+Dialogue: 0,0:00:04.17,0:00:04.21,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0._
+Dialogue: 0,0:00:04.21,0:00:04.25,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.6_
+Dialogue: 0,0:00:04.25,0:00:04.29,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60_
+Dialogue: 0,0:00:04.29,0:00:04.33,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 _
+Dialogue: 0,0:00:04.33,0:00:04.37,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -_
+Dialogue: 0,0:00:04.37,0:00:04.41,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 --_
+Dialogue: 0,0:00:04.41,0:00:04.45,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- _
+Dialogue: 0,0:00:04.45,0:00:04.49,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- a_
+Dialogue: 0,0:00:04.49,0:00:04.53,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- al_
+Dialogue: 0,0:00:04.53,0:00:04.57,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- alr_
+Dialogue: 0,0:00:04.57,0:00:04.61,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- alre_
+Dialogue: 0,0:00:04.61,0:00:04.65,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- alrea_
+Dialogue: 0,0:00:04.65,0:00:04.69,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- alread_
+Dialogue: 0,0:00:04.69,0:00:04.72,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- already_
+Dialogue: 0,0:00:04.72,0:00:04.76,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- already _
+Dialogue: 0,0:00:04.76,0:00:04.80,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- already b_
+Dialogue: 0,0:00:04.80,0:00:04.84,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- already be_
+Dialogue: 0,0:00:04.84,0:00:04.88,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- already beh_
+Dialogue: 0,0:00:04.88,0:00:04.92,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- already behi_
+Dialogue: 0,0:00:04.92,0:00:04.96,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- already behin_
+Dialogue: 0,0:00:04.96,0:00:05.00,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- already behind_
+Dialogue: 0,0:00:05.00,0:00:05.04,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- already behind.
+Dialogue: 0,0:00:05.04,0:00:05.70,Default,,0,0,0,,Planned progress: 90.5%. Actual: 54.1%.\NSPI 0.60 -- already behind.
+Dialogue: 0,0:00:05.70,0:00:05.74,Default,,0,0,0,,O_
+Dialogue: 0,0:00:05.74,0:00:05.77,Default,,0,0,0,,Or_
+Dialogue: 0,0:00:05.77,0:00:05.81,Default,,0,0,0,,Ord_
+Dialogue: 0,0:00:05.81,0:00:05.85,Default,,0,0,0,,Ordo_
+Dialogue: 0,0:00:05.85,0:00:05.89,Default,,0,0,0,,Ordo7_
+Dialogue: 0,0:00:05.89,0:00:05.92,Default,,0,0,0,,Ordo7 _
+Dialogue: 0,0:00:05.92,0:00:05.96,Default,,0,0,0,,Ordo7 d_
+Dialogue: 0,0:00:05.96,0:00:06.00,Default,,0,0,0,,Ordo7 do_
+Dialogue: 0,0:00:06.00,0:00:06.03,Default,,0,0,0,,Ordo7 doe_
+Dialogue: 0,0:00:06.03,0:00:06.07,Default,,0,0,0,,Ordo7 does_
+Dialogue: 0,0:00:06.07,0:00:06.11,Default,,0,0,0,,Ordo7 doesn_
+Dialogue: 0,0:00:06.11,0:00:06.15,Default,,0,0,0,,Ordo7 doesn'_
+Dialogue: 0,0:00:06.15,0:00:06.18,Default,,0,0,0,,Ordo7 doesn't_
+Dialogue: 0,0:00:06.18,0:00:06.22,Default,,0,0,0,,Ordo7 doesn't _
+Dialogue: 0,0:00:06.22,0:00:06.26,Default,,0,0,0,,Ordo7 doesn't s_
+Dialogue: 0,0:00:06.26,0:00:06.29,Default,,0,0,0,,Ordo7 doesn't st_
+Dialogue: 0,0:00:06.29,0:00:06.33,Default,,0,0,0,,Ordo7 doesn't sto_
+Dialogue: 0,0:00:06.33,0:00:06.37,Default,,0,0,0,,Ordo7 doesn't stop_
+Dialogue: 0,0:00:06.37,0:00:06.41,Default,,0,0,0,,Ordo7 doesn't stop _
+Dialogue: 0,0:00:06.41,0:00:06.44,Default,,0,0,0,,Ordo7 doesn't stop a_
+Dialogue: 0,0:00:06.44,0:00:06.48,Default,,0,0,0,,Ordo7 doesn't stop at_
+Dialogue: 0,0:00:06.48,0:00:06.52,Default,,0,0,0,,Ordo7 doesn't stop at _
+Dialogue: 0,0:00:06.52,0:00:06.56,Default,,0,0,0,,Ordo7 doesn't stop at a_
+Dialogue: 0,0:00:06.56,0:00:06.59,Default,,0,0,0,,Ordo7 doesn't stop at a _
+Dialogue: 0,0:00:06.59,0:00:06.63,Default,,0,0,0,,Ordo7 doesn't stop at a s_
+Dialogue: 0,0:00:06.63,0:00:06.67,Default,,0,0,0,,Ordo7 doesn't stop at a sc_
+Dialogue: 0,0:00:06.67,0:00:06.70,Default,,0,0,0,,Ordo7 doesn't stop at a sco_
+Dialogue: 0,0:00:06.70,0:00:06.74,Default,,0,0,0,,Ordo7 doesn't stop at a scor_
+Dialogue: 0,0:00:06.74,0:00:06.78,Default,,0,0,0,,Ordo7 doesn't stop at a score_
+Dialogue: 0,0:00:06.78,0:00:06.82,Default,,0,0,0,,Ordo7 doesn't stop at a score _
+Dialogue: 0,0:00:06.82,0:00:06.85,Default,,0,0,0,,Ordo7 doesn't stop at a score -_
+Dialogue: 0,0:00:06.85,0:00:06.89,Default,,0,0,0,,Ordo7 doesn't stop at a score --_
+Dialogue: 0,0:00:06.89,0:00:06.93,Default,,0,0,0,,Ordo7 doesn't stop at a score --\N_
+Dialogue: 0,0:00:06.93,0:00:06.96,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Ni_
+Dialogue: 0,0:00:06.96,0:00:07.00,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit_
+Dialogue: 0,0:00:07.00,0:00:07.04,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit _
+Dialogue: 0,0:00:07.04,0:00:07.08,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit f_
+Dialogue: 0,0:00:07.08,0:00:07.11,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit fo_
+Dialogue: 0,0:00:07.11,0:00:07.15,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit for_
+Dialogue: 0,0:00:07.15,0:00:07.19,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit fore_
+Dialogue: 0,0:00:07.19,0:00:07.22,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forec_
+Dialogue: 0,0:00:07.22,0:00:07.26,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit foreca_
+Dialogue: 0,0:00:07.26,0:00:07.30,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecas_
+Dialogue: 0,0:00:07.30,0:00:07.34,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecast_
+Dialogue: 0,0:00:07.34,0:00:07.37,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts_
+Dialogue: 0,0:00:07.37,0:00:07.41,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts _
+Dialogue: 0,0:00:07.41,0:00:07.45,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts t_
+Dialogue: 0,0:00:07.45,0:00:07.48,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts th_
+Dialogue: 0,0:00:07.48,0:00:07.52,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the_
+Dialogue: 0,0:00:07.52,0:00:07.56,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the _
+Dialogue: 0,0:00:07.56,0:00:07.60,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the f_
+Dialogue: 0,0:00:07.60,0:00:07.63,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the fi_
+Dialogue: 0,0:00:07.63,0:00:07.67,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the fin_
+Dialogue: 0,0:00:07.67,0:00:07.71,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the fini_
+Dialogue: 0,0:00:07.71,0:00:07.75,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finis_
+Dialogue: 0,0:00:07.75,0:00:07.78,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish_
+Dialogue: 0,0:00:07.78,0:00:07.82,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish _
+Dialogue: 0,0:00:07.82,0:00:07.86,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish d_
+Dialogue: 0,0:00:07.86,0:00:07.89,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish da_
+Dialogue: 0,0:00:07.89,0:00:07.93,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish dat_
+Dialogue: 0,0:00:07.93,0:00:07.97,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish date_
+Dialogue: 0,0:00:07.97,0:00:08.01,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish date _
+Dialogue: 0,0:00:08.01,0:00:08.04,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish date t_
+Dialogue: 0,0:00:08.04,0:00:08.08,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish date tw_
+Dialogue: 0,0:00:08.08,0:00:08.12,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish date two_
+Dialogue: 0,0:00:08.12,0:00:08.15,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish date two _
+Dialogue: 0,0:00:08.15,0:00:08.19,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish date two w_
+Dialogue: 0,0:00:08.19,0:00:08.23,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish date two wa_
+Dialogue: 0,0:00:08.23,0:00:08.27,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish date two way_
+Dialogue: 0,0:00:08.27,0:00:08.30,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish date two ways_
+Dialogue: 0,0:00:08.30,0:00:08.34,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish date two ways.
+Dialogue: 0,0:00:08.34,0:00:09.00,Default,,0,0,0,,Ordo7 doesn't stop at a score --\Nit forecasts the finish date two ways.
+Dialogue: 0,0:00:09.00,0:00:09.03,Default,,0,0,0,,A_
+Dialogue: 0,0:00:09.03,0:00:09.06,Default,,0,0,0,,At_
+Dialogue: 0,0:00:09.06,0:00:09.09,Default,,0,0,0,,At _
+Dialogue: 0,0:00:09.09,0:00:09.12,Default,,0,0,0,,At c_
+Dialogue: 0,0:00:09.12,0:00:09.15,Default,,0,0,0,,At cu_
+Dialogue: 0,0:00:09.15,0:00:09.18,Default,,0,0,0,,At cur_
+Dialogue: 0,0:00:09.18,0:00:09.21,Default,,0,0,0,,At curr_
+Dialogue: 0,0:00:09.21,0:00:09.24,Default,,0,0,0,,At curre_
+Dialogue: 0,0:00:09.24,0:00:09.27,Default,,0,0,0,,At curren_
+Dialogue: 0,0:00:09.27,0:00:09.30,Default,,0,0,0,,At current_
+Dialogue: 0,0:00:09.30,0:00:09.33,Default,,0,0,0,,At current _
+Dialogue: 0,0:00:09.33,0:00:09.37,Default,,0,0,0,,At current p_
+Dialogue: 0,0:00:09.37,0:00:09.40,Default,,0,0,0,,At current pa_
+Dialogue: 0,0:00:09.40,0:00:09.43,Default,,0,0,0,,At current pac_
+Dialogue: 0,0:00:09.43,0:00:09.46,Default,,0,0,0,,At current pace_
+Dialogue: 0,0:00:09.46,0:00:09.49,Default,,0,0,0,,At current pace:_
+Dialogue: 0,0:00:09.49,0:00:09.52,Default,,0,0,0,,At current pace: _
+Dialogue: 0,0:00:09.52,0:00:09.55,Default,,0,0,0,,At current pace: J_
+Dialogue: 0,0:00:09.55,0:00:09.58,Default,,0,0,0,,At current pace: Ja_
+Dialogue: 0,0:00:09.58,0:00:09.61,Default,,0,0,0,,At current pace: Jan_
+Dialogue: 0,0:00:09.61,0:00:09.64,Default,,0,0,0,,At current pace: Jan _
+Dialogue: 0,0:00:09.64,0:00:09.67,Default,,0,0,0,,At current pace: Jan 2_
+Dialogue: 0,0:00:09.67,0:00:09.70,Default,,0,0,0,,At current pace: Jan 20_
+Dialogue: 0,0:00:09.70,0:00:09.73,Default,,0,0,0,,At current pace: Jan 202_
+Dialogue: 0,0:00:09.73,0:00:09.76,Default,,0,0,0,,At current pace: Jan 2027_
+Dialogue: 0,0:00:09.76,0:00:09.79,Default,,0,0,0,,At current pace: Jan 2027._
+Dialogue: 0,0:00:09.79,0:00:09.82,Default,,0,0,0,,At current pace: Jan 2027.\N_
+Dialogue: 0,0:00:09.82,0:00:09.85,Default,,0,0,0,,At current pace: Jan 2027.\NB_
+Dialogue: 0,0:00:09.85,0:00:09.88,Default,,0,0,0,,At current pace: Jan 2027.\NBa_
+Dialogue: 0,0:00:09.88,0:00:09.91,Default,,0,0,0,,At current pace: Jan 2027.\NBac_
+Dialogue: 0,0:00:09.91,0:00:09.94,Default,,0,0,0,,At current pace: Jan 2027.\NBack_
+Dialogue: 0,0:00:09.94,0:00:09.97,Default,,0,0,0,,At current pace: Jan 2027.\NBack _
+Dialogue: 0,0:00:09.97,0:00:10.00,Default,,0,0,0,,At current pace: Jan 2027.\NBack o_
+Dialogue: 0,0:00:10.00,0:00:10.03,Default,,0,0,0,,At current pace: Jan 2027.\NBack on_
+Dialogue: 0,0:00:10.03,0:00:10.06,Default,,0,0,0,,At current pace: Jan 2027.\NBack on _
+Dialogue: 0,0:00:10.06,0:00:10.10,Default,,0,0,0,,At current pace: Jan 2027.\NBack on p_
+Dialogue: 0,0:00:10.10,0:00:10.13,Default,,0,0,0,,At current pace: Jan 2027.\NBack on pl_
+Dialogue: 0,0:00:10.13,0:00:10.16,Default,,0,0,0,,At current pace: Jan 2027.\NBack on pla_
+Dialogue: 0,0:00:10.16,0:00:10.19,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan_
+Dialogue: 0,0:00:10.19,0:00:10.22,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan:_
+Dialogue: 0,0:00:10.22,0:00:10.25,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: _
+Dialogue: 0,0:00:10.25,0:00:10.28,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: N_
+Dialogue: 0,0:00:10.28,0:00:10.31,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: No_
+Dialogue: 0,0:00:10.31,0:00:10.34,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov_
+Dialogue: 0,0:00:10.34,0:00:10.37,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov _
+Dialogue: 0,0:00:10.37,0:00:10.40,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2_
+Dialogue: 0,0:00:10.40,0:00:10.43,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 20_
+Dialogue: 0,0:00:10.43,0:00:10.46,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 202_
+Dialogue: 0,0:00:10.46,0:00:10.49,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2026_
+Dialogue: 0,0:00:10.49,0:00:10.52,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2026._
+Dialogue: 0,0:00:10.52,0:00:10.55,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2026. _
+Dialogue: 0,0:00:10.55,0:00:10.58,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2026. Y_
+Dialogue: 0,0:00:10.58,0:00:10.61,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2026. Yo_
+Dialogue: 0,0:00:10.61,0:00:10.64,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2026. You_
+Dialogue: 0,0:00:10.64,0:00:10.67,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2026. Your_
+Dialogue: 0,0:00:10.67,0:00:10.70,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2026. Your _
+Dialogue: 0,0:00:10.70,0:00:10.73,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2026. Your c_
+Dialogue: 0,0:00:10.73,0:00:10.76,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2026. Your ca_
+Dialogue: 0,0:00:10.76,0:00:10.80,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2026. Your cal_
+Dialogue: 0,0:00:10.80,0:00:10.83,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2026. Your call_
+Dialogue: 0,0:00:10.83,0:00:10.86,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2026. Your call?
+Dialogue: 0,0:00:10.86,0:00:11.32,Default,,0,0,0,,At current pace: Jan 2027.\NBack on plan: Nov 2026. Your call?
