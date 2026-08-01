@@ -1,0 +1,211 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1600
+PlayResY: 1000
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Courier 10 Pitch,64,&H0000FFFF,&H0000FFFF,&H00000000,&HE0000000,1,0,0,0,100,100,0,0,3,3,0,2,60,60,70,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:00.05,Default,,0,0,0,,S_
+Dialogue: 0,0:00:00.05,0:00:00.09,Default,,0,0,0,,Sa_
+Dialogue: 0,0:00:00.09,0:00:00.14,Default,,0,0,0,,Sam_
+Dialogue: 0,0:00:00.14,0:00:00.18,Default,,0,0,0,,Same_
+Dialogue: 0,0:00:00.18,0:00:00.23,Default,,0,0,0,,Same _
+Dialogue: 0,0:00:00.23,0:00:00.27,Default,,0,0,0,,Same s_
+Dialogue: 0,0:00:00.27,0:00:00.32,Default,,0,0,0,,Same sc_
+Dialogue: 0,0:00:00.32,0:00:00.37,Default,,0,0,0,,Same sch_
+Dialogue: 0,0:00:00.37,0:00:00.41,Default,,0,0,0,,Same sche_
+Dialogue: 0,0:00:00.41,0:00:00.46,Default,,0,0,0,,Same sched_
+Dialogue: 0,0:00:00.46,0:00:00.50,Default,,0,0,0,,Same schedu_
+Dialogue: 0,0:00:00.50,0:00:00.55,Default,,0,0,0,,Same schedul_
+Dialogue: 0,0:00:00.55,0:00:00.59,Default,,0,0,0,,Same schedule_
+Dialogue: 0,0:00:00.59,0:00:00.64,Default,,0,0,0,,Same schedule._
+Dialogue: 0,0:00:00.64,0:00:00.69,Default,,0,0,0,,Same schedule.\N_
+Dialogue: 0,0:00:00.69,0:00:00.73,Default,,0,0,0,,Same schedule.\NS_
+Dialogue: 0,0:00:00.73,0:00:00.78,Default,,0,0,0,,Same schedule.\NSc_
+Dialogue: 0,0:00:00.78,0:00:00.82,Default,,0,0,0,,Same schedule.\NSco_
+Dialogue: 0,0:00:00.82,0:00:00.87,Default,,0,0,0,,Same schedule.\NScor_
+Dialogue: 0,0:00:00.87,0:00:00.91,Default,,0,0,0,,Same schedule.\NScore_
+Dialogue: 0,0:00:00.91,0:00:00.96,Default,,0,0,0,,Same schedule.\NScore:_
+Dialogue: 0,0:00:00.96,0:00:01.01,Default,,0,0,0,,Same schedule.\NScore: _
+Dialogue: 0,0:00:01.01,0:00:01.05,Default,,0,0,0,,Same schedule.\NScore: 2_
+Dialogue: 0,0:00:01.05,0:00:01.10,Default,,0,0,0,,Same schedule.\NScore: 2 _
+Dialogue: 0,0:00:01.10,0:00:01.14,Default,,0,0,0,,Same schedule.\NScore: 2 o_
+Dialogue: 0,0:00:01.14,0:00:01.19,Default,,0,0,0,,Same schedule.\NScore: 2 ou_
+Dialogue: 0,0:00:01.19,0:00:01.23,Default,,0,0,0,,Same schedule.\NScore: 2 out_
+Dialogue: 0,0:00:01.23,0:00:01.28,Default,,0,0,0,,Same schedule.\NScore: 2 out _
+Dialogue: 0,0:00:01.28,0:00:01.33,Default,,0,0,0,,Same schedule.\NScore: 2 out o_
+Dialogue: 0,0:00:01.33,0:00:01.37,Default,,0,0,0,,Same schedule.\NScore: 2 out of_
+Dialogue: 0,0:00:01.37,0:00:01.42,Default,,0,0,0,,Same schedule.\NScore: 2 out of _
+Dialogue: 0,0:00:01.42,0:00:01.46,Default,,0,0,0,,Same schedule.\NScore: 2 out of 1_
+Dialogue: 0,0:00:01.46,0:00:01.51,Default,,0,0,0,,Same schedule.\NScore: 2 out of 10_
+Dialogue: 0,0:00:01.51,0:00:01.55,Default,,0,0,0,,Same schedule.\NScore: 2 out of 100_
+Dialogue: 0,0:00:01.55,0:00:01.60,Default,,0,0,0,,Same schedule.\NScore: 2 out of 100.
+Dialogue: 0,0:00:01.60,0:00:02.00,Default,,0,0,0,,Same schedule.\NScore: 2 out of 100.
+Dialogue: 0,0:00:02.00,0:00:02.05,Default,,0,0,0,,A_
+Dialogue: 0,0:00:02.05,0:00:02.10,Default,,0,0,0,,As_
+Dialogue: 0,0:00:02.10,0:00:02.15,Default,,0,0,0,,Ask_
+Dialogue: 0,0:00:02.15,0:00:02.20,Default,,0,0,0,,Ask _
+Dialogue: 0,0:00:02.20,0:00:02.25,Default,,0,0,0,,Ask O_
+Dialogue: 0,0:00:02.25,0:00:02.30,Default,,0,0,0,,Ask Or_
+Dialogue: 0,0:00:02.30,0:00:02.35,Default,,0,0,0,,Ask Ord_
+Dialogue: 0,0:00:02.35,0:00:02.40,Default,,0,0,0,,Ask Ordo_
+Dialogue: 0,0:00:02.40,0:00:02.45,Default,,0,0,0,,Ask Ordo _
+Dialogue: 0,0:00:02.45,0:00:02.50,Default,,0,0,0,,Ask Ordo a_
+Dialogue: 0,0:00:02.50,0:00:02.55,Default,,0,0,0,,Ask Ordo an_
+Dialogue: 0,0:00:02.55,0:00:02.60,Default,,0,0,0,,Ask Ordo any_
+Dialogue: 0,0:00:02.60,0:00:02.65,Default,,0,0,0,,Ask Ordo anyt_
+Dialogue: 0,0:00:02.65,0:00:02.70,Default,,0,0,0,,Ask Ordo anyth_
+Dialogue: 0,0:00:02.70,0:00:02.75,Default,,0,0,0,,Ask Ordo anythi_
+Dialogue: 0,0:00:02.75,0:00:02.80,Default,,0,0,0,,Ask Ordo anythin_
+Dialogue: 0,0:00:02.80,0:00:02.85,Default,,0,0,0,,Ask Ordo anything_
+Dialogue: 0,0:00:02.85,0:00:02.90,Default,,0,0,0,,Ask Ordo anything _
+Dialogue: 0,0:00:02.90,0:00:02.95,Default,,0,0,0,,Ask Ordo anything -_
+Dialogue: 0,0:00:02.95,0:00:03.00,Default,,0,0,0,,Ask Ordo anything --_
+Dialogue: 0,0:00:03.00,0:00:03.05,Default,,0,0,0,,Ask Ordo anything --\N_
+Dialogue: 0,0:00:03.05,0:00:03.10,Default,,0,0,0,,Ask Ordo anything --\Na_
+Dialogue: 0,0:00:03.10,0:00:03.15,Default,,0,0,0,,Ask Ordo anything --\Na _
+Dialogue: 0,0:00:03.15,0:00:03.20,Default,,0,0,0,,Ask Ordo anything --\Na r_
+Dialogue: 0,0:00:03.20,0:00:03.25,Default,,0,0,0,,Ask Ordo anything --\Na re_
+Dialogue: 0,0:00:03.25,0:00:03.30,Default,,0,0,0,,Ask Ordo anything --\Na rea_
+Dialogue: 0,0:00:03.30,0:00:03.35,Default,,0,0,0,,Ask Ordo anything --\Na real_
+Dialogue: 0,0:00:03.35,0:00:03.40,Default,,0,0,0,,Ask Ordo anything --\Na real _
+Dialogue: 0,0:00:03.40,0:00:03.45,Default,,0,0,0,,Ask Ordo anything --\Na real q_
+Dialogue: 0,0:00:03.45,0:00:03.50,Default,,0,0,0,,Ask Ordo anything --\Na real qu_
+Dialogue: 0,0:00:03.50,0:00:03.55,Default,,0,0,0,,Ask Ordo anything --\Na real que_
+Dialogue: 0,0:00:03.55,0:00:03.60,Default,,0,0,0,,Ask Ordo anything --\Na real ques_
+Dialogue: 0,0:00:03.60,0:00:03.65,Default,,0,0,0,,Ask Ordo anything --\Na real quest_
+Dialogue: 0,0:00:03.65,0:00:03.70,Default,,0,0,0,,Ask Ordo anything --\Na real questi_
+Dialogue: 0,0:00:03.70,0:00:03.75,Default,,0,0,0,,Ask Ordo anything --\Na real questio_
+Dialogue: 0,0:00:03.75,0:00:03.80,Default,,0,0,0,,Ask Ordo anything --\Na real question_
+Dialogue: 0,0:00:03.80,0:00:03.85,Default,,0,0,0,,Ask Ordo anything --\Na real question,_
+Dialogue: 0,0:00:03.85,0:00:03.90,Default,,0,0,0,,Ask Ordo anything --\Na real question, _
+Dialogue: 0,0:00:03.90,0:00:03.95,Default,,0,0,0,,Ask Ordo anything --\Na real question, t_
+Dialogue: 0,0:00:03.95,0:00:04.00,Default,,0,0,0,,Ask Ordo anything --\Na real question, ty_
+Dialogue: 0,0:00:04.00,0:00:04.05,Default,,0,0,0,,Ask Ordo anything --\Na real question, typ_
+Dialogue: 0,0:00:04.05,0:00:04.10,Default,,0,0,0,,Ask Ordo anything --\Na real question, type_
+Dialogue: 0,0:00:04.10,0:00:04.15,Default,,0,0,0,,Ask Ordo anything --\Na real question, typed_
+Dialogue: 0,0:00:04.15,0:00:04.20,Default,,0,0,0,,Ask Ordo anything --\Na real question, typed _
+Dialogue: 0,0:00:04.20,0:00:04.25,Default,,0,0,0,,Ask Ordo anything --\Na real question, typed l_
+Dialogue: 0,0:00:04.25,0:00:04.30,Default,,0,0,0,,Ask Ordo anything --\Na real question, typed li_
+Dialogue: 0,0:00:04.30,0:00:04.35,Default,,0,0,0,,Ask Ordo anything --\Na real question, typed liv_
+Dialogue: 0,0:00:04.35,0:00:04.40,Default,,0,0,0,,Ask Ordo anything --\Na real question, typed live_
+Dialogue: 0,0:00:04.40,0:00:04.45,Default,,0,0,0,,Ask Ordo anything --\Na real question, typed live.
+Dialogue: 0,0:00:04.45,0:00:06.70,Default,,0,0,0,,Ask Ordo anything --\Na real question, typed live.
+Dialogue: 0,0:00:06.70,0:00:06.75,Default,,0,0,0,,O_
+Dialogue: 0,0:00:06.75,0:00:06.80,Default,,0,0,0,,Or_
+Dialogue: 0,0:00:06.80,0:00:06.84,Default,,0,0,0,,Ord_
+Dialogue: 0,0:00:06.84,0:00:06.89,Default,,0,0,0,,Ordo_
+Dialogue: 0,0:00:06.89,0:00:06.94,Default,,0,0,0,,Ordo7_
+Dialogue: 0,0:00:06.94,0:00:06.99,Default,,0,0,0,,Ordo7 _
+Dialogue: 0,0:00:06.99,0:00:07.03,Default,,0,0,0,,Ordo7 d_
+Dialogue: 0,0:00:07.03,0:00:07.08,Default,,0,0,0,,Ordo7 do_
+Dialogue: 0,0:00:07.08,0:00:07.13,Default,,0,0,0,,Ordo7 doe_
+Dialogue: 0,0:00:07.13,0:00:07.18,Default,,0,0,0,,Ordo7 does_
+Dialogue: 0,0:00:07.18,0:00:07.23,Default,,0,0,0,,Ordo7 doesn_
+Dialogue: 0,0:00:07.23,0:00:07.27,Default,,0,0,0,,Ordo7 doesn'_
+Dialogue: 0,0:00:07.27,0:00:07.32,Default,,0,0,0,,Ordo7 doesn't_
+Dialogue: 0,0:00:07.32,0:00:07.37,Default,,0,0,0,,Ordo7 doesn't _
+Dialogue: 0,0:00:07.37,0:00:07.42,Default,,0,0,0,,Ordo7 doesn't g_
+Dialogue: 0,0:00:07.42,0:00:07.46,Default,,0,0,0,,Ordo7 doesn't gu_
+Dialogue: 0,0:00:07.46,0:00:07.51,Default,,0,0,0,,Ordo7 doesn't gue_
+Dialogue: 0,0:00:07.51,0:00:07.56,Default,,0,0,0,,Ordo7 doesn't gues_
+Dialogue: 0,0:00:07.56,0:00:07.61,Default,,0,0,0,,Ordo7 doesn't guess_
+Dialogue: 0,0:00:07.61,0:00:07.66,Default,,0,0,0,,Ordo7 doesn't guess _
+Dialogue: 0,0:00:07.66,0:00:07.70,Default,,0,0,0,,Ordo7 doesn't guess -_
+Dialogue: 0,0:00:07.70,0:00:07.75,Default,,0,0,0,,Ordo7 doesn't guess --_
+Dialogue: 0,0:00:07.75,0:00:07.80,Default,,0,0,0,,Ordo7 doesn't guess --\N_
+Dialogue: 0,0:00:07.80,0:00:07.85,Default,,0,0,0,,Ordo7 doesn't guess --\Ni_
+Dialogue: 0,0:00:07.85,0:00:07.89,Default,,0,0,0,,Ordo7 doesn't guess --\Nit_
+Dialogue: 0,0:00:07.89,0:00:07.94,Default,,0,0,0,,Ordo7 doesn't guess --\Nit _
+Dialogue: 0,0:00:07.94,0:00:07.99,Default,,0,0,0,,Ordo7 doesn't guess --\Nit g_
+Dialogue: 0,0:00:07.99,0:00:08.04,Default,,0,0,0,,Ordo7 doesn't guess --\Nit gr_
+Dialogue: 0,0:00:08.04,0:00:08.09,Default,,0,0,0,,Ordo7 doesn't guess --\Nit gro_
+Dialogue: 0,0:00:08.09,0:00:08.13,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grou_
+Dialogue: 0,0:00:08.13,0:00:08.18,Default,,0,0,0,,Ordo7 doesn't guess --\Nit groun_
+Dialogue: 0,0:00:08.18,0:00:08.23,Default,,0,0,0,,Ordo7 doesn't guess --\Nit ground_
+Dialogue: 0,0:00:08.23,0:00:08.28,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds_
+Dialogue: 0,0:00:08.28,0:00:08.32,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds _
+Dialogue: 0,0:00:08.32,0:00:08.37,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds t_
+Dialogue: 0,0:00:08.37,0:00:08.42,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds th_
+Dialogue: 0,0:00:08.42,0:00:08.47,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the_
+Dialogue: 0,0:00:08.47,0:00:08.51,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the _
+Dialogue: 0,0:00:08.51,0:00:08.56,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the a_
+Dialogue: 0,0:00:08.56,0:00:08.61,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the an_
+Dialogue: 0,0:00:08.61,0:00:08.66,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the ans_
+Dialogue: 0,0:00:08.66,0:00:08.71,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answ_
+Dialogue: 0,0:00:08.71,0:00:08.75,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answe_
+Dialogue: 0,0:00:08.75,0:00:08.80,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer_
+Dialogue: 0,0:00:08.80,0:00:08.85,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer _
+Dialogue: 0,0:00:08.85,0:00:08.90,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer i_
+Dialogue: 0,0:00:08.90,0:00:08.94,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in_
+Dialogue: 0,0:00:08.94,0:00:08.99,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in _
+Dialogue: 0,0:00:08.99,0:00:09.04,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in y_
+Dialogue: 0,0:00:09.04,0:00:09.09,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in yo_
+Dialogue: 0,0:00:09.09,0:00:09.14,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in you_
+Dialogue: 0,0:00:09.14,0:00:09.18,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your_
+Dialogue: 0,0:00:09.18,0:00:09.23,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your _
+Dialogue: 0,0:00:09.23,0:00:09.28,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your a_
+Dialogue: 0,0:00:09.28,0:00:09.33,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your ac_
+Dialogue: 0,0:00:09.33,0:00:09.37,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your act_
+Dialogue: 0,0:00:09.37,0:00:09.42,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your actu_
+Dialogue: 0,0:00:09.42,0:00:09.47,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your actua_
+Dialogue: 0,0:00:09.47,0:00:09.52,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your actual_
+Dialogue: 0,0:00:09.52,0:00:09.57,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your actual _
+Dialogue: 0,0:00:09.57,0:00:09.61,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your actual i_
+Dialogue: 0,0:00:09.61,0:00:09.66,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your actual is_
+Dialogue: 0,0:00:09.66,0:00:09.71,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your actual iss_
+Dialogue: 0,0:00:09.71,0:00:09.76,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your actual issu_
+Dialogue: 0,0:00:09.76,0:00:09.80,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your actual issue_
+Dialogue: 0,0:00:09.80,0:00:09.85,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your actual issues_
+Dialogue: 0,0:00:09.85,0:00:09.90,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your actual issues.
+Dialogue: 0,0:00:09.90,0:00:10.70,Default,,0,0,0,,Ordo7 doesn't guess --\Nit grounds the answer in your actual issues.
+Dialogue: 0,0:00:10.70,0:00:10.75,Default,,0,0,0,,R_
+Dialogue: 0,0:00:10.75,0:00:10.80,Default,,0,0,0,,Re_
+Dialogue: 0,0:00:10.80,0:00:10.85,Default,,0,0,0,,Rea_
+Dialogue: 0,0:00:10.85,0:00:10.90,Default,,0,0,0,,Real_
+Dialogue: 0,0:00:10.90,0:00:10.95,Default,,0,0,0,,Real _
+Dialogue: 0,0:00:10.95,0:00:11.00,Default,,0,0,0,,Real A_
+Dialogue: 0,0:00:11.00,0:00:11.05,Default,,0,0,0,,Real AI_
+Dialogue: 0,0:00:11.05,0:00:11.10,Default,,0,0,0,,Real AI._
+Dialogue: 0,0:00:11.10,0:00:11.15,Default,,0,0,0,,Real AI. _
+Dialogue: 0,0:00:11.15,0:00:11.20,Default,,0,0,0,,Real AI. R_
+Dialogue: 0,0:00:11.20,0:00:11.25,Default,,0,0,0,,Real AI. Re_
+Dialogue: 0,0:00:11.25,0:00:11.30,Default,,0,0,0,,Real AI. Rea_
+Dialogue: 0,0:00:11.30,0:00:11.35,Default,,0,0,0,,Real AI. Real_
+Dialogue: 0,0:00:11.35,0:00:11.40,Default,,0,0,0,,Real AI. Real _
+Dialogue: 0,0:00:11.40,0:00:11.45,Default,,0,0,0,,Real AI. Real s_
+Dialogue: 0,0:00:11.45,0:00:11.50,Default,,0,0,0,,Real AI. Real sc_
+Dialogue: 0,0:00:11.50,0:00:11.55,Default,,0,0,0,,Real AI. Real sch_
+Dialogue: 0,0:00:11.55,0:00:11.60,Default,,0,0,0,,Real AI. Real sche_
+Dialogue: 0,0:00:11.60,0:00:11.65,Default,,0,0,0,,Real AI. Real sched_
+Dialogue: 0,0:00:11.65,0:00:11.70,Default,,0,0,0,,Real AI. Real schedu_
+Dialogue: 0,0:00:11.70,0:00:11.75,Default,,0,0,0,,Real AI. Real schedul_
+Dialogue: 0,0:00:11.75,0:00:11.80,Default,,0,0,0,,Real AI. Real schedule_
+Dialogue: 0,0:00:11.80,0:00:11.85,Default,,0,0,0,,Real AI. Real schedule._
+Dialogue: 0,0:00:11.85,0:00:11.90,Default,,0,0,0,,Real AI. Real schedule.\N_
+Dialogue: 0,0:00:11.90,0:00:11.95,Default,,0,0,0,,Real AI. Real schedule.\NN_
+Dialogue: 0,0:00:11.95,0:00:12.00,Default,,0,0,0,,Real AI. Real schedule.\NNo_
+Dialogue: 0,0:00:12.00,0:00:12.05,Default,,0,0,0,,Real AI. Real schedule.\NNo _
+Dialogue: 0,0:00:12.05,0:00:12.10,Default,,0,0,0,,Real AI. Real schedule.\NNo c_
+Dialogue: 0,0:00:12.10,0:00:12.15,Default,,0,0,0,,Real AI. Real schedule.\NNo ca_
+Dialogue: 0,0:00:12.15,0:00:12.20,Default,,0,0,0,,Real AI. Real schedule.\NNo can_
+Dialogue: 0,0:00:12.20,0:00:12.25,Default,,0,0,0,,Real AI. Real schedule.\NNo cann_
+Dialogue: 0,0:00:12.25,0:00:12.30,Default,,0,0,0,,Real AI. Real schedule.\NNo canne_
+Dialogue: 0,0:00:12.30,0:00:12.35,Default,,0,0,0,,Real AI. Real schedule.\NNo canned_
+Dialogue: 0,0:00:12.35,0:00:12.40,Default,,0,0,0,,Real AI. Real schedule.\NNo canned _
+Dialogue: 0,0:00:12.40,0:00:12.45,Default,,0,0,0,,Real AI. Real schedule.\NNo canned r_
+Dialogue: 0,0:00:12.45,0:00:12.50,Default,,0,0,0,,Real AI. Real schedule.\NNo canned re_
+Dialogue: 0,0:00:12.50,0:00:12.55,Default,,0,0,0,,Real AI. Real schedule.\NNo canned res_
+Dialogue: 0,0:00:12.55,0:00:12.60,Default,,0,0,0,,Real AI. Real schedule.\NNo canned resp_
+Dialogue: 0,0:00:12.60,0:00:12.65,Default,,0,0,0,,Real AI. Real schedule.\NNo canned respo_
+Dialogue: 0,0:00:12.65,0:00:12.70,Default,,0,0,0,,Real AI. Real schedule.\NNo canned respon_
+Dialogue: 0,0:00:12.70,0:00:12.75,Default,,0,0,0,,Real AI. Real schedule.\NNo canned respons_
+Dialogue: 0,0:00:12.75,0:00:12.80,Default,,0,0,0,,Real AI. Real schedule.\NNo canned response_
+Dialogue: 0,0:00:12.80,0:00:12.85,Default,,0,0,0,,Real AI. Real schedule.\NNo canned response.
+Dialogue: 0,0:00:12.85,0:00:13.96,Default,,0,0,0,,Real AI. Real schedule.\NNo canned response.
