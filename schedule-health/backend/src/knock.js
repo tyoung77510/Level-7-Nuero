@@ -257,8 +257,44 @@ async function notifyError(message, path) {
   }
 }
 
+// Delivers the lead-magnet PDF by triggering a Knock workflow (same pattern as verification email).
+// Gated on its own workflow key, same reasoning as teamInviteConfigured — an opt-in email type, and
+// the lead row is saved regardless of whether this send succeeds (capture first, deliver second).
+function leadMagnetConfigured() {
+  return knockConfigured() && Boolean(process.env.KNOCK_LEAD_MAGNET_WORKFLOW_KEY);
+}
+
+async function sendLeadMagnetEmail(lead, pdfUrl) {
+  const workflowKey = process.env.KNOCK_LEAD_MAGNET_WORKFLOW_KEY;
+  if (!leadMagnetConfigured()) {
+    console.warn(`[knock] Lead magnet email skipped (KNOCK_API_KEY or KNOCK_LEAD_MAGNET_WORKFLOW_KEY not set) for ${lead.email} — lead is still saved to the database`);
+    return null;
+  }
+  try {
+    const res = await fetch(`${KNOCK_API}/workflows/${encodeURIComponent(workflowKey)}/trigger`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.KNOCK_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        recipients: [{ id: `lead-${lead.id}`, email: lead.email, name: lead.name }],
+        data: { pdf_url: pdfUrl }
+      })
+    });
+    if (!res.ok) {
+      console.error(`[knock] Failed to trigger lead magnet workflow: ${res.status} ${await res.text().catch(() => '')}`);
+      return null;
+    }
+    return res.json();
+  } catch (e) {
+    console.error('[knock] Failed to trigger lead magnet workflow:', e.message);
+    return null;
+  }
+}
+
 module.exports = {
   knockConfigured, identifyUser, notifyFeedback, notifyEnterpriseInquiry, verificationConfigured, sendVerificationEmail,
   teamInviteConfigured, sendTeamInviteEmail, passwordResetConfigured, sendPasswordResetEmail,
-  errorAlertConfigured, notifyError
+  errorAlertConfigured, notifyError, leadMagnetConfigured, sendLeadMagnetEmail
 };
