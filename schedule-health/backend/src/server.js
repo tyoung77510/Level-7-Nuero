@@ -277,6 +277,81 @@ route('POST', '/api/public/consent', async (req, res, params, user) => {
   sendJSON(res, 200, { consentId });
 });
 
+// Blog lead-magnet capture (see docs/blog-drafts/lead-magnet/C7-lead-magnet-spec.md). Public,
+// unauthenticated — leads convert pre-signup off a gated blog post, no session exists yet. All
+// four fields required per founder decision (2026-08-02): stronger CRM identification over lower
+// friction. consent must be explicitly true — the form's opt-in checkbox, not assumed.
+route('POST', '/api/public/lead-magnet', async (req, res) => {
+  if (rateLimited(res, 'lead-magnet', req, 5, 60 * 60 * 1000)) return;
+  const body = await readBody(req);
+  let payload;
+  try { payload = JSON.parse(body.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+  const email = String(payload.email || '').trim().toLowerCase();
+  const name = String(payload.name || '').trim();
+  const company = String(payload.company || '').trim();
+  const role = String(payload.role || '').trim();
+  const slug = String(payload.slug || '').trim();
+  if (!auth.EMAIL_RE.test(email)) return sendJSON(res, 400, { error: 'Enter a valid email address' });
+  if (!name) return sendJSON(res, 400, { error: 'Enter your name' });
+  if (!company) return sendJSON(res, 400, { error: 'Enter your company' });
+  if (!role) return sendJSON(res, 400, { error: 'Select your role' });
+  if (payload.consent !== true) return sendJSON(res, 400, { error: 'Please agree to receive emails from Ordo7' });
+  const lead = store.createLead(email, name, company, role, slug);
+  const pdfUrl = 'https://www.ordo7.pro/lead-magnets/5-red-flags-checklist.pdf';
+  knock.sendLeadMagnetEmail(lead, pdfUrl).then(sent => {
+    if (sent) store.markLeadPdfSent(lead.id);
+  }).catch(() => {});
+  sendJSON(res, 200, { ok: true });
+});
+
+// Public, unauthenticated, no-signup schedule checker — the free top-of-funnel hook. Reuses the
+// exact same analyzeFile engine as the real /api/analyze route, so the score a visitor sees here
+// is never a toy/fake version of the product. Deliberately does NOT persist anything (no
+// store.saveSnapshot, no project/snapshot rows, no user) — this is a stateless, one-shot check,
+// and only the top 3 issues are returned (not the full list/activities), so the free experience
+// stays honestly limited without needing to fabricate a "locked" placeholder.
+route('POST', '/api/public/check-schedule', async (req, res) => {
+  if (rateLimited(res, 'check-schedule', req, 10, 60 * 60 * 1000)) return;
+  if (!store.isFeatureEnabled('dcma-14-check')) return sendJSON(res, 503, { error: 'Schedule analysis is temporarily unavailable' });
+  const contentType = req.headers['content-type'] || '';
+  const buffer = await readBody(req);
+
+  let filename, fileText;
+  if (contentType.includes('multipart/form-data')) {
+    const { file } = parseMultipart(buffer, contentType);
+    if (!file) return sendJSON(res, 400, { error: 'No file field found in form data' });
+    filename = file.filename;
+    fileText = file.content;
+  } else {
+    let payload;
+    try { payload = JSON.parse(buffer.toString('utf8')); } catch (e) { return sendJSON(res, 400, { error: 'Invalid JSON body' }); }
+    filename = payload.filename || 'upload.xer';
+    fileText = payload.content || '';
+  }
+  if (!fileText) return sendJSON(res, 400, { error: 'No file content received' });
+
+  let result;
+  try {
+    result = analyzeMod.analyzeFile(filename, fileText);
+  } catch (e) {
+    return sendJSON(res, 400, { error: 'Failed to parse schedule file: ' + e.message });
+  }
+
+  const severityRank = { crit: 0, risk: 1 };
+  const topIssues = [...(result.issues || [])]
+    .sort((a, b) => (severityRank[a.sev] ?? 2) - (severityRank[b.sev] ?? 2))
+    .slice(0, 3);
+
+  sendJSON(res, 200, {
+    score: result.score,
+    totalActivities: result.totalActivities,
+    critCount: result.critCount,
+    riskCount: result.riskCount,
+    totalIssueCount: (result.issues || []).length,
+    topIssues
+  });
+});
+
 function matchRoute(method, pathname) {
   for (const r of routes) {
     if (r.method !== method) continue;
@@ -1762,7 +1837,7 @@ route('POST', '/api/analyze', async (req, res, params, user) => {
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 // Clean-URL aliases for static pages that external services (OAuth app registration forms, etc.)
 // expect at a plain path rather than a .html extension.
-const STATIC_ALIASES = { '/privacy': '/privacy.html', '/terms': '/terms.html', '/admin': '/admin.html' };
+const STATIC_ALIASES = { '/privacy': '/privacy.html', '/terms': '/terms.html', '/admin': '/admin.html', '/check': '/free-schedule-check.html' };
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -2000,6 +2075,18 @@ main.blog-article-main { max-width: 1120px; margin: 0 auto; padding: 0 40px; }
 .inline-cta h3 { font-family: 'Space Grotesk', sans-serif; font-size: 23px; font-weight: 700; color: #f4f8fc; margin: 0 0 10px; letter-spacing: -0.01em; }
 .inline-cta p { font-size: 15.5px; line-height: 1.6; color: #9aa8ba; margin: 0 0 22px; max-width: 520px; }
 .inline-cta-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.leadmagnet-cta { margin-top: 20px; border: 1px solid rgba(94,234,212,0.3); border-radius: 16px; background: radial-gradient(600px 300px at 20% 0%, rgba(94,234,212,0.08), transparent 70%), #0b111c; padding: 32px 34px; }
+.leadmagnet-cta h3 { font-family: 'Space Grotesk', sans-serif; font-size: 23px; font-weight: 700; color: #f4f8fc; margin: 0 0 10px; letter-spacing: -0.01em; }
+.leadmagnet-cta p { font-size: 15.5px; line-height: 1.6; color: #9aa8ba; margin: 0 0 22px; max-width: 560px; }
+.leadmagnet-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 560px; }
+.leadmagnet-form input, .leadmagnet-form select { background: #090d16; border: 1px solid rgba(148,163,184,0.2); border-radius: 10px; padding: 12px 14px; color: #e8eef6; font-size: 14px; font-family: inherit; width: 100%; box-sizing: border-box; }
+.leadmagnet-consent { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: #8695a8; line-height: 1.5; }
+.leadmagnet-consent input { width: auto; margin-top: 3px; }
+.leadmagnet-consent a { color: #5eead4; }
+.leadmagnet-form button { grid-column: 1 / -1; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 14px; color: #06231f; background: linear-gradient(135deg,#5eead4,#22d3b0); border: none; border-radius: 10px; padding: 13px 16px; cursor: pointer; }
+.leadmagnet-error { display: none; grid-column: 1 / -1; color: #fca5a5; font-size: 13px; }
+.leadmagnet-success { display: none; color: #5eead4; font-size: 15.5px; font-weight: 600; }
+@media (max-width: 640px) { .leadmagnet-form { grid-template-columns: 1fr; } }
 .cta-block { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 15px; color: #06231f; background: linear-gradient(135deg,#5eead4,#22d3b0); padding: 13px 24px; border-radius: 11px; transition: all .18s ease; display: inline-block; }
 .ghost-btn { font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 15px; color: #cdd7e3; border: 1px solid rgba(148,163,184,0.22); padding: 13px 22px; border-radius: 11px; transition: all .18s ease; display: inline-block; }
 .ghost-btn:hover, .cta-block:hover { border-color: rgba(94,234,212,0.4); }
@@ -2132,6 +2219,56 @@ function submitNewsletterForm(event, form) {
     btn.textContent = 'Network error — try again';
     btn.disabled = false;
     setTimeout(function () { btn.textContent = original; }, 3500);
+  });
+  return false;
+}
+
+// Lead-magnet gate (see docs/blog-drafts/lead-magnet/C7-lead-magnet-spec.md) — posts to
+// /api/public/lead-magnet. Only present on the gated post(s); a silent no-op everywhere else since
+// the form/element simply doesn't exist there.
+function submitLeadMagnetForm(event, form) {
+  event.preventDefault();
+  var btn = form.querySelector('button[type=submit]');
+  var errEl = form.querySelector('.leadmagnet-error');
+  var consent = form.querySelector('input[name=consent]');
+  if (!consent.checked) {
+    errEl.textContent = 'Please agree to receive emails from Ordo7.';
+    errEl.style.display = 'block';
+    return false;
+  }
+  errEl.style.display = 'none';
+  var payload = {
+    email: form.querySelector('input[name=email]').value.trim(),
+    name: form.querySelector('input[name=name]').value.trim(),
+    company: form.querySelector('input[name=company]').value.trim(),
+    role: form.querySelector('select[name=role]').value,
+    slug: form.getAttribute('data-slug') || '',
+    consent: true
+  };
+  var original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Sending\\u2026';
+  fetch('/api/public/lead-magnet', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(function (res) {
+    return res.json().catch(function () { return {}; }).then(function (data) { return { ok: res.ok, data: data }; });
+  }).then(function (result) {
+    if (result.ok) {
+      form.style.display = 'none';
+      form.parentElement.querySelector('.leadmagnet-success').style.display = 'block';
+    } else {
+      errEl.textContent = (result.data && result.data.error) || 'Something went wrong — try again.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  }).catch(function () {
+    errEl.textContent = 'Network error — try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = original;
   });
   return false;
 }
@@ -2498,6 +2635,33 @@ function serveBlogPost(req, res, slug) {
        </nav>`
     : '';
 
+  // Lead-magnet gate — scoped to exactly this slug per founder decision (2026-08-02); see
+  // docs/blog-drafts/lead-magnet/C7-lead-magnet-spec.md. Downloadable asset is gated, not the
+  // article itself — the post stays fully readable/indexable either way.
+  const LEAD_MAGNET_SLUGS = new Set(['dcma-14-point-check-guide']);
+  const leadMagnetHtml = LEAD_MAGNET_SLUGS.has(post.slug) ? `
+    <div class="leadmagnet-cta reveal">
+      <h3>Get the printable "5 Red Flags" checklist.</h3>
+      <p>The same checks from this guide, distilled to a one-page PDF you can run against any baseline before you accept it. No Primavera expertise required.</p>
+      <form class="leadmagnet-form" data-slug="${escapeHtml(post.slug)}" onsubmit="return submitLeadMagnetForm(event, this);">
+        <input type="text" name="name" placeholder="Full name" required>
+        <input type="email" name="email" placeholder="you@company.com" required>
+        <input type="text" name="company" placeholder="Company" required>
+        <select name="role" required>
+          <option value="" disabled selected>Your role…</option>
+          <option value="PM">PM</option>
+          <option value="Project Controls / Scheduler">Project Controls / Scheduler</option>
+          <option value="Owner's Rep / Client-side">Owner's Rep / Client-side</option>
+          <option value="Executive">Executive</option>
+          <option value="Other">Other</option>
+        </select>
+        <label class="leadmagnet-consent"><input type="checkbox" name="consent" required> By submitting, you agree to receive emails from Ordo7. Unsubscribe anytime. See our <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</label>
+        <div class="leadmagnet-error"></div>
+        <button type="submit">Get the free PDF checklist</button>
+      </form>
+      <div class="leadmagnet-success">Check your inbox — the checklist is on its way. ✓</div>
+    </div>` : '';
+
   const relatedHtml = others.length
     ? `<div class="related-wrap">
         <div class="related-inner reveal">
@@ -2532,6 +2696,7 @@ function serveBlogPost(req, res, slug) {
     <div class="article-grid">
       <article class="article-body rise">
         ${post.content_html}
+        ${leadMagnetHtml}
         <div class="inline-cta reveal">
           <h3>Run every check in one upload.</h3>
           <p>Drop in a P6, XER or MS Project file and Ordo7 scores your schedule in seconds — free to start, no card required.</p>
