@@ -30,4 +30,20 @@ First comment (post immediately after publishing, if posted): `Try Ordo7 free �
 
 **Flagged for Taj, not resolved here:** this caption doesn't call out that the video has a voiceover, since it reads fine either way — but if this goes out on the same LinkedIn presence as the raw series, it'll be the first video there with narration, a visible format break from the other five ("no AI voice" is one of the raw SOP's explicit blueprint rules). Worth a deliberate call on whether Deep Dives get their own posting cadence/framing distinct from the raw trial, get folded into it, or stay as owner-reviewed one-offs posted at Taj's discretion — no routine currently posts these automatically, unlike the raw series' daily trigger.
 
+## Draft caption — Deep Dive #3 (EVM), written 2026-08-03
+
+> Ordo7 also runs Earned Value Management — not just a health score.
+>
+> I ran this on a real schedule: planned progress 91.6%, actual 54.1% — already behind. Entered a real budget ($500,000) and real spend to date ($310,000), and Ordo7 computed the rest automatically: earned value of $270,500, planned value of $458,000, a cost variance of -$39,500, and a CPI of 0.87. Over budget and behind schedule — both, not just one.
+>
+> This is Ordo7: real cost-and-schedule math, from your real numbers, not a spreadsheet you build by hand.
+>
+> Would your project pass this test?
+>
+> #Ordo7 #ProjectControls #Scheduling #ConstructionManagement
+
+First comment (post immediately after publishing, if posted): `Try Ordo7 free → https://ordo7.pro`
+
+All figures above match the entry #3 row exactly (same live-verified numbers, not rounded or reworded) — same "no AI voice on the raw series" flag from #2 applies here too.
+
 > **Source files:** built in-session via ElevenLabs `text_to_speech` + Playwright + ffmpeg; none committed. See `raw-linkedin-video-sop.md` for the sibling raw-series format this deliberately differs from.
