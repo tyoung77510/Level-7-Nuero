@@ -103,6 +103,19 @@ function subScoresFrom(issues, total) {
 function analyzeXER(tables) {
   const tasks = tables['TASK'] || [];
   const preds = tables['TASKPRED'] || [];
+  // Real WBS hierarchy, when the export includes one (PROJWBS table + wbs_id on each task —
+  // most real Primavera exports have this; the minimal hand-built samples used elsewhere in this
+  // app's demo material don't). Only the immediate group name is surfaced, not a full breadcrumb
+  // path, and only when that node itself has a parent — a task assigned directly to the project's
+  // root WBS node has no meaningful sub-group to show.
+  const wbsById = {};
+  (tables['PROJWBS'] || []).forEach(w => { wbsById[w.wbs_id] = w; });
+  function wbsGroupFor(task) {
+    if (!task.wbs_id) return null;
+    const node = wbsById[task.wbs_id];
+    if (!node || !node.parent_wbs_id) return null;
+    return node.wbs_name || node.wbs_short_name || null;
+  }
   // O(1) predecessor lookup by id, built once — the out-of-sequence check below runs per
   // predecessor relationship across every task, so a tasks.find() there instead of this map is
   // O(tasks x preds) and measurably slow on a real large schedule (confirmed: ~40s at 8,000
@@ -171,7 +184,7 @@ function analyzeXER(tables) {
       code: t.task_code || t.task_id,
       name: activityName,
       milestone: isMilestone,
-      hasPredecessor, hasSuccessor, predecessors,
+      hasPredecessor, hasSuccessor, predecessors, wbsGroup: wbsGroupFor(t),
       start: start ? start.toISOString().slice(0, 10) : null,
       end: end ? end.toISOString().slice(0, 10) : (start ? new Date(start.getTime() + durationDays * 86400000).toISOString().slice(0, 10) : null),
       durationDays: Math.round(durationDays * 10) / 10,

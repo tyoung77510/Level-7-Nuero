@@ -384,10 +384,15 @@
   }
   .issue:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: 0 4px 10px rgba(0,0,0,0.28); }
   .gantt-scroll { max-height: 520px; overflow-y: auto; }
-  .gantt-row { display: flex; align-items: center; gap: 12px; padding: 5px 0; height: 16px; box-sizing: content-box; }
+  .gantt-row { display: flex; align-items: center; gap: 12px; padding: 5px 0; height: 24px; box-sizing: content-box; }
   .gantt-label { width: 160px; flex: 0 0 auto; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .gantt-track { flex: 1; position: relative; height: 16px; background: var(--line); border-radius: 4px; }
-  .gantt-bar { position: absolute; top: 0; height: 100%; border-radius: 4px; min-width: 4px; }
+  .gantt-track { flex: 1; position: relative; height: 24px; background: var(--line); border-radius: 4px; }
+  .gantt-bar { position: absolute; top: 0; height: 16px; border-radius: 4px; min-width: 4px; }
+  /* Baseline strip sits below the current-schedule bar, in the same track — a thin, muted band at
+     the plannedStart/plannedEnd position (already computed for Earned Schedule) so drift from the
+     original commitment is visible per activity, not just in the Earned Value tab's summary. */
+  .gantt-baseline-strip { position: absolute; top: 19px; height: 4px; border-radius: 2px; background: var(--muted); opacity: 0.5; min-width: 3px; }
+  .gantt-milestone-diamond { position: absolute; top: 6px; width: 12px; height: 12px; transform: translateX(-50%) rotate(45deg); border-radius: 2px; }
   /* Axis row mirrors .gantt-row's exact geometry (160px label + 12px gap) so its tick marks line
      up with the bars below pixel-for-pixel without any JS measurement pass. */
   .gantt-axis-row { display: flex; align-items: flex-end; gap: 12px; padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
@@ -403,6 +408,14 @@
      deliberately non-uniform viewBox (x in %, y in row-count) — without it, stroke-width gets
      distorted by that same mismatched per-axis scale, same as the marker issue noted above. */
   .gantt-arrow-path { fill: none; stroke: var(--muted); stroke-width: 1.25; opacity: 0.55; vector-effect: non-scaling-stroke; }
+  /* WBS group header — same total row height (34px: 24px + 5px/5px) as an activity row, so it
+     occupies exactly one slot in the arrows SVG's row-count viewBox, keeping vertical rhythm
+     uniform whether a row is a header or a bar. */
+  .gantt-wbs-header { display: flex; align-items: center; gap: 8px; height: 24px; padding: 5px 10px; margin: 2px 0; background: var(--card); border-radius: 6px; cursor: pointer; user-select: none; }
+  .gantt-wbs-header:hover { background: var(--line); }
+  .gantt-wbs-chevron { font-size: 10px; color: var(--muted); width: 10px; flex: 0 0 auto; }
+  .gantt-wbs-name { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+  .gantt-wbs-count { font-size: 11px; color: var(--muted); margin-left: auto; }
   .crit-path-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
   .crit-path-row:last-child { border-bottom: none; }
   .crit-path-name { font-size: 13px; flex: 1 1 220px; min-width: 0; }
@@ -1721,6 +1734,11 @@ let currentRecoveryAlert = null;
 let currentFinishForecast = null;
 let currentBudgetAtCompletion = null;
 let currentActualCostToDate = null;
+// Collapsed WBS group names in the Gantt Timeline view. Toggling calls renderGantt() again
+// rather than patching the DOM in place — same "rebuild the view fresh" pattern as every other
+// stateful render in this app — so the arrows SVG/axis/row layout, which assume a uniform row
+// stack computed at render time, stay correct rather than drifting out of sync with hidden rows.
+let collapsedWbsGroups = new Set();
 let sandboxState = {}; // per-activity float/duration overrides for the What-If sandbox, keyed by activity code
 let currentIssues = [];
 let currentUser = null;
@@ -3691,30 +3709,111 @@ function renderGantt(){
   const scheduled = resolved.filter(a => a.offset != null).sort((a, b) => a.offset - b.offset);
   const unscheduled = resolved.filter(a => a.offset == null);
 
-  const maxEnd = Math.max(1, ...scheduled.map(a => a.offset + a.durationDays));
-  const ROW_H = 26; // .gantt-row's real height: 16px track + 5px top/bottom padding
+  // Baseline (plannedStart/plannedEnd) reuses the same real fields already computed for Earned
+  // Schedule — XER's target_start/end_date, MSPDI's BaselineStart/Finish. CSV never has these
+  // (no dates in that format at all), and even XER/MSPDI files sometimes lack them per-activity —
+  // rendered only where genuinely present, per activity, not assumed.
+  const hasBaselineData = scheduled.some(a => currentHasDates && a.plannedStart && a.plannedEnd);
+  const plannedOffsetEnd = (a) => {
+    if (!currentHasDates || !a.plannedStart || !a.plannedEnd || refTime == null) return null;
+    const start = (new Date(a.plannedStart).getTime() - refTime) / 86400000;
+    const end = (new Date(a.plannedEnd).getTime() - refTime) / 86400000;
+    return { start, end };
+  };
+  const maxEnd = Math.max(1, ...scheduled.map(a => a.offset + a.durationDays),
+    ...(hasBaselineData ? scheduled.map(a => { const p = plannedOffsetEnd(a); return p ? p.end : 0; }) : []));
+  const ROW_H = 34; // .gantt-row's real height: 24px track + 5px top/bottom padding
 
   const activityLabel = (a) => escapeHtml(a.name) + (a.milestone ? ' (milestone)' : '');
 
-  // Row index doubles as this activity's vertical slot for both the bar and any arrows pointing
-  // at/from it — computed once here so the axis, bars, and arrow SVG all agree on geometry.
-  const codeToIndex = {};
-  const geom = scheduled.map((a, i) => {
-    codeToIndex[a.code] = i;
-    const leftPct = Math.max(0, (a.offset / maxEnd) * 100);
-    const widthPct = Math.max((a.durationDays / maxEnd) * 100, 1);
-    return { leftPct, widthPct };
+  // Geometry (x-axis position) is per-activity and independent of vertical layout — computed once
+  // by code, not array position, since grouping/collapsing below reorders and can omit rows.
+  const geomByCode = {};
+  scheduled.forEach(a => {
+    geomByCode[a.code] = {
+      leftPct: Math.max(0, (a.offset / maxEnd) * 100),
+      widthPct: Math.max((a.durationDays / maxEnd) * 100, 1)
+    };
   });
 
-  const rows = scheduled.map((a, i) => {
-    const { leftPct, widthPct } = geom[i];
+  // WBS grouping — only when the file actually carries real WBS data (most hand-built/CSV test
+  // files won't; real Primavera exports usually do). Falls back to the flat list otherwise, same
+  // graceful-degradation pattern as baseline comparison above. Group order follows first
+  // appearance in the already-chronological `scheduled` order, not alphabetical.
+  const hasWbsData = scheduled.some(a => a.wbsGroup);
+  let groups = null;
+  if (hasWbsData) {
+    const order = [];
+    const byKey = {};
+    scheduled.forEach(a => {
+      const key = a.wbsGroup || '__ungrouped__';
+      if (!byKey[key]) { byKey[key] = { name: a.wbsGroup || 'Ungrouped', activities: [] }; order.push(key); }
+      byKey[key].activities.push(a);
+    });
+    groups = order.map(k => byKey[k]);
+  }
+
+  // rowSlots is the actual vertical stack rendered — headers and activities interleaved when
+  // grouped. codeToIndex now maps to a SLOT index (not a scheduled-array index), and an activity
+  // inside a collapsed group simply gets no entry — the same "skip, nothing to draw" handling the
+  // arrows loop below already uses for any other unresolved endpoint.
+  const codeToIndex = {};
+  const rowSlots = [];
+  if (groups) {
+    groups.forEach(g => {
+      const collapsed = collapsedWbsGroups.has(g.name);
+      rowSlots.push({ type: 'header', name: g.name, count: g.activities.length, collapsed });
+      if (!collapsed) g.activities.forEach(a => { codeToIndex[a.code] = rowSlots.length; rowSlots.push({ type: 'activity', activity: a }); });
+    });
+  } else {
+    scheduled.forEach(a => { codeToIndex[a.code] = rowSlots.length; rowSlots.push({ type: 'activity', activity: a }); });
+  }
+
+  const dateRangeStr = (a) => a.start && a.end ? (new Date(a.start).toLocaleDateString() + ' → ' + new Date(a.end).toLocaleDateString()) : '';
+
+  const rows = rowSlots.map(slot => {
+    if (slot.type === 'header') {
+      return '<div class="gantt-wbs-header" data-group="' + escapeHtml(slot.name) + '" onclick="toggleGanttWbsGroup(this.dataset.group)">' +
+        '<span class="gantt-wbs-chevron">' + (slot.collapsed ? '▸' : '▾') + '</span>' +
+        '<span class="gantt-wbs-name">' + escapeHtml(slot.name) + '</span>' +
+        '<span class="gantt-wbs-count">' + slot.count + ' activit' + (slot.count === 1 ? 'y' : 'ies') + '</span>' +
+      '</div>';
+    }
+    const a = slot.activity;
+    const { leftPct, widthPct } = geomByCode[a.code];
     const barColor = a.critical ? 'var(--bad)' : 'var(--accent)';
     const label = activityLabel(a);
-    const tip = label + ' · ' + a.durationDays + ' day' + (a.durationDays === 1 ? '' : 's') +
-      (a.totalFloatDays != null ? ' · ' + a.totalFloatDays + ' float' : '');
+    // Richer hover detail: real dates, float, and % complete, whichever of these are actually
+    // known for this activity — never padded out with placeholder values for missing fields.
+    const tipParts = [label];
+    if (currentHasDates) { const dr = dateRangeStr(a); if (dr) tipParts.push(dr); }
+    tipParts.push(a.durationDays + ' day' + (a.durationDays === 1 ? '' : 's'));
+    if (a.totalFloatDays != null) tipParts.push(a.totalFloatDays + ' float');
+    if (a.percentComplete != null) tipParts.push(a.percentComplete + '% complete');
+    const tip = tipParts.join(' · ');
+
+    let baselineHtml = '';
+    if (hasBaselineData && !a.milestone) {
+      const p = plannedOffsetEnd(a);
+      if (p) {
+        const bLeftPct = Math.max(0, (p.start / maxEnd) * 100);
+        const bWidthPct = Math.max(((p.end - p.start) / maxEnd) * 100, 1);
+        const driftDays = Math.round((a.offset - p.start) * 10) / 10;
+        const driftTip = 'Baseline: ' + new Date(a.plannedStart).toLocaleDateString() + ' → ' + new Date(a.plannedEnd).toLocaleDateString() +
+          (driftDays !== 0 ? ' · started ' + Math.abs(driftDays) + ' day' + (Math.abs(driftDays) === 1 ? '' : 's') + (driftDays > 0 ? ' late' : ' early') : ' · started on baseline');
+        baselineHtml = '<div class="gantt-baseline-strip" style="left:' + bLeftPct + '%; width:' + bWidthPct + '%;" title="' + escapeHtml(driftTip) + '"></div>';
+      }
+    }
+
+    // tip already contains the pre-escaped label (activityLabel) plus plain numeric/date parts —
+    // no further escaping here, same convention as the rest of this function.
+    const markerHtml = a.milestone
+      ? '<div class="gantt-milestone-diamond" style="left:' + leftPct + '%; background:' + barColor + ';" title="' + tip + '"></div>'
+      : '<div class="gantt-bar" style="left:' + leftPct + '%; width:' + widthPct + '%; background:' + barColor + ';" title="' + tip + '"></div>' + baselineHtml;
+
     return '<div class="gantt-row">' +
       '<div class="gantt-label" title="' + label + '">' + label + '</div>' +
-      '<div class="gantt-track"><div class="gantt-bar" style="left:' + leftPct + '%; width:' + widthPct + '%; background:' + barColor + ';" title="' + tip + '"></div></div>' +
+      '<div class="gantt-track">' + markerHtml + '</div>' +
     '</div>';
   }).join('') || '<p class="empty">No activities with a known date to plot.</p>';
 
@@ -3759,17 +3858,20 @@ function renderGantt(){
     const MAX_ARROWS = 500;
     const paths = [];
     let totalLinks = 0, drawn = 0;
-    scheduled.forEach((a, succIdx) => {
+    scheduled.forEach(a => {
+      const succSlot = codeToIndex[a.code];
+      if (succSlot == null) return; // successor itself is in a collapsed group — nothing to draw
       (a.predecessors || []).forEach(predCode => {
-        const predIdx = codeToIndex[predCode];
-        if (predIdx == null) return; // predecessor not plotted (unscheduled or not found) — skip
+        const predSlot = codeToIndex[predCode];
+        if (predSlot == null) return; // predecessor not plotted (unscheduled, not found, or collapsed) — skip
         totalLinks++;
         if (drawn >= MAX_ARROWS) return;
         drawn++;
-        const x1 = geom[predIdx].leftPct + geom[predIdx].widthPct;
-        const y1 = predIdx + 0.5;
-        const x2 = geom[succIdx].leftPct;
-        const y2 = succIdx + 0.5;
+        const predGeom = geomByCode[predCode];
+        const x1 = predGeom.leftPct + predGeom.widthPct;
+        const y1 = predSlot + 0.5;
+        const x2 = geomByCode[a.code].leftPct;
+        const y2 = succSlot + 0.5;
         const midX = x1 + (x2 - x1) / 2;
         paths.push('<path class="gantt-arrow-path" d="M ' + x1 + ' ' + y1 + ' H ' + midX + ' V ' + y2 + ' H ' + x2 + '"/>');
       });
@@ -3779,7 +3881,7 @@ function renderGantt(){
       // the arrows can be positioned without a DOM-measurement pass, but that means SVG markers
       // (sized in the same distorted user space) render wildly stretched. Plain connector lines
       // avoid the distortion entirely and still make the logic links clearly visible.
-      arrowsHtml = '<svg class="gantt-arrows-svg no-print" style="height:' + (scheduled.length * ROW_H) + 'px;" viewBox="0 0 100 ' + scheduled.length + '" preserveAspectRatio="none">' +
+      arrowsHtml = '<svg class="gantt-arrows-svg no-print" style="height:' + (rowSlots.length * ROW_H) + 'px;" viewBox="0 0 100 ' + rowSlots.length + '" preserveAspectRatio="none">' +
         paths.join('') +
       '</svg>';
       if (totalLinks > MAX_ARROWS) {
@@ -3810,10 +3912,22 @@ function renderGantt(){
       '<span class="legend" style="margin:0;">' +
         '<span><span class="dot" style="background:var(--bad);"></span>Critical path / negative float</span>' +
         '<span><span class="dot" style="background:var(--accent);"></span>Normal float</span>' +
+        (hasBaselineData ? '<span><span class="dot" style="background:var(--muted); opacity:0.6;"></span>Baseline (planned dates)</span>' : '') +
       '</span>' +
     '</div>' +
     axisHtml +
     '<div class="gantt-scroll"><div class="gantt-rows-wrap">' + arrowsHtml + rows + '</div></div>' + unscheduledHtml;
+}
+
+// Toggles one WBS group's collapsed state, then re-renders the whole Gantt view from scratch —
+// same "rebuild fresh" pattern as every other stateful view in this app, not an incremental DOM
+// patch. Necessary here specifically because the arrows SVG and axis are computed once per render
+// assuming a uniform, fully-known row stack; recomputing them fresh is what keeps a collapsed
+// group's hidden rows from leaving stale/misaligned arrows behind.
+function toggleGanttWbsGroup(groupName){
+  if (collapsedWbsGroups.has(groupName)) collapsedWbsGroups.delete(groupName);
+  else collapsedWbsGroups.add(groupName);
+  renderGantt();
 }
 
 // Lists the activities actually driving the finish date (float <= 0, trusted from the source
