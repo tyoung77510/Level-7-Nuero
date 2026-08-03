@@ -159,11 +159,19 @@ function analyzeXER(tables) {
       percentComplete = durationDays > 0 ? Math.max(0, Math.min(100, (elapsedDays / durationDays) * 100)) : 0;
     } else percentComplete = 0;
 
+    // Real predecessor codes (not just the hasPredecessor boolean above) — needed to draw
+    // dependency arrows in the Gantt view. Falls back to the raw pred_task_id if that task
+    // itself didn't resolve to a row (e.g. filtered out elsewhere) rather than dropping the link.
+    const predecessors = (predByTask[t.task_id] || []).map(p => {
+      const predTask = taskById[p.pred_task_id];
+      return predTask ? (predTask.task_code || predTask.task_id) : p.pred_task_id;
+    });
+
     activities.push({
       code: t.task_code || t.task_id,
       name: activityName,
       milestone: isMilestone,
-      hasPredecessor, hasSuccessor,
+      hasPredecessor, hasSuccessor, predecessors,
       start: start ? start.toISOString().slice(0, 10) : null,
       end: end ? end.toISOString().slice(0, 10) : (start ? new Date(start.getTime() + durationDays * 86400000).toISOString().slice(0, 10) : null),
       durationDays: Math.round(durationDays * 10) / 10,
@@ -289,7 +297,7 @@ function analyzeCSVTasks(csvTasks) {
 
     activities.push({
       code, name, milestone: isMilestone,
-      hasPredecessor, hasSuccessor,
+      hasPredecessor, hasSuccessor, predecessors: predByCode[code],
       start: null, end: null,
       dayOffset: Math.round(cumulativeDays * 10) / 10,
       durationDays: Math.round(durationDays * 10) / 10,
@@ -426,7 +434,7 @@ function analyzeMspXml(tasks) {
       code: t.uid,
       name: t.name,
       milestone: isMilestone,
-      hasPredecessor, hasSuccessor,
+      hasPredecessor, hasSuccessor, predecessors: t.predecessorUids,
       start,
       end,
       durationDays: durationDays != null ? Math.round(durationDays * 10) / 10 : (isMilestone ? 0 : 1),

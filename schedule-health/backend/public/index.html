@@ -384,10 +384,25 @@
   }
   .issue:hover { transform: translateY(-1px); border-color: var(--accent); box-shadow: 0 4px 10px rgba(0,0,0,0.28); }
   .gantt-scroll { max-height: 520px; overflow-y: auto; }
-  .gantt-row { display: flex; align-items: center; gap: 12px; padding: 5px 0; }
+  .gantt-row { display: flex; align-items: center; gap: 12px; padding: 5px 0; height: 16px; box-sizing: content-box; }
   .gantt-label { width: 160px; flex: 0 0 auto; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .gantt-track { flex: 1; position: relative; height: 16px; background: var(--line); border-radius: 4px; }
   .gantt-bar { position: absolute; top: 0; height: 100%; border-radius: 4px; min-width: 4px; }
+  /* Axis row mirrors .gantt-row's exact geometry (160px label + 12px gap) so its tick marks line
+     up with the bars below pixel-for-pixel without any JS measurement pass. */
+  .gantt-axis-row { display: flex; align-items: flex-end; gap: 12px; padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .gantt-axis-spacer { width: 160px; flex: 0 0 auto; }
+  .gantt-axis-track { flex: 1; position: relative; height: 16px; }
+  .gantt-axis-tick { position: absolute; top: 0; bottom: -4px; width: 1px; background: var(--line-faint, var(--line)); }
+  .gantt-axis-label { position: absolute; top: 0; font-size: 10px; color: var(--muted); white-space: nowrap; transform: translateX(2px); }
+  /* Wraps the bar rows (not the axis) so the arrow SVG can be absolutely positioned over just the
+     track region — offset by the same 172px (160px label + 12px gap) every row shares. */
+  .gantt-rows-wrap { position: relative; }
+  .gantt-arrows-svg { position: absolute; left: 172px; right: 0; top: 0; height: 100%; pointer-events: none; overflow: visible; }
+  /* non-scaling-stroke keeps line thickness in real screen pixels regardless of the arrows SVG's
+     deliberately non-uniform viewBox (x in %, y in row-count) — without it, stroke-width gets
+     distorted by that same mismatched per-axis scale, same as the marker issue noted above. */
+  .gantt-arrow-path { fill: none; stroke: var(--muted); stroke-width: 1.25; opacity: 0.55; vector-effect: non-scaling-stroke; }
   .crit-path-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
   .crit-path-row:last-child { border-bottom: none; }
   .crit-path-name { font-size: 13px; flex: 1 1 220px; min-width: 0; }
@@ -3677,12 +3692,22 @@ function renderGantt(){
   const unscheduled = resolved.filter(a => a.offset == null);
 
   const maxEnd = Math.max(1, ...scheduled.map(a => a.offset + a.durationDays));
+  const ROW_H = 26; // .gantt-row's real height: 16px track + 5px top/bottom padding
 
   const activityLabel = (a) => escapeHtml(a.name) + (a.milestone ? ' (milestone)' : '');
 
-  const rows = scheduled.map(a => {
+  // Row index doubles as this activity's vertical slot for both the bar and any arrows pointing
+  // at/from it — computed once here so the axis, bars, and arrow SVG all agree on geometry.
+  const codeToIndex = {};
+  const geom = scheduled.map((a, i) => {
+    codeToIndex[a.code] = i;
     const leftPct = Math.max(0, (a.offset / maxEnd) * 100);
     const widthPct = Math.max((a.durationDays / maxEnd) * 100, 1);
+    return { leftPct, widthPct };
+  });
+
+  const rows = scheduled.map((a, i) => {
+    const { leftPct, widthPct } = geom[i];
     const barColor = a.critical ? 'var(--bad)' : 'var(--accent)';
     const label = activityLabel(a);
     const tip = label + ' · ' + a.durationDays + ' day' + (a.durationDays === 1 ? '' : 's') +
@@ -3692,6 +3717,76 @@ function renderGantt(){
       '<div class="gantt-track"><div class="gantt-bar" style="left:' + leftPct + '%; width:' + widthPct + '%; background:' + barColor + ';" title="' + tip + '"></div></div>' +
     '</div>';
   }).join('') || '<p class="empty">No activities with a known date to plot.</p>';
+
+  // Date axis: real month ticks when the file has calendar dates, otherwise evenly-spaced day
+  // ticks against the same relative-sequence numbering already used in rangeLabel below. Ticks
+  // are positioned with the exact same leftPct math as the bars, so they line up precisely.
+  let axisHtml = '';
+  if (scheduled.length) {
+    const ticks = [];
+    if (currentHasDates && refTime != null) {
+      const endTime = refTime + maxEnd * 86400000;
+      let cursor = new Date(refTime);
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth(), 1); // snap to month start
+      if (cursor.getTime() < refTime) cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+      while (cursor.getTime() <= endTime) {
+        const pct = ((cursor.getTime() - refTime) / 86400000 / maxEnd) * 100;
+        if (pct >= 0 && pct <= 100) {
+          ticks.push({ pct, label: cursor.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }) });
+        }
+        cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+      }
+    } else {
+      const step = Math.max(1, Math.round(maxEnd / 6));
+      for (let d = 0; d <= maxEnd; d += step) {
+        ticks.push({ pct: (d / maxEnd) * 100, label: 'Day ' + Math.round(d) });
+      }
+    }
+    axisHtml = '<div class="gantt-axis-row no-print">' +
+      '<div class="gantt-axis-spacer"></div>' +
+      '<div class="gantt-axis-track">' +
+        ticks.map(t => '<div class="gantt-axis-tick" style="left:' + t.pct + '%;"></div><div class="gantt-axis-label" style="left:' + t.pct + '%;">' + escapeHtml(t.label) + '</div>').join('') +
+      '</div>' +
+    '</div>';
+  }
+
+  // Dependency arrows: one elbow connector per real predecessor→successor link where both ends
+  // are actually plotted (unscheduled/unresolved predecessors are silently skipped — nothing to
+  // draw a real line to). Capped so a genuinely huge schedule's logic web doesn't turn into an
+  // unreadable/slow-to-render mess; the cap is disclosed rather than silently truncated.
+  let arrowsHtml = '';
+  if (scheduled.length) {
+    const MAX_ARROWS = 500;
+    const paths = [];
+    let totalLinks = 0, drawn = 0;
+    scheduled.forEach((a, succIdx) => {
+      (a.predecessors || []).forEach(predCode => {
+        const predIdx = codeToIndex[predCode];
+        if (predIdx == null) return; // predecessor not plotted (unscheduled or not found) — skip
+        totalLinks++;
+        if (drawn >= MAX_ARROWS) return;
+        drawn++;
+        const x1 = geom[predIdx].leftPct + geom[predIdx].widthPct;
+        const y1 = predIdx + 0.5;
+        const x2 = geom[succIdx].leftPct;
+        const y2 = succIdx + 0.5;
+        const midX = x1 + (x2 - x1) / 2;
+        paths.push('<path class="gantt-arrow-path" d="M ' + x1 + ' ' + y1 + ' H ' + midX + ' V ' + y2 + ' H ' + x2 + '"/>');
+      });
+    });
+    if (paths.length) {
+      // No arrowhead marker: this viewBox is deliberately non-uniform (x in %, y in row-count) so
+      // the arrows can be positioned without a DOM-measurement pass, but that means SVG markers
+      // (sized in the same distorted user space) render wildly stretched. Plain connector lines
+      // avoid the distortion entirely and still make the logic links clearly visible.
+      arrowsHtml = '<svg class="gantt-arrows-svg no-print" style="height:' + (scheduled.length * ROW_H) + 'px;" viewBox="0 0 100 ' + scheduled.length + '" preserveAspectRatio="none">' +
+        paths.join('') +
+      '</svg>';
+      if (totalLinks > MAX_ARROWS) {
+        arrowsHtml += '<p class="no-print" style="font-size:11px; color:var(--muted); margin:4px 0 0;">Showing ' + MAX_ARROWS + ' of ' + totalLinks + ' dependency links — this schedule has too many to render legibly at once.</p>';
+      }
+    }
+  }
 
   let unscheduledHtml = '';
   if (unscheduled.length) {
@@ -3717,7 +3812,8 @@ function renderGantt(){
         '<span><span class="dot" style="background:var(--accent);"></span>Normal float</span>' +
       '</span>' +
     '</div>' +
-    '<div class="gantt-scroll">' + rows + '</div>' + unscheduledHtml;
+    axisHtml +
+    '<div class="gantt-scroll"><div class="gantt-rows-wrap">' + arrowsHtml + rows + '</div></div>' + unscheduledHtml;
 }
 
 // Lists the activities actually driving the finish date (float <= 0, trusted from the source
