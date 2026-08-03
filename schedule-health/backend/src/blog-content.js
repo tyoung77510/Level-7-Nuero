@@ -530,5 +530,23 @@ module.exports = [
 <h2>Why this is the whole thesis behind Ordo7</h2>
 <p>That result didn't come from a tool that told me the answer. It came from knowing which parts of a schedule's logic to actually go check. Ordo7 exists to shortcut that — the same discipline, applied automatically the moment you upload a schedule, instead of requiring eight years of doing it by hand first.</p>
 `.trim()
+  },
+  {
+    slug: 'free-public-schedule-checker',
+    ogImage: 'https://www.ordo7.pro/brand/free-public-schedule-checker-cover.jpg',
+    title: "Ordo7 Now Has a Free Schedule Checker With No Signup",
+    headline: "I Shipped a Version of Ordo7 That Needs Zero Signup",
+    description: "A new, completely free way to check a schedule's health — no account, no card, nothing stored. Here's why I built it and exactly where the free line sits.",
+    category: 'Founder Log',
+    contentHtml: `
+<p class="lead">Every version of "try it before you trust it" I'd built into Ordo7 still asked for an account first. This week I shipped one that doesn't.</p>
+<h2>The hesitation I kept hearing</h2>
+<p>The question comes up before anyone uploads a real schedule, and it's a fair one: what happens to my data, and do I really need to create an account just to find out if this is worth my time? I didn't have a good answer that didn't start with "well, first, sign up."</p>
+<h2>What it actually does</h2>
+<p>Now there's a version that skips that step entirely. Drop a Primavera P6, MS Project, or CSV export into it, and it runs the exact same DCMA-style engine the full product uses — real score, real flagged issues, in seconds. No account, no card, and the file is never written to a database; it's parsed in memory for that one request and then it's gone.</p>
+<h2>Where the free line actually sits</h2>
+<p>It shows your real score and your top 3 issues, not the full list. That's not an artificial paywall dressed up as a feature limit — it's an honest preview of what the full upload gives you: every issue, with fix guidance for each, once there's an account behind it. I'd rather draw that line clearly than pretend the free version and the full product are the same thing.</p>
+<p>This is the same instinct behind everything else I've built here: show, don't ask for trust upfront. If a real schedule can tell you something's wrong in fifteen seconds with zero friction, that's the whole pitch — no demo video required.</p>
+`.trim()
   }
 ];
