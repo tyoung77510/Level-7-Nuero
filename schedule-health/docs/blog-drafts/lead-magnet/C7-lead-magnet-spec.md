@@ -1,4 +1,4 @@
-> **Status:** 🟡 PROPOSAL — pending founder approval (per C7 work order gate) | **Purpose:** Form fields, gating rules, backend/email implementation plan, and QC plan for the "5 Red Flags" lead magnet, for founder sign-off before any live wiring | **Last Updated:** 2026-07-22
+> **Status:** ✅ Built and wired, 2026-08-02 — see `docs/handoff.md` for the final decisions (which differ from this proposal on gate scope and required fields) and what's still unverified (live Knock delivery). | **Purpose:** Form fields, gating rules, backend/email implementation plan, and QC plan for the "5 Red Flags" lead magnet | **Last Updated:** 2026-08-02
 
 # C7 Lead Magnet — implementation spec (NOT yet wired live)
 

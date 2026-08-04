@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free Schedule Health Check — Ordo7</title>
+<meta name="description" content="Upload a Primavera P6 (.xer), MS Project, or CSV schedule export and get a real DCMA-style health score in seconds. No signup, nothing stored.">
+<link rel="canonical" href="https://www.ordo7.pro/check">
+<link rel="icon" type="image/png" sizes="32x32" href="/brand/musk/icon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #f4f8fc; --paper: #06090f; --muted: #8695a8; --card: #0e1626; --line: #1d222a;
+    --good: #46d19e; --warn: #f4b955; --bad: #f2716a; --teal: #5eead4; --accent-2: #22d3b0; --on-accent: #06231f;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Manrope', -apple-system, sans-serif; background: var(--paper); background-image: radial-gradient(1400px 700px at 22% -8%, #0f1c2d 0%, #06090f 58%); background-attachment: fixed; color: var(--ink); }
+  h1, h2, h3 { font-family: 'Space Grotesk', 'Manrope', sans-serif; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 40px 20px 100px; }
+  .top-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 40px; }
+  .top-nav img { width: 26px; height: 26px; }
+  .top-nav .word { font-weight: 700; font-size: 18px; letter-spacing: -0.01em; }
+  .top-nav .word span { color: var(--teal); }
+  .kicker { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .16em; color: var(--teal); margin-bottom: 14px; }
+  h1 { font-size: 36px; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 14px; }
+  .sub { font-size: 16px; line-height: 1.6; color: var(--muted); margin: 0 0 34px; max-width: 520px; }
+  .dropzone { display: block; border: 1.5px dashed rgba(148,163,184,0.3); border-radius: 16px; padding: 40px 24px; text-align: center; background: var(--card); cursor: pointer; transition: border-color .15s ease, background .15s ease; }
+  .dropzone.drag { border-color: var(--teal); background: #0f1a2c; }
+  .dropzone .icon { font-size: 30px; margin-bottom: 10px; }
+  .dropzone .primary { font-size: 15.5px; font-weight: 600; margin-bottom: 6px; }
+  .dropzone .secondary { font-size: 13px; color: var(--muted); }
+  .dropzone input[type=file] { display: none; }
+  .filename-chip { display: none; margin-top: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--teal); }
+  .checkbtn { display: block; width: 100%; margin-top: 18px; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 15px; color: var(--on-accent); background: linear-gradient(135deg,var(--teal),var(--accent-2)); border: none; border-radius: 12px; padding: 15px; cursor: pointer; opacity: 0.4; pointer-events: none; transition: opacity .15s ease; }
+  .checkbtn.ready { opacity: 1; pointer-events: auto; }
+  .checkbtn:hover.ready { filter: brightness(1.05); }
+  .privacy-note { font-size: 12.5px; color: var(--muted); margin-top: 14px; text-align: center; }
+  #errorBox { display: none; margin-top: 16px; background: rgba(242,113,106,0.1); border: 1px solid rgba(242,113,106,0.3); color: var(--bad); border-radius: 10px; padding: 12px 16px; font-size: 14px; }
+  #results { display: none; margin-top: 40px; }
+  .score-row { display: flex; align-items: center; gap: 24px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 28px 30px; margin-bottom: 22px; }
+  .score-ring { position: relative; width: 96px; height: 96px; border-radius: 50%; flex-shrink: 0; }
+  .score-ring-hole { position: absolute; inset: 8px; border-radius: 50%; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .score-num { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; line-height: 1; }
+  .score-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .score-meta h2 { font-size: 20px; margin: 0 0 6px; }
+  .score-meta p { font-size: 14px; color: var(--muted); margin: 0; }
+  .issue-card { background: var(--card); border: 1px solid var(--line); border-left-width: 3px; border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
+  .issue-card.crit { border-left-color: var(--bad); }
+  .issue-card.risk { border-left-color: var(--warn); }
+  .issue-name { font-size: 14.5px; font-weight: 600; margin-bottom: 4px; }
+  .issue-sub { font-size: 13px; color: var(--muted); }
+  .locked-note { font-size: 13.5px; color: var(--muted); text-align: center; margin: 18px 0 26px; }
+  .cta-block { display: block; text-align: center; font-weight: 700; font-size: 15px; color: var(--on-accent); background: linear-gradient(135deg,var(--teal),var(--accent-2)); border-radius: 12px; padding: 16px; text-decoration: none; }
+  .again-link { display: block; text-align: center; font-size: 13.5px; color: var(--muted); margin-top: 16px; }
+  .again-link a { color: var(--teal); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top-nav">
+    <img src="/brand/musk/icon-64.png" alt="Ordo7">
+    <div class="word">Ordo<span>7</span></div>
+  </div>
+
+  <div class="kicker">FREE · NO SIGNUP · NOTHING STORED</div>
+  <h1>What's actually wrong with your schedule?</h1>
+  <p class="sub">Upload a Primavera P6 (.xer), MS Project (.xml), or CSV export. Ordo7 runs the same DCMA-style checks as the full product and scores it in seconds — no account, no card, and the file is never saved.</p>
+
+  <form id="checkForm">
+    <label class="dropzone" id="dropzone" for="fileInput">
+      <div class="icon">↑</div>
+      <div class="primary">Drop your schedule file here</div>
+      <div class="secondary">or click to browse — .xer, .xml, .csv, up to 25MB</div>
+      <input type="file" id="fileInput" accept=".xer,.csv,.txt,.xml">
+    </label>
+    <div class="filename-chip" id="filenameChip"></div>
+    <button type="submit" class="checkbtn" id="checkBtn">Check my schedule</button>
+    <div id="errorBox"></div>
+  </form>
+  <p class="privacy-note">This file is analyzed in memory and discarded — nothing is written to disk or a database. See our <a href="/privacy" style="color:var(--teal);">Privacy Policy</a>.</p>
+
+  <div id="results">
+    <div class="score-row">
+      <div class="score-ring" id="scoreRing">
+        <div class="score-ring-hole">
+          <div class="score-num" id="scoreNum">—</div>
+          <div class="score-label">/ 100</div>
+        </div>
+      </div>
+      <div class="score-meta">
+        <h2 id="scoreHeadline">—</h2>
+        <p id="scoreSub">—</p>
+      </div>
+    </div>
+    <div id="issueList"></div>
+    <p class="locked-note" id="lockedNote"></p>
+    <a href="/" class="cta-block">See every issue + how to fix it — sign up free →</a>
+    <p class="again-link"><a href="#" id="checkAgain">Check another schedule</a></p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var fileInput = document.getElementById('fileInput');
+  var dropzone = document.getElementById('dropzone');
+  var filenameChip = document.getElementById('filenameChip');
+  var checkBtn = document.getElementById('checkBtn');
+  var form = document.getElementById('checkForm');
+  var errorBox = document.getElementById('errorBox');
+  var results = document.getElementById('results');
+  var selectedFile = null;
+
+  function setFile(file) {
+    if (!file) return;
+    selectedFile = file;
+    filenameChip.textContent = file.name;
+    filenameChip.style.display = 'block';
+    checkBtn.classList.add('ready');
+  }
+
+  fileInput.addEventListener('change', function () { setFile(fileInput.files[0]); });
+  dropzone.addEventListener('dragover', function (e) { e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', function () { dropzone.classList.remove('drag'); });
+  dropzone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dropzone.classList.remove('drag');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+
+  function severityColor(sev) { return sev === 'crit' ? 'var(--bad)' : 'var(--warn)'; }
+
+  function scoreColor(score) {
+    if (score >= 80) return 'var(--good)';
+    if (score >= 50) return 'var(--warn)';
+    return 'var(--bad)';
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!selectedFile) return;
+    errorBox.style.display = 'none';
+    checkBtn.disabled = true;
+    checkBtn.textContent = 'Analyzing…';
+    var fd = new FormData();
+    fd.append('file', selectedFile);
+    fetch('/api/public/check-schedule', { method: 'POST', body: fd })
+      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+      .then(function (result) {
+        checkBtn.disabled = false;
+        checkBtn.textContent = 'Check my schedule';
+        if (!result.ok) {
+          errorBox.textContent = result.data.error || 'Something went wrong — try again.';
+          errorBox.style.display = 'block';
+          return;
+        }
+        renderResults(result.data);
+      })
+      .catch(function () {
+        checkBtn.disabled = false;
+        checkBtn.textContent = 'Check my schedule';
+        errorBox.textContent = 'Network error — try again.';
+        errorBox.style.display = 'block';
+      });
+  });
+
+  function renderResults(data) {
+    form.style.display = 'none';
+    document.querySelector('.privacy-note').style.display = 'none';
+    results.style.display = 'block';
+    var color = scoreColor(data.score);
+    var ring = document.getElementById('scoreRing');
+    ring.style.background = 'conic-gradient(' + color + ' ' + (data.score * 3.6) + 'deg, rgba(148,163,184,0.12) 0deg)';
+    var inner = document.createElement('div');
+    document.getElementById('scoreNum').textContent = data.score;
+    document.getElementById('scoreNum').style.color = color;
+    document.getElementById('scoreHeadline').textContent = data.totalIssueCount + ' issue' + (data.totalIssueCount === 1 ? '' : 's') + ' found';
+    document.getElementById('scoreSub').textContent = data.totalActivities + ' activities checked · ' + data.critCount + ' critical · ' + data.riskCount + ' risk';
+
+    var list = document.getElementById('issueList');
+    list.innerHTML = '';
+    data.topIssues.forEach(function (issue) {
+      var card = document.createElement('div');
+      card.className = 'issue-card ' + (issue.sev === 'crit' ? 'crit' : 'risk');
+      var name = document.createElement('div');
+      name.className = 'issue-name';
+      name.textContent = issue.name;
+      var sub = document.createElement('div');
+      sub.className = 'issue-sub';
+      sub.textContent = issue.sub;
+      card.appendChild(name);
+      card.appendChild(sub);
+      list.appendChild(card);
+    });
+
+    var remaining = data.totalIssueCount - data.topIssues.length;
+    var lockedNote = document.getElementById('lockedNote');
+    lockedNote.textContent = remaining > 0
+      ? ('+ ' + remaining + ' more issue' + (remaining === 1 ? '' : 's') + ', with fix guidance for each, once you sign up.')
+      : 'Sign up free to save this analysis and track it over time.';
+  }
+
+  document.getElementById('checkAgain').addEventListener('click', function (e) {
+    e.preventDefault();
+    results.style.display = 'none';
+    form.style.display = 'block';
+    document.querySelector('.privacy-note').style.display = 'block';
+    selectedFile = null;
+    fileInput.value = '';
+    filenameChip.style.display = 'none';
+    checkBtn.classList.remove('ready');
+    errorBox.style.display = 'none';
+  });
+})();
+</script>
+</body>
+</html>

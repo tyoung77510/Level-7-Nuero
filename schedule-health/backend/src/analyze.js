@@ -103,6 +103,19 @@ function subScoresFrom(issues, total) {
 function analyzeXER(tables) {
   const tasks = tables['TASK'] || [];
   const preds = tables['TASKPRED'] || [];
+  // Real WBS hierarchy, when the export includes one (PROJWBS table + wbs_id on each task —
+  // most real Primavera exports have this; the minimal hand-built samples used elsewhere in this
+  // app's demo material don't). Only the immediate group name is surfaced, not a full breadcrumb
+  // path, and only when that node itself has a parent — a task assigned directly to the project's
+  // root WBS node has no meaningful sub-group to show.
+  const wbsById = {};
+  (tables['PROJWBS'] || []).forEach(w => { wbsById[w.wbs_id] = w; });
+  function wbsGroupFor(task) {
+    if (!task.wbs_id) return null;
+    const node = wbsById[task.wbs_id];
+    if (!node || !node.parent_wbs_id) return null;
+    return node.wbs_name || node.wbs_short_name || null;
+  }
   // O(1) predecessor lookup by id, built once — the out-of-sequence check below runs per
   // predecessor relationship across every task, so a tasks.find() there instead of this map is
   // O(tasks x preds) and measurably slow on a real large schedule (confirmed: ~40s at 8,000
@@ -159,11 +172,19 @@ function analyzeXER(tables) {
       percentComplete = durationDays > 0 ? Math.max(0, Math.min(100, (elapsedDays / durationDays) * 100)) : 0;
     } else percentComplete = 0;
 
+    // Real predecessor codes (not just the hasPredecessor boolean above) — needed to draw
+    // dependency arrows in the Gantt view. Falls back to the raw pred_task_id if that task
+    // itself didn't resolve to a row (e.g. filtered out elsewhere) rather than dropping the link.
+    const predecessors = (predByTask[t.task_id] || []).map(p => {
+      const predTask = taskById[p.pred_task_id];
+      return predTask ? (predTask.task_code || predTask.task_id) : p.pred_task_id;
+    });
+
     activities.push({
       code: t.task_code || t.task_id,
       name: activityName,
       milestone: isMilestone,
-      hasPredecessor, hasSuccessor,
+      hasPredecessor, hasSuccessor, predecessors, wbsGroup: wbsGroupFor(t),
       start: start ? start.toISOString().slice(0, 10) : null,
       end: end ? end.toISOString().slice(0, 10) : (start ? new Date(start.getTime() + durationDays * 86400000).toISOString().slice(0, 10) : null),
       durationDays: Math.round(durationDays * 10) / 10,
@@ -289,7 +310,7 @@ function analyzeCSVTasks(csvTasks) {
 
     activities.push({
       code, name, milestone: isMilestone,
-      hasPredecessor, hasSuccessor,
+      hasPredecessor, hasSuccessor, predecessors: predByCode[code],
       start: null, end: null,
       dayOffset: Math.round(cumulativeDays * 10) / 10,
       durationDays: Math.round(durationDays * 10) / 10,
@@ -426,7 +447,7 @@ function analyzeMspXml(tasks) {
       code: t.uid,
       name: t.name,
       milestone: isMilestone,
-      hasPredecessor, hasSuccessor,
+      hasPredecessor, hasSuccessor, predecessors: t.predecessorUids,
       start,
       end,
       durationDays: durationDays != null ? Math.round(durationDays * 10) / 10 : (isMilestone ? 0 : 1),

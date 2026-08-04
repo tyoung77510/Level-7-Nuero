@@ -1,0 +1,247 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1600
+PlayResY: 1000
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Courier 10 Pitch,64,&H0000FFFF,&H0000FFFF,&H00000000,&HE0000000,1,0,0,0,100,100,0,0,3,3,0,2,60,60,70,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:00.05,Default,,0,0,0,,A_
+Dialogue: 0,0:00:00.05,0:00:00.10,Default,,0,0,0,,A _
+Dialogue: 0,0:00:00.10,0:00:00.15,Default,,0,0,0,,A s_
+Dialogue: 0,0:00:00.15,0:00:00.20,Default,,0,0,0,,A sc_
+Dialogue: 0,0:00:00.20,0:00:00.25,Default,,0,0,0,,A sch_
+Dialogue: 0,0:00:00.25,0:00:00.30,Default,,0,0,0,,A sche_
+Dialogue: 0,0:00:00.30,0:00:00.35,Default,,0,0,0,,A sched_
+Dialogue: 0,0:00:00.35,0:00:00.40,Default,,0,0,0,,A schedu_
+Dialogue: 0,0:00:00.40,0:00:00.45,Default,,0,0,0,,A schedul_
+Dialogue: 0,0:00:00.45,0:00:00.50,Default,,0,0,0,,A schedule_
+Dialogue: 0,0:00:00.50,0:00:00.55,Default,,0,0,0,,A schedule _
+Dialogue: 0,0:00:00.55,0:00:00.60,Default,,0,0,0,,A schedule s_
+Dialogue: 0,0:00:00.60,0:00:00.65,Default,,0,0,0,,A schedule sc_
+Dialogue: 0,0:00:00.65,0:00:00.70,Default,,0,0,0,,A schedule sco_
+Dialogue: 0,0:00:00.70,0:00:00.75,Default,,0,0,0,,A schedule scor_
+Dialogue: 0,0:00:00.75,0:00:00.80,Default,,0,0,0,,A schedule score_
+Dialogue: 0,0:00:00.80,0:00:00.85,Default,,0,0,0,,A schedule scored_
+Dialogue: 0,0:00:00.85,0:00:00.90,Default,,0,0,0,,A schedule scored _
+Dialogue: 0,0:00:00.90,0:00:00.95,Default,,0,0,0,,A schedule scored 2_
+Dialogue: 0,0:00:00.95,0:00:01.00,Default,,0,0,0,,A schedule scored 2 _
+Dialogue: 0,0:00:01.00,0:00:01.05,Default,,0,0,0,,A schedule scored 2 o_
+Dialogue: 0,0:00:01.05,0:00:01.10,Default,,0,0,0,,A schedule scored 2 ou_
+Dialogue: 0,0:00:01.10,0:00:01.15,Default,,0,0,0,,A schedule scored 2 out_
+Dialogue: 0,0:00:01.15,0:00:01.20,Default,,0,0,0,,A schedule scored 2 out _
+Dialogue: 0,0:00:01.20,0:00:01.25,Default,,0,0,0,,A schedule scored 2 out o_
+Dialogue: 0,0:00:01.25,0:00:01.30,Default,,0,0,0,,A schedule scored 2 out of_
+Dialogue: 0,0:00:01.30,0:00:01.35,Default,,0,0,0,,A schedule scored 2 out of _
+Dialogue: 0,0:00:01.35,0:00:01.40,Default,,0,0,0,,A schedule scored 2 out of 1_
+Dialogue: 0,0:00:01.40,0:00:01.45,Default,,0,0,0,,A schedule scored 2 out of 10_
+Dialogue: 0,0:00:01.45,0:00:01.50,Default,,0,0,0,,A schedule scored 2 out of 100_
+Dialogue: 0,0:00:01.50,0:00:01.55,Default,,0,0,0,,A schedule scored 2 out of 100.
+Dialogue: 0,0:00:01.55,0:00:02.00,Default,,0,0,0,,A schedule scored 2 out of 100.
+Dialogue: 0,0:00:02.00,0:00:02.05,Default,,0,0,0,,T_
+Dialogue: 0,0:00:02.05,0:00:02.09,Default,,0,0,0,,Th_
+Dialogue: 0,0:00:02.09,0:00:02.14,Default,,0,0,0,,The_
+Dialogue: 0,0:00:02.14,0:00:02.18,Default,,0,0,0,,The _
+Dialogue: 0,0:00:02.18,0:00:02.23,Default,,0,0,0,,The S_
+Dialogue: 0,0:00:02.23,0:00:02.27,Default,,0,0,0,,The Sa_
+Dialogue: 0,0:00:02.27,0:00:02.32,Default,,0,0,0,,The San_
+Dialogue: 0,0:00:02.32,0:00:02.36,Default,,0,0,0,,The Sand_
+Dialogue: 0,0:00:02.36,0:00:02.41,Default,,0,0,0,,The Sandb_
+Dialogue: 0,0:00:02.41,0:00:02.45,Default,,0,0,0,,The Sandbo_
+Dialogue: 0,0:00:02.45,0:00:02.50,Default,,0,0,0,,The Sandbox_
+Dialogue: 0,0:00:02.50,0:00:02.54,Default,,0,0,0,,The Sandbox _
+Dialogue: 0,0:00:02.54,0:00:02.59,Default,,0,0,0,,The Sandbox t_
+Dialogue: 0,0:00:02.59,0:00:02.63,Default,,0,0,0,,The Sandbox te_
+Dialogue: 0,0:00:02.63,0:00:02.68,Default,,0,0,0,,The Sandbox tes_
+Dialogue: 0,0:00:02.68,0:00:02.72,Default,,0,0,0,,The Sandbox test_
+Dialogue: 0,0:00:02.72,0:00:02.77,Default,,0,0,0,,The Sandbox tests_
+Dialogue: 0,0:00:02.77,0:00:02.81,Default,,0,0,0,,The Sandbox tests _
+Dialogue: 0,0:00:02.81,0:00:02.86,Default,,0,0,0,,The Sandbox tests r_
+Dialogue: 0,0:00:02.86,0:00:02.91,Default,,0,0,0,,The Sandbox tests re_
+Dialogue: 0,0:00:02.91,0:00:02.95,Default,,0,0,0,,The Sandbox tests rec_
+Dialogue: 0,0:00:02.95,0:00:03.00,Default,,0,0,0,,The Sandbox tests reco_
+Dialogue: 0,0:00:03.00,0:00:03.04,Default,,0,0,0,,The Sandbox tests recov_
+Dialogue: 0,0:00:03.04,0:00:03.09,Default,,0,0,0,,The Sandbox tests recove_
+Dialogue: 0,0:00:03.09,0:00:03.13,Default,,0,0,0,,The Sandbox tests recover_
+Dialogue: 0,0:00:03.13,0:00:03.18,Default,,0,0,0,,The Sandbox tests recovery_
+Dialogue: 0,0:00:03.18,0:00:03.22,Default,,0,0,0,,The Sandbox tests recovery _
+Dialogue: 0,0:00:03.22,0:00:03.27,Default,,0,0,0,,The Sandbox tests recovery s_
+Dialogue: 0,0:00:03.27,0:00:03.31,Default,,0,0,0,,The Sandbox tests recovery sc_
+Dialogue: 0,0:00:03.31,0:00:03.36,Default,,0,0,0,,The Sandbox tests recovery sce_
+Dialogue: 0,0:00:03.36,0:00:03.40,Default,,0,0,0,,The Sandbox tests recovery scen_
+Dialogue: 0,0:00:03.40,0:00:03.45,Default,,0,0,0,,The Sandbox tests recovery scena_
+Dialogue: 0,0:00:03.45,0:00:03.49,Default,,0,0,0,,The Sandbox tests recovery scenar_
+Dialogue: 0,0:00:03.49,0:00:03.54,Default,,0,0,0,,The Sandbox tests recovery scenari_
+Dialogue: 0,0:00:03.54,0:00:03.58,Default,,0,0,0,,The Sandbox tests recovery scenario_
+Dialogue: 0,0:00:03.58,0:00:03.63,Default,,0,0,0,,The Sandbox tests recovery scenarios_
+Dialogue: 0,0:00:03.63,0:00:03.67,Default,,0,0,0,,The Sandbox tests recovery scenarios _
+Dialogue: 0,0:00:03.67,0:00:03.72,Default,,0,0,0,,The Sandbox tests recovery scenarios l_
+Dialogue: 0,0:00:03.72,0:00:03.77,Default,,0,0,0,,The Sandbox tests recovery scenarios li_
+Dialogue: 0,0:00:03.77,0:00:03.81,Default,,0,0,0,,The Sandbox tests recovery scenarios liv_
+Dialogue: 0,0:00:03.81,0:00:03.86,Default,,0,0,0,,The Sandbox tests recovery scenarios live_
+Dialogue: 0,0:00:03.86,0:00:03.90,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N_
+Dialogue: 0,0:00:03.90,0:00:03.95,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-_
+Dialogue: 0,0:00:03.95,0:00:03.99,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N--_
+Dialogue: 0,0:00:03.99,0:00:04.04,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- _
+Dialogue: 0,0:00:04.04,0:00:04.08,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- b_
+Dialogue: 0,0:00:04.08,0:00:04.13,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- be_
+Dialogue: 0,0:00:04.13,0:00:04.17,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- bef_
+Dialogue: 0,0:00:04.17,0:00:04.22,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- befo_
+Dialogue: 0,0:00:04.22,0:00:04.26,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- befor_
+Dialogue: 0,0:00:04.26,0:00:04.31,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before_
+Dialogue: 0,0:00:04.31,0:00:04.35,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before _
+Dialogue: 0,0:00:04.35,0:00:04.40,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before y_
+Dialogue: 0,0:00:04.40,0:00:04.44,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before yo_
+Dialogue: 0,0:00:04.44,0:00:04.49,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you_
+Dialogue: 0,0:00:04.49,0:00:04.53,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you _
+Dialogue: 0,0:00:04.53,0:00:04.58,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you t_
+Dialogue: 0,0:00:04.58,0:00:04.63,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you to_
+Dialogue: 0,0:00:04.63,0:00:04.67,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you tou_
+Dialogue: 0,0:00:04.67,0:00:04.72,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touc_
+Dialogue: 0,0:00:04.72,0:00:04.76,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch_
+Dialogue: 0,0:00:04.76,0:00:04.81,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch _
+Dialogue: 0,0:00:04.81,0:00:04.85,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch a_
+Dialogue: 0,0:00:04.85,0:00:04.90,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch an_
+Dialogue: 0,0:00:04.90,0:00:04.94,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch any_
+Dialogue: 0,0:00:04.94,0:00:04.99,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch anyt_
+Dialogue: 0,0:00:04.99,0:00:05.03,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch anyth_
+Dialogue: 0,0:00:05.03,0:00:05.08,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch anythi_
+Dialogue: 0,0:00:05.08,0:00:05.12,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch anythin_
+Dialogue: 0,0:00:05.12,0:00:05.17,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch anything_
+Dialogue: 0,0:00:05.17,0:00:05.21,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch anything _
+Dialogue: 0,0:00:05.21,0:00:05.26,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch anything r_
+Dialogue: 0,0:00:05.26,0:00:05.30,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch anything re_
+Dialogue: 0,0:00:05.30,0:00:05.35,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch anything rea_
+Dialogue: 0,0:00:05.35,0:00:05.39,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch anything real_
+Dialogue: 0,0:00:05.39,0:00:05.44,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch anything real.
+Dialogue: 0,0:00:05.44,0:00:06.30,Default,,0,0,0,,The Sandbox tests recovery scenarios live\N-- before you touch anything real.
+Dialogue: 0,0:00:06.30,0:00:06.35,Default,,0,0,0,,F_
+Dialogue: 0,0:00:06.35,0:00:06.40,Default,,0,0,0,,Fi_
+Dialogue: 0,0:00:06.40,0:00:06.44,Default,,0,0,0,,Fix_
+Dialogue: 0,0:00:06.44,0:00:06.49,Default,,0,0,0,,Fix _
+Dialogue: 0,0:00:06.49,0:00:06.54,Default,,0,0,0,,Fix t_
+Dialogue: 0,0:00:06.54,0:00:06.59,Default,,0,0,0,,Fix th_
+Dialogue: 0,0:00:06.59,0:00:06.64,Default,,0,0,0,,Fix the_
+Dialogue: 0,0:00:06.64,0:00:06.68,Default,,0,0,0,,Fix the _
+Dialogue: 0,0:00:06.68,0:00:06.73,Default,,0,0,0,,Fix the f_
+Dialogue: 0,0:00:06.73,0:00:06.78,Default,,0,0,0,,Fix the fl_
+Dialogue: 0,0:00:06.78,0:00:06.83,Default,,0,0,0,,Fix the flo_
+Dialogue: 0,0:00:06.83,0:00:06.88,Default,,0,0,0,,Fix the floa_
+Dialogue: 0,0:00:06.88,0:00:06.92,Default,,0,0,0,,Fix the float_
+Dialogue: 0,0:00:06.92,0:00:06.97,Default,,0,0,0,,Fix the float._
+Dialogue: 0,0:00:06.97,0:00:07.02,Default,,0,0,0,,Fix the float. _
+Dialogue: 0,0:00:07.02,0:00:07.07,Default,,0,0,0,,Fix the float. F_
+Dialogue: 0,0:00:07.07,0:00:07.12,Default,,0,0,0,,Fix the float. Fi_
+Dialogue: 0,0:00:07.12,0:00:07.16,Default,,0,0,0,,Fix the float. Fix_
+Dialogue: 0,0:00:07.16,0:00:07.21,Default,,0,0,0,,Fix the float. Fix _
+Dialogue: 0,0:00:07.21,0:00:07.26,Default,,0,0,0,,Fix the float. Fix t_
+Dialogue: 0,0:00:07.26,0:00:07.31,Default,,0,0,0,,Fix the float. Fix th_
+Dialogue: 0,0:00:07.31,0:00:07.36,Default,,0,0,0,,Fix the float. Fix the_
+Dialogue: 0,0:00:07.36,0:00:07.40,Default,,0,0,0,,Fix the float. Fix the _
+Dialogue: 0,0:00:07.40,0:00:07.45,Default,,0,0,0,,Fix the float. Fix the d_
+Dialogue: 0,0:00:07.45,0:00:07.50,Default,,0,0,0,,Fix the float. Fix the du_
+Dialogue: 0,0:00:07.50,0:00:07.55,Default,,0,0,0,,Fix the float. Fix the dur_
+Dialogue: 0,0:00:07.55,0:00:07.60,Default,,0,0,0,,Fix the float. Fix the dura_
+Dialogue: 0,0:00:07.60,0:00:07.64,Default,,0,0,0,,Fix the float. Fix the durat_
+Dialogue: 0,0:00:07.64,0:00:07.69,Default,,0,0,0,,Fix the float. Fix the durati_
+Dialogue: 0,0:00:07.69,0:00:07.74,Default,,0,0,0,,Fix the float. Fix the duratio_
+Dialogue: 0,0:00:07.74,0:00:07.79,Default,,0,0,0,,Fix the float. Fix the duration_
+Dialogue: 0,0:00:07.79,0:00:07.84,Default,,0,0,0,,Fix the float. Fix the duration._
+Dialogue: 0,0:00:07.84,0:00:07.88,Default,,0,0,0,,Fix the float. Fix the duration.\N_
+Dialogue: 0,0:00:07.88,0:00:07.93,Default,,0,0,0,,Fix the float. Fix the duration.\NW_
+Dialogue: 0,0:00:07.93,0:00:07.98,Default,,0,0,0,,Fix the float. Fix the duration.\NWa_
+Dialogue: 0,0:00:07.98,0:00:08.03,Default,,0,0,0,,Fix the float. Fix the duration.\NWat_
+Dialogue: 0,0:00:08.03,0:00:08.08,Default,,0,0,0,,Fix the float. Fix the duration.\NWatc_
+Dialogue: 0,0:00:08.08,0:00:08.12,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch_
+Dialogue: 0,0:00:08.12,0:00:08.17,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch _
+Dialogue: 0,0:00:08.17,0:00:08.22,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch t_
+Dialogue: 0,0:00:08.22,0:00:08.27,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch th_
+Dialogue: 0,0:00:08.27,0:00:08.32,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the_
+Dialogue: 0,0:00:08.32,0:00:08.36,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the _
+Dialogue: 0,0:00:08.36,0:00:08.41,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the s_
+Dialogue: 0,0:00:08.41,0:00:08.46,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the sc_
+Dialogue: 0,0:00:08.46,0:00:08.51,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the sco_
+Dialogue: 0,0:00:08.51,0:00:08.56,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the scor_
+Dialogue: 0,0:00:08.56,0:00:08.60,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score_
+Dialogue: 0,0:00:08.60,0:00:08.65,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score _
+Dialogue: 0,0:00:08.65,0:00:08.70,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score r_
+Dialogue: 0,0:00:08.70,0:00:08.75,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score re_
+Dialogue: 0,0:00:08.75,0:00:08.80,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score rea_
+Dialogue: 0,0:00:08.80,0:00:08.84,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score reac_
+Dialogue: 0,0:00:08.84,0:00:08.89,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score react_
+Dialogue: 0,0:00:08.89,0:00:08.94,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score react _
+Dialogue: 0,0:00:08.94,0:00:08.99,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score react i_
+Dialogue: 0,0:00:08.99,0:00:09.04,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score react in_
+Dialogue: 0,0:00:09.04,0:00:09.08,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score react ins_
+Dialogue: 0,0:00:09.08,0:00:09.13,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score react inst_
+Dialogue: 0,0:00:09.13,0:00:09.18,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score react insta_
+Dialogue: 0,0:00:09.18,0:00:09.23,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score react instan_
+Dialogue: 0,0:00:09.23,0:00:09.28,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score react instant_
+Dialogue: 0,0:00:09.28,0:00:09.32,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score react instantl_
+Dialogue: 0,0:00:09.32,0:00:09.37,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score react instantly_
+Dialogue: 0,0:00:09.37,0:00:09.42,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score react instantly.
+Dialogue: 0,0:00:09.42,0:00:10.20,Default,,0,0,0,,Fix the float. Fix the duration.\NWatch the score react instantly.
+Dialogue: 0,0:00:10.20,0:00:10.22,Default,,0,0,0,,W_
+Dialogue: 0,0:00:10.22,0:00:10.25,Default,,0,0,0,,Wh_
+Dialogue: 0,0:00:10.25,0:00:10.27,Default,,0,0,0,,Wha_
+Dialogue: 0,0:00:10.27,0:00:10.29,Default,,0,0,0,,What_
+Dialogue: 0,0:00:10.29,0:00:10.32,Default,,0,0,0,,What'_
+Dialogue: 0,0:00:10.32,0:00:10.34,Default,,0,0,0,,What's_
+Dialogue: 0,0:00:10.34,0:00:10.36,Default,,0,0,0,,What's _
+Dialogue: 0,0:00:10.36,0:00:10.39,Default,,0,0,0,,What's t_
+Dialogue: 0,0:00:10.39,0:00:10.41,Default,,0,0,0,,What's th_
+Dialogue: 0,0:00:10.41,0:00:10.43,Default,,0,0,0,,What's the_
+Dialogue: 0,0:00:10.43,0:00:10.45,Default,,0,0,0,,What's the _
+Dialogue: 0,0:00:10.45,0:00:10.48,Default,,0,0,0,,What's the f_
+Dialogue: 0,0:00:10.48,0:00:10.50,Default,,0,0,0,,What's the fi_
+Dialogue: 0,0:00:10.50,0:00:10.52,Default,,0,0,0,,What's the fir_
+Dialogue: 0,0:00:10.52,0:00:10.55,Default,,0,0,0,,What's the firs_
+Dialogue: 0,0:00:10.55,0:00:10.57,Default,,0,0,0,,What's the first_
+Dialogue: 0,0:00:10.57,0:00:10.59,Default,,0,0,0,,What's the first _
+Dialogue: 0,0:00:10.59,0:00:10.62,Default,,0,0,0,,What's the first f_
+Dialogue: 0,0:00:10.62,0:00:10.64,Default,,0,0,0,,What's the first fi_
+Dialogue: 0,0:00:10.64,0:00:10.66,Default,,0,0,0,,What's the first fix_
+Dialogue: 0,0:00:10.66,0:00:10.69,Default,,0,0,0,,What's the first fix _
+Dialogue: 0,0:00:10.69,0:00:10.71,Default,,0,0,0,,What's the first fix y_
+Dialogue: 0,0:00:10.71,0:00:10.73,Default,,0,0,0,,What's the first fix yo_
+Dialogue: 0,0:00:10.73,0:00:10.76,Default,,0,0,0,,What's the first fix you_
+Dialogue: 0,0:00:10.76,0:00:10.78,Default,,0,0,0,,What's the first fix you'_
+Dialogue: 0,0:00:10.78,0:00:10.80,Default,,0,0,0,,What's the first fix you'd_
+Dialogue: 0,0:00:10.80,0:00:10.83,Default,,0,0,0,,What's the first fix you'd _
+Dialogue: 0,0:00:10.83,0:00:10.85,Default,,0,0,0,,What's the first fix you'd t_
+Dialogue: 0,0:00:10.85,0:00:10.87,Default,,0,0,0,,What's the first fix you'd tr_
+Dialogue: 0,0:00:10.87,0:00:10.90,Default,,0,0,0,,What's the first fix you'd try_
+Dialogue: 0,0:00:10.90,0:00:10.92,Default,,0,0,0,,What's the first fix you'd try\N_
+Dialogue: 0,0:00:10.92,0:00:10.94,Default,,0,0,0,,What's the first fix you'd try\No_
+Dialogue: 0,0:00:10.94,0:00:10.96,Default,,0,0,0,,What's the first fix you'd try\Non_
+Dialogue: 0,0:00:10.96,0:00:10.99,Default,,0,0,0,,What's the first fix you'd try\Non _
+Dialogue: 0,0:00:10.99,0:00:11.01,Default,,0,0,0,,What's the first fix you'd try\Non a_
+Dialogue: 0,0:00:11.01,0:00:11.03,Default,,0,0,0,,What's the first fix you'd try\Non a _
+Dialogue: 0,0:00:11.03,0:00:11.06,Default,,0,0,0,,What's the first fix you'd try\Non a 2_
+Dialogue: 0,0:00:11.06,0:00:11.08,Default,,0,0,0,,What's the first fix you'd try\Non a 2 _
+Dialogue: 0,0:00:11.08,0:00:11.10,Default,,0,0,0,,What's the first fix you'd try\Non a 2 o_
+Dialogue: 0,0:00:11.10,0:00:11.13,Default,,0,0,0,,What's the first fix you'd try\Non a 2 ou_
+Dialogue: 0,0:00:11.13,0:00:11.15,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out_
+Dialogue: 0,0:00:11.15,0:00:11.17,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out _
+Dialogue: 0,0:00:11.17,0:00:11.20,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out o_
+Dialogue: 0,0:00:11.20,0:00:11.22,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of_
+Dialogue: 0,0:00:11.22,0:00:11.24,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of _
+Dialogue: 0,0:00:11.24,0:00:11.27,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of 1_
+Dialogue: 0,0:00:11.27,0:00:11.29,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of 10_
+Dialogue: 0,0:00:11.29,0:00:11.31,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of 100_
+Dialogue: 0,0:00:11.31,0:00:11.34,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of 100 _
+Dialogue: 0,0:00:11.34,0:00:11.36,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of 100 s_
+Dialogue: 0,0:00:11.36,0:00:11.38,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of 100 sc_
+Dialogue: 0,0:00:11.38,0:00:11.40,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of 100 sch_
+Dialogue: 0,0:00:11.40,0:00:11.43,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of 100 sche_
+Dialogue: 0,0:00:11.43,0:00:11.45,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of 100 sched_
+Dialogue: 0,0:00:11.45,0:00:11.47,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of 100 schedu_
+Dialogue: 0,0:00:11.47,0:00:11.50,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of 100 schedul_
+Dialogue: 0,0:00:11.50,0:00:11.52,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of 100 schedule_
+Dialogue: 0,0:00:11.52,0:00:11.54,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of 100 schedule?
+Dialogue: 0,0:00:11.54,0:00:11.88,Default,,0,0,0,,What's the first fix you'd try\Non a 2 out of 100 schedule?
