@@ -256,6 +256,19 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Blog lead-magnet captures (see docs/blog-drafts/lead-magnet/C7-lead-magnet-spec.md). Pre-signup,
+  -- no session — a different entity than users, deliberately not folded into that table.
+  CREATE TABLE IF NOT EXISTS leads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    name TEXT NOT NULL,
+    company TEXT NOT NULL,
+    role TEXT NOT NULL,
+    source_slug TEXT,
+    pdf_sent_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_snapshots_project ON snapshots(project_id);
   CREATE INDEX IF NOT EXISTS idx_issues_snapshot ON issues(snapshot_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
@@ -270,6 +283,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_team_invites_owner ON team_invites(owner_id);
   CREATE INDEX IF NOT EXISTS idx_advisory_clicks_user ON advisory_clicks(user_id);
   CREATE INDEX IF NOT EXISTS idx_consent_log_consent_id ON consent_log(consent_id);
+  CREATE INDEX IF NOT EXISTS idx_leads_email ON leads(email);
 `);
 
 // Seed the 5 kill-switchable features, once — INSERT OR IGNORE so re-running this on every boot
@@ -962,6 +976,15 @@ function createEnterpriseInquiry(userId, company, message) {
   return db.prepare('SELECT * FROM enterprise_inquiries WHERE user_id = ? ORDER BY id DESC LIMIT 1').get(userId);
 }
 
+function createLead(email, name, company, role, sourceSlug) {
+  db.prepare('INSERT INTO leads (email, name, company, role, source_slug) VALUES (?, ?, ?, ?, ?)').run(email, name, company, role, sourceSlug || null);
+  return db.prepare('SELECT * FROM leads WHERE email = ? ORDER BY id DESC LIMIT 1').get(email);
+}
+
+function markLeadPdfSent(leadId) {
+  db.prepare("UPDATE leads SET pdf_sent_at = datetime('now') WHERE id = ?").run(leadId);
+}
+
 function listEnterpriseInquiriesForAdmin() {
   return db.prepare(`
     SELECT ei.id, ei.company, ei.message, ei.created_at, u.name AS user_name, u.email AS user_email
@@ -1181,6 +1204,7 @@ module.exports = {
   countActiveProjects, projectExists,
   getHistory, getLatestSnapshot, getIssuesForSnapshot, getIssueById, updateIssueStatus, getPortfolio, getActivityFeed,
   getIssueOwnerUserId, createFeedback, createEnterpriseInquiry, listEnterpriseInquiriesForAdmin,
+  createLead, markLeadPdfSent,
   logError, listErrorsForAdmin, pruneOldErrors,
   getSnapshotById, getSnapshotOwnerUserId, setSnapshotNarrative,
   getOrCreateShareToken, getPublicSnapshotByShareToken,
