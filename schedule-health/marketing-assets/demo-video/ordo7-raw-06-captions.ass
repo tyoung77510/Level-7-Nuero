@@ -1,0 +1,215 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 720
+PlayResY: 1280
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Cap,Courier 10 Pitch Bold,42,&H0000FFFF,&H0000FFFF,&H00000000,&HE0000000,-1,0,0,0,100,100,0,0,3,2,0,2,40,40,150,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.30,0:00:00.33,Cap,,0,0,0,,N_
+Dialogue: 0,0:00:00.33,0:00:00.37,Cap,,0,0,0,,No_
+Dialogue: 0,0:00:00.37,0:00:00.40,Cap,,0,0,0,,No _
+Dialogue: 0,0:00:00.40,0:00:00.43,Cap,,0,0,0,,No a_
+Dialogue: 0,0:00:00.43,0:00:00.47,Cap,,0,0,0,,No ac_
+Dialogue: 0,0:00:00.47,0:00:00.50,Cap,,0,0,0,,No acc_
+Dialogue: 0,0:00:00.50,0:00:00.53,Cap,,0,0,0,,No acco_
+Dialogue: 0,0:00:00.53,0:00:00.57,Cap,,0,0,0,,No accou_
+Dialogue: 0,0:00:00.57,0:00:00.60,Cap,,0,0,0,,No accoun_
+Dialogue: 0,0:00:00.60,0:00:00.63,Cap,,0,0,0,,No account_
+Dialogue: 0,0:00:00.63,0:00:00.67,Cap,,0,0,0,,No account._
+Dialogue: 0,0:00:00.67,0:00:00.70,Cap,,0,0,0,,No account. _
+Dialogue: 0,0:00:00.70,0:00:00.73,Cap,,0,0,0,,No account. N_
+Dialogue: 0,0:00:00.73,0:00:00.77,Cap,,0,0,0,,No account. No_
+Dialogue: 0,0:00:00.77,0:00:00.80,Cap,,0,0,0,,No account. No _
+Dialogue: 0,0:00:00.80,0:00:00.83,Cap,,0,0,0,,No account. No c_
+Dialogue: 0,0:00:00.83,0:00:00.87,Cap,,0,0,0,,No account. No ca_
+Dialogue: 0,0:00:00.87,0:00:00.90,Cap,,0,0,0,,No account. No car_
+Dialogue: 0,0:00:00.90,0:00:00.93,Cap,,0,0,0,,No account. No card_
+Dialogue: 0,0:00:00.93,0:00:00.97,Cap,,0,0,0,,No account. No card._
+Dialogue: 0,0:00:00.97,0:00:01.00,Cap,,0,0,0,,No account. No card. _
+Dialogue: 0,0:00:01.00,0:00:01.03,Cap,,0,0,0,,No account. No card. R_
+Dialogue: 0,0:00:01.03,0:00:01.07,Cap,,0,0,0,,No account. No card. Re_
+Dialogue: 0,0:00:01.07,0:00:01.10,Cap,,0,0,0,,No account. No card. Rea_
+Dialogue: 0,0:00:01.10,0:00:01.13,Cap,,0,0,0,,No account. No card. Real_
+Dialogue: 0,0:00:01.13,0:00:01.17,Cap,,0,0,0,,No account. No card. Real _
+Dialogue: 0,0:00:01.17,0:00:01.20,Cap,,0,0,0,,No account. No card. Real D_
+Dialogue: 0,0:00:01.20,0:00:01.23,Cap,,0,0,0,,No account. No card. Real DC_
+Dialogue: 0,0:00:01.23,0:00:01.27,Cap,,0,0,0,,No account. No card. Real DCM_
+Dialogue: 0,0:00:01.27,0:00:01.30,Cap,,0,0,0,,No account. No card. Real DCMA_
+Dialogue: 0,0:00:01.30,0:00:01.33,Cap,,0,0,0,,No account. No card. Real DCMA _
+Dialogue: 0,0:00:01.33,0:00:01.37,Cap,,0,0,0,,No account. No card. Real DCMA c_
+Dialogue: 0,0:00:01.37,0:00:01.40,Cap,,0,0,0,,No account. No card. Real DCMA ch_
+Dialogue: 0,0:00:01.40,0:00:01.43,Cap,,0,0,0,,No account. No card. Real DCMA che_
+Dialogue: 0,0:00:01.43,0:00:01.47,Cap,,0,0,0,,No account. No card. Real DCMA chec_
+Dialogue: 0,0:00:01.47,0:00:01.50,Cap,,0,0,0,,No account. No card. Real DCMA check_
+Dialogue: 0,0:00:01.50,0:00:01.53,Cap,,0,0,0,,No account. No card. Real DCMA checks_
+Dialogue: 0,0:00:01.53,0:00:01.57,Cap,,0,0,0,,No account. No card. Real DCMA checks _
+Dialogue: 0,0:00:01.57,0:00:01.60,Cap,,0,0,0,,No account. No card. Real DCMA checks i_
+Dialogue: 0,0:00:01.60,0:00:01.63,Cap,,0,0,0,,No account. No card. Real DCMA checks in_
+Dialogue: 0,0:00:01.63,0:00:01.67,Cap,,0,0,0,,No account. No card. Real DCMA checks in _
+Dialogue: 0,0:00:01.67,0:00:01.70,Cap,,0,0,0,,No account. No card. Real DCMA checks in s_
+Dialogue: 0,0:00:01.70,0:00:01.73,Cap,,0,0,0,,No account. No card. Real DCMA checks in se_
+Dialogue: 0,0:00:01.73,0:00:01.77,Cap,,0,0,0,,No account. No card. Real DCMA checks in sec_
+Dialogue: 0,0:00:01.77,0:00:01.80,Cap,,0,0,0,,No account. No card. Real DCMA checks in seco_
+Dialogue: 0,0:00:01.80,0:00:01.83,Cap,,0,0,0,,No account. No card. Real DCMA checks in secon_
+Dialogue: 0,0:00:01.83,0:00:01.87,Cap,,0,0,0,,No account. No card. Real DCMA checks in second_
+Dialogue: 0,0:00:01.87,0:00:01.90,Cap,,0,0,0,,No account. No card. Real DCMA checks in seconds_
+Dialogue: 0,0:00:01.90,0:00:01.93,Cap,,0,0,0,,No account. No card. Real DCMA checks in seconds.
+Dialogue: 0,0:00:01.93,0:00:02.35,Cap,,0,0,0,,No account. No card. Real DCMA checks in seconds.
+Dialogue: 0,0:00:02.80,0:00:02.84,Cap,,0,0,0,,I_
+Dialogue: 0,0:00:02.84,0:00:02.87,Cap,,0,0,0,,I _
+Dialogue: 0,0:00:02.87,0:00:02.91,Cap,,0,0,0,,I d_
+Dialogue: 0,0:00:02.91,0:00:02.94,Cap,,0,0,0,,I dr_
+Dialogue: 0,0:00:02.94,0:00:02.98,Cap,,0,0,0,,I dro_
+Dialogue: 0,0:00:02.98,0:00:03.01,Cap,,0,0,0,,I drop_
+Dialogue: 0,0:00:03.01,0:00:03.05,Cap,,0,0,0,,I dropp_
+Dialogue: 0,0:00:03.05,0:00:03.09,Cap,,0,0,0,,I droppe_
+Dialogue: 0,0:00:03.09,0:00:03.12,Cap,,0,0,0,,I dropped_
+Dialogue: 0,0:00:03.12,0:00:03.16,Cap,,0,0,0,,I dropped _
+Dialogue: 0,0:00:03.16,0:00:03.19,Cap,,0,0,0,,I dropped a_
+Dialogue: 0,0:00:03.19,0:00:03.23,Cap,,0,0,0,,I dropped a _
+Dialogue: 0,0:00:03.23,0:00:03.26,Cap,,0,0,0,,I dropped a r_
+Dialogue: 0,0:00:03.26,0:00:03.30,Cap,,0,0,0,,I dropped a re_
+Dialogue: 0,0:00:03.30,0:00:03.34,Cap,,0,0,0,,I dropped a rea_
+Dialogue: 0,0:00:03.34,0:00:03.37,Cap,,0,0,0,,I dropped a real_
+Dialogue: 0,0:00:03.37,0:00:03.41,Cap,,0,0,0,,I dropped a real _
+Dialogue: 0,0:00:03.41,0:00:03.44,Cap,,0,0,0,,I dropped a real s_
+Dialogue: 0,0:00:03.44,0:00:03.48,Cap,,0,0,0,,I dropped a real sc_
+Dialogue: 0,0:00:03.48,0:00:03.51,Cap,,0,0,0,,I dropped a real sch_
+Dialogue: 0,0:00:03.51,0:00:03.55,Cap,,0,0,0,,I dropped a real sche_
+Dialogue: 0,0:00:03.55,0:00:03.59,Cap,,0,0,0,,I dropped a real sched_
+Dialogue: 0,0:00:03.59,0:00:03.62,Cap,,0,0,0,,I dropped a real schedu_
+Dialogue: 0,0:00:03.62,0:00:03.66,Cap,,0,0,0,,I dropped a real schedul_
+Dialogue: 0,0:00:03.66,0:00:03.69,Cap,,0,0,0,,I dropped a real schedule_
+Dialogue: 0,0:00:03.69,0:00:03.73,Cap,,0,0,0,,I dropped a real schedule _
+Dialogue: 0,0:00:03.73,0:00:03.76,Cap,,0,0,0,,I dropped a real schedule i_
+Dialogue: 0,0:00:03.76,0:00:03.80,Cap,,0,0,0,,I dropped a real schedule in_
+Dialogue: 0,0:00:03.80,0:00:03.84,Cap,,0,0,0,,I dropped a real schedule in._
+Dialogue: 0,0:00:03.84,0:00:03.87,Cap,,0,0,0,,I dropped a real schedule in. _
+Dialogue: 0,0:00:03.87,0:00:03.91,Cap,,0,0,0,,I dropped a real schedule in. Z_
+Dialogue: 0,0:00:03.91,0:00:03.94,Cap,,0,0,0,,I dropped a real schedule in. Ze_
+Dialogue: 0,0:00:03.94,0:00:03.98,Cap,,0,0,0,,I dropped a real schedule in. Zer_
+Dialogue: 0,0:00:03.98,0:00:04.01,Cap,,0,0,0,,I dropped a real schedule in. Zero_
+Dialogue: 0,0:00:04.01,0:00:04.05,Cap,,0,0,0,,I dropped a real schedule in. Zero _
+Dialogue: 0,0:00:04.05,0:00:04.09,Cap,,0,0,0,,I dropped a real schedule in. Zero s_
+Dialogue: 0,0:00:04.09,0:00:04.12,Cap,,0,0,0,,I dropped a real schedule in. Zero se_
+Dialogue: 0,0:00:04.12,0:00:04.16,Cap,,0,0,0,,I dropped a real schedule in. Zero set_
+Dialogue: 0,0:00:04.16,0:00:04.19,Cap,,0,0,0,,I dropped a real schedule in. Zero setu_
+Dialogue: 0,0:00:04.19,0:00:04.23,Cap,,0,0,0,,I dropped a real schedule in. Zero setup_
+Dialogue: 0,0:00:04.23,0:00:04.26,Cap,,0,0,0,,I dropped a real schedule in. Zero setup.
+Dialogue: 0,0:00:04.26,0:00:04.55,Cap,,0,0,0,,I dropped a real schedule in. Zero setup.
+Dialogue: 0,0:00:04.90,0:00:04.94,Cap,,0,0,0,,R_
+Dialogue: 0,0:00:04.94,0:00:04.98,Cap,,0,0,0,,Re_
+Dialogue: 0,0:00:04.98,0:00:05.02,Cap,,0,0,0,,Rea_
+Dialogue: 0,0:00:05.02,0:00:05.05,Cap,,0,0,0,,Real_
+Dialogue: 0,0:00:05.05,0:00:05.09,Cap,,0,0,0,,Real _
+Dialogue: 0,0:00:05.09,0:00:05.13,Cap,,0,0,0,,Real s_
+Dialogue: 0,0:00:05.13,0:00:05.17,Cap,,0,0,0,,Real sc_
+Dialogue: 0,0:00:05.17,0:00:05.21,Cap,,0,0,0,,Real sco_
+Dialogue: 0,0:00:05.21,0:00:05.25,Cap,,0,0,0,,Real scor_
+Dialogue: 0,0:00:05.25,0:00:05.28,Cap,,0,0,0,,Real score_
+Dialogue: 0,0:00:05.28,0:00:05.32,Cap,,0,0,0,,Real score._
+Dialogue: 0,0:00:05.32,0:00:05.36,Cap,,0,0,0,,Real score. _
+Dialogue: 0,0:00:05.36,0:00:05.40,Cap,,0,0,0,,Real score. R_
+Dialogue: 0,0:00:05.40,0:00:05.44,Cap,,0,0,0,,Real score. Re_
+Dialogue: 0,0:00:05.44,0:00:05.48,Cap,,0,0,0,,Real score. Rea_
+Dialogue: 0,0:00:05.48,0:00:05.52,Cap,,0,0,0,,Real score. Real_
+Dialogue: 0,0:00:05.52,0:00:05.55,Cap,,0,0,0,,Real score. Real _
+Dialogue: 0,0:00:05.55,0:00:05.59,Cap,,0,0,0,,Real score. Real f_
+Dialogue: 0,0:00:05.59,0:00:05.63,Cap,,0,0,0,,Real score. Real fl_
+Dialogue: 0,0:00:05.63,0:00:05.67,Cap,,0,0,0,,Real score. Real fla_
+Dialogue: 0,0:00:05.67,0:00:05.71,Cap,,0,0,0,,Real score. Real flag_
+Dialogue: 0,0:00:05.71,0:00:05.75,Cap,,0,0,0,,Real score. Real flagg_
+Dialogue: 0,0:00:05.75,0:00:05.78,Cap,,0,0,0,,Real score. Real flagge_
+Dialogue: 0,0:00:05.78,0:00:05.82,Cap,,0,0,0,,Real score. Real flagged_
+Dialogue: 0,0:00:05.82,0:00:05.86,Cap,,0,0,0,,Real score. Real flagged _
+Dialogue: 0,0:00:05.86,0:00:05.90,Cap,,0,0,0,,Real score. Real flagged i_
+Dialogue: 0,0:00:05.90,0:00:05.94,Cap,,0,0,0,,Real score. Real flagged is_
+Dialogue: 0,0:00:05.94,0:00:05.98,Cap,,0,0,0,,Real score. Real flagged iss_
+Dialogue: 0,0:00:05.98,0:00:06.02,Cap,,0,0,0,,Real score. Real flagged issu_
+Dialogue: 0,0:00:06.02,0:00:06.05,Cap,,0,0,0,,Real score. Real flagged issue_
+Dialogue: 0,0:00:06.05,0:00:06.09,Cap,,0,0,0,,Real score. Real flagged issues_
+Dialogue: 0,0:00:06.09,0:00:06.13,Cap,,0,0,0,,Real score. Real flagged issues._
+Dialogue: 0,0:00:06.13,0:00:06.17,Cap,,0,0,0,,Real score. Real flagged issues. _
+Dialogue: 0,0:00:06.17,0:00:06.21,Cap,,0,0,0,,Real score. Real flagged issues. I_
+Dialogue: 0,0:00:06.21,0:00:06.25,Cap,,0,0,0,,Real score. Real flagged issues. In_
+Dialogue: 0,0:00:06.25,0:00:06.28,Cap,,0,0,0,,Real score. Real flagged issues. In _
+Dialogue: 0,0:00:06.28,0:00:06.32,Cap,,0,0,0,,Real score. Real flagged issues. In s_
+Dialogue: 0,0:00:06.32,0:00:06.36,Cap,,0,0,0,,Real score. Real flagged issues. In se_
+Dialogue: 0,0:00:06.36,0:00:06.40,Cap,,0,0,0,,Real score. Real flagged issues. In sec_
+Dialogue: 0,0:00:06.40,0:00:06.44,Cap,,0,0,0,,Real score. Real flagged issues. In seco_
+Dialogue: 0,0:00:06.44,0:00:06.48,Cap,,0,0,0,,Real score. Real flagged issues. In secon_
+Dialogue: 0,0:00:06.48,0:00:06.52,Cap,,0,0,0,,Real score. Real flagged issues. In second_
+Dialogue: 0,0:00:06.52,0:00:06.55,Cap,,0,0,0,,Real score. Real flagged issues. In seconds_
+Dialogue: 0,0:00:06.55,0:00:06.59,Cap,,0,0,0,,Real score. Real flagged issues. In seconds.
+Dialogue: 0,0:00:06.59,0:00:07.95,Cap,,0,0,0,,Real score. Real flagged issues. In seconds.
+Dialogue: 0,0:00:08.40,0:00:08.43,Cap,,0,0,0,,S_
+Dialogue: 0,0:00:08.43,0:00:08.46,Cap,,0,0,0,,Sa_
+Dialogue: 0,0:00:08.46,0:00:08.49,Cap,,0,0,0,,Sam_
+Dialogue: 0,0:00:08.49,0:00:08.52,Cap,,0,0,0,,Same_
+Dialogue: 0,0:00:08.52,0:00:08.55,Cap,,0,0,0,,Same _
+Dialogue: 0,0:00:08.55,0:00:08.58,Cap,,0,0,0,,Same e_
+Dialogue: 0,0:00:08.58,0:00:08.61,Cap,,0,0,0,,Same en_
+Dialogue: 0,0:00:08.61,0:00:08.64,Cap,,0,0,0,,Same eng_
+Dialogue: 0,0:00:08.64,0:00:08.66,Cap,,0,0,0,,Same engi_
+Dialogue: 0,0:00:08.66,0:00:08.69,Cap,,0,0,0,,Same engin_
+Dialogue: 0,0:00:08.69,0:00:08.72,Cap,,0,0,0,,Same engine_
+Dialogue: 0,0:00:08.72,0:00:08.75,Cap,,0,0,0,,Same engine _
+Dialogue: 0,0:00:08.75,0:00:08.78,Cap,,0,0,0,,Same engine a_
+Dialogue: 0,0:00:08.78,0:00:08.81,Cap,,0,0,0,,Same engine as_
+Dialogue: 0,0:00:08.81,0:00:08.84,Cap,,0,0,0,,Same engine as _
+Dialogue: 0,0:00:08.84,0:00:08.87,Cap,,0,0,0,,Same engine as t_
+Dialogue: 0,0:00:08.87,0:00:08.90,Cap,,0,0,0,,Same engine as th_
+Dialogue: 0,0:00:08.90,0:00:08.93,Cap,,0,0,0,,Same engine as the_
+Dialogue: 0,0:00:08.93,0:00:08.96,Cap,,0,0,0,,Same engine as the _
+Dialogue: 0,0:00:08.96,0:00:08.99,Cap,,0,0,0,,Same engine as the p_
+Dialogue: 0,0:00:08.99,0:00:09.02,Cap,,0,0,0,,Same engine as the pa_
+Dialogue: 0,0:00:09.02,0:00:09.05,Cap,,0,0,0,,Same engine as the pai_
+Dialogue: 0,0:00:09.05,0:00:09.08,Cap,,0,0,0,,Same engine as the paid_
+Dialogue: 0,0:00:09.08,0:00:09.11,Cap,,0,0,0,,Same engine as the paid _
+Dialogue: 0,0:00:09.11,0:00:09.14,Cap,,0,0,0,,Same engine as the paid p_
+Dialogue: 0,0:00:09.14,0:00:09.16,Cap,,0,0,0,,Same engine as the paid pr_
+Dialogue: 0,0:00:09.16,0:00:09.19,Cap,,0,0,0,,Same engine as the paid pro_
+Dialogue: 0,0:00:09.19,0:00:09.22,Cap,,0,0,0,,Same engine as the paid prod_
+Dialogue: 0,0:00:09.22,0:00:09.25,Cap,,0,0,0,,Same engine as the paid produ_
+Dialogue: 0,0:00:09.25,0:00:09.28,Cap,,0,0,0,,Same engine as the paid produc_
+Dialogue: 0,0:00:09.28,0:00:09.31,Cap,,0,0,0,,Same engine as the paid product_
+Dialogue: 0,0:00:09.31,0:00:09.34,Cap,,0,0,0,,Same engine as the paid product._
+Dialogue: 0,0:00:09.34,0:00:09.37,Cap,,0,0,0,,Same engine as the paid product. _
+Dialogue: 0,0:00:09.37,0:00:09.40,Cap,,0,0,0,,Same engine as the paid product. W_
+Dialogue: 0,0:00:09.40,0:00:09.43,Cap,,0,0,0,,Same engine as the paid product. Wh_
+Dialogue: 0,0:00:09.43,0:00:09.46,Cap,,0,0,0,,Same engine as the paid product. Wha_
+Dialogue: 0,0:00:09.46,0:00:09.49,Cap,,0,0,0,,Same engine as the paid product. What_
+Dialogue: 0,0:00:09.49,0:00:09.52,Cap,,0,0,0,,Same engine as the paid product. What _
+Dialogue: 0,0:00:09.52,0:00:09.55,Cap,,0,0,0,,Same engine as the paid product. What w_
+Dialogue: 0,0:00:09.55,0:00:09.58,Cap,,0,0,0,,Same engine as the paid product. What wo_
+Dialogue: 0,0:00:09.58,0:00:09.61,Cap,,0,0,0,,Same engine as the paid product. What wou_
+Dialogue: 0,0:00:09.61,0:00:09.64,Cap,,0,0,0,,Same engine as the paid product. What woul_
+Dialogue: 0,0:00:09.64,0:00:09.66,Cap,,0,0,0,,Same engine as the paid product. What would_
+Dialogue: 0,0:00:09.66,0:00:09.69,Cap,,0,0,0,,Same engine as the paid product. What would _
+Dialogue: 0,0:00:09.69,0:00:09.72,Cap,,0,0,0,,Same engine as the paid product. What would y_
+Dialogue: 0,0:00:09.72,0:00:09.75,Cap,,0,0,0,,Same engine as the paid product. What would yo_
+Dialogue: 0,0:00:09.75,0:00:09.78,Cap,,0,0,0,,Same engine as the paid product. What would you_
+Dialogue: 0,0:00:09.78,0:00:09.81,Cap,,0,0,0,,Same engine as the paid product. What would your_
+Dialogue: 0,0:00:09.81,0:00:09.84,Cap,,0,0,0,,Same engine as the paid product. What would your _
+Dialogue: 0,0:00:09.84,0:00:09.87,Cap,,0,0,0,,Same engine as the paid product. What would your s_
+Dialogue: 0,0:00:09.87,0:00:09.90,Cap,,0,0,0,,Same engine as the paid product. What would your sc_
+Dialogue: 0,0:00:09.90,0:00:09.93,Cap,,0,0,0,,Same engine as the paid product. What would your sch_
+Dialogue: 0,0:00:09.93,0:00:09.96,Cap,,0,0,0,,Same engine as the paid product. What would your sche_
+Dialogue: 0,0:00:09.96,0:00:09.99,Cap,,0,0,0,,Same engine as the paid product. What would your sched_
+Dialogue: 0,0:00:09.99,0:00:10.02,Cap,,0,0,0,,Same engine as the paid product. What would your schedu_
+Dialogue: 0,0:00:10.02,0:00:10.05,Cap,,0,0,0,,Same engine as the paid product. What would your schedul_
+Dialogue: 0,0:00:10.05,0:00:10.08,Cap,,0,0,0,,Same engine as the paid product. What would your schedule_
+Dialogue: 0,0:00:10.08,0:00:10.11,Cap,,0,0,0,,Same engine as the paid product. What would your schedule _
+Dialogue: 0,0:00:10.11,0:00:10.14,Cap,,0,0,0,,Same engine as the paid product. What would your schedule s_
+Dialogue: 0,0:00:10.14,0:00:10.16,Cap,,0,0,0,,Same engine as the paid product. What would your schedule sc_
+Dialogue: 0,0:00:10.16,0:00:10.19,Cap,,0,0,0,,Same engine as the paid product. What would your schedule sco_
+Dialogue: 0,0:00:10.19,0:00:10.22,Cap,,0,0,0,,Same engine as the paid product. What would your schedule scor_
+Dialogue: 0,0:00:10.22,0:00:10.25,Cap,,0,0,0,,Same engine as the paid product. What would your schedule score_
+Dialogue: 0,0:00:10.25,0:00:10.28,Cap,,0,0,0,,Same engine as the paid product. What would your schedule score?
+Dialogue: 0,0:00:10.28,0:00:12.25,Cap,,0,0,0,,Same engine as the paid product. What would your schedule score?
