@@ -64,7 +64,7 @@ module.exports = [
   ogImage: 'https://www.ordo7.pro/brand/out-of-sequence-progress-cover.jpg',
   title: "Out-of-Sequence Progress: Causes and Fixes",
   headline: "Your Schedule Says This Can't Start Yet. The Field Already Did It Anyway.",
-  description: "Out-of-sequence progress means an activity was reported started before its Finish-to-Start predecessor actually finished. Here's why it happens in P6, how it skews float, and how to fix it.",
+  description: "Out-of-sequence progress means an activity started before its Finish-to-Start predecessor finished. Why it happens in P6, how it skews float, and how to fix it.",
   category: 'DCMA & compliance',
   toc: [
     { id: 'definition', label: 'What it means' },
@@ -106,7 +106,7 @@ module.exports = [
   ogImage: 'https://www.ordo7.pro/brand/what-is-schedule-health-scoring-cover.jpg',
   title: "What Is Schedule Health Scoring?",
   headline: "What Is a Schedule Health Score? (And Why One Number Actually Helps)",
-  description: "A schedule health score is a 0-100 number built from real DCMA-style checks on your P6 or MS Project file. Here's exactly what it measures, dimension by dimension.",
+  description: "A schedule health score is a 0-100 number built from real DCMA-style checks on your P6 or MS Project file. What it measures, dimension by dimension.",
   category: 'DCMA & compliance',
   toc: [
     { id: 'why-one-number', label: 'Why one number' },
@@ -205,7 +205,7 @@ module.exports = [
     ogImage: 'https://www.ordo7.pro/brand/founder-log-035-cover.jpg',
     title: "Why Ordo7 Never Fabricates a Schedule Metric",
     headline: "Why Ordo7 Will Never Fabricate a Metric It Can't Compute",
-    description: "Self-reported schedule quality and objectively measured schedule quality are two different things. Here's why Ordo7 only ever shows a number it can actually back up, and marks the rest unavailable instead of guessing.",
+    description: "Self-reported and objectively measured schedule quality are different things. Why Ordo7 only ever shows a number it can back up, and marks the rest unavailable.",
     category: 'Founder Log',
     contentHtml: `
 <p class="lead">Every schedule-health tool eventually hits the same fork: what do you do with a number you can't actually compute from the file in front of you? Guess at it, or say so. Ordo7 always does the second one, and I want to explain why that's not just a values statement — it's built directly into how the scoring engine works.</p>
@@ -222,7 +222,7 @@ module.exports = [
     ogImage: 'https://www.ordo7.pro/brand/founder-log-003-cover.jpg',
     title: "Missing Predecessors and Successors in P6: DCMA Check 1",
     headline: "An Activity With No Predecessor Isn't a Schedule, It's a Guess",
-    description: "The first of the DCMA's 14 schedule-health checks is also the simplest: every activity needs something driving it and something depending on it. Here's why that rule catches so much.",
+    description: "The first of the DCMA's 14 checks is the simplest: every activity needs something driving it and something depending on it. Why that rule catches so much.",
     category: 'Founder Log',
     contentHtml: `
 <p class="lead">I'm spending the next few months of Founder Log posts walking through the DCMA's 14-point schedule assessment, one check at a time, in plain language. Check #1 is Logic, and it's the simplest one to explain — which is exactly why it's first.</p>
@@ -240,7 +240,7 @@ module.exports = [
     ogImage: 'https://www.ordo7.pro/brand/founder-log-004-cover.jpg',
     title: "Schedule Discipline and Safety in Utility Maintenance Programs",
     headline: "In Utility Work, a Missed Schedule Isn't Just Late. It's a Safety Problem.",
-    description: "Compliance-driven maintenance schedules don't get extensions. A look back at a water utility program where enforcing schedule discipline cut safety incidents by 9%.",
+    description: "Compliance-driven maintenance schedules don't get extensions. A look back at a water utility program where schedule discipline cut safety incidents by 9%.",
     category: 'Founder Log',
     contentHtml: `
 <p class="lead">Most of the schedule-health conversation online is about construction — GCs, subs, baseline reviews. I've worked in construction too, but some of the sharpest lessons I've learned about why schedule discipline matters came from a water utility maintenance program.</p>
@@ -256,7 +256,7 @@ module.exports = [
     ogImage: 'https://www.ordo7.pro/brand/founder-log-005-cover.jpg',
     title: "What 8+ Years in Project Controls Taught Me About Scheduling Tools",
     headline: "Eight Years in Project Controls Taught Me One Thing Keeps Breaking",
-    description: "PMP-certified, deep in Primavera P6 and EVM, across $100M+ in portfolios and five industries. The tools were always powerful. They were never built for the person actually running the schedule.",
+    description: "PMP-certified, deep in Primavera P6 and EVM, across $100M+ in portfolios and five industries. The tools were powerful. They weren't built for the scheduler.",
     category: 'Founder Log',
     contentHtml: `
 <p class="lead">I've spent more than eight years in project controls — PMP-certified, deep in Primavera P6, Excel, and Earned Value Management, supporting capital portfolios worth $100M+ across utility, manufacturing, pharmaceutical, oil & gas, and education projects.</p>
@@ -273,7 +273,7 @@ module.exports = [
     ogImage: 'https://www.ordo7.pro/brand/founder-log-007-cover.jpg',
     title: "Why I'm Building Ordo7 in Public",
     headline: "No Big Team. No Funding Round. Just the Work, in Public.",
-    description: "Building in public isn't a growth tactic here — it's the only way I know how to build something honest. Here's why the Founder Log exists, and what 'follow the journey' actually means right now.",
+    description: "Building in public isn't a growth tactic here — it's the only way to build something honest. Why the Founder Log exists, and what 'follow the journey' means.",
     category: 'Founder Log',
     contentHtml: `
 <p class="lead">I'm not raising a round before Ordo7 has a single real user. I'm not hiring a team before there's something worth a team building on. I'm building this myself, and I'm documenting it as it happens instead of disappearing for six months and reappearing with a polished launch.</p>
@@ -289,7 +289,7 @@ module.exports = [
     ogImage: 'https://www.ordo7.pro/brand/founder-log-009-cover.jpg',
     title: "The Project Controls Staffing Shortage, Explained",
     headline: "There Aren't Enough Project Controls Analysts. Everyone Feels It.",
-    description: "A capital-projects boom is outpacing the supply of trained project controls talent — and the gap doesn't disappear, it gets absorbed by whoever's already on the project. Usually the PM.",
+    description: "A capital-projects boom is outpacing the supply of trained project controls talent — the gap gets absorbed by whoever's on the project. Usually the PM.",
     category: 'Founder Log',
     contentHtml: `
 <p class="lead">There's a real, structural shortage of project controls talent right now, and it's not getting better on its own. Data centers, manufacturing plants, and major industrial capital projects are surging, and staffing agencies simply can't fill project controls and scheduling roles fast enough to keep up.</p>
@@ -304,7 +304,7 @@ module.exports = [
     slug: 'contractor-baseline-red-flags-checklist',
     title: "5 Red Flags to Check in a Contractor's Baseline Schedule",
     headline: "The Non-Scheduler's Survival Guide: 5 Red Flags to Check Before You Accept a Contractor's Baseline",
-    description: "You don't need a PSP certification to catch a bad baseline. Here are 5 concrete things to check in a contractor's schedule before you sign off — and why each one matters.",
+    description: "You don't need a PSP certification to catch a bad baseline. 5 concrete things to check in a contractor's schedule before you sign off — and why each matters.",
     category: 'For owners & PMs',
     toc: [
       { id: 's1', label: '1 · Negative float' },
@@ -482,7 +482,7 @@ module.exports = [
     ogImage: 'https://www.ordo7.pro/brand/leads-negative-lag-p6-dcma-check-2-cover.jpg',
     title: "Leads and Negative Lag in P6: DCMA Check 2",
     headline: "A Lead Is a Lie Your Schedule's Logic Is Telling You",
-    description: "The second of the DCMA's 14 checks flags something most schedulers have used without naming: an activity starting before its predecessor is actually done. Here's why DCMA wants leads at zero.",
+    description: "The second of the DCMA's 14 checks flags something most schedulers use without naming: starting before a predecessor is done. Why DCMA wants leads at zero.",
     category: 'Founder Log',
     contentHtml: `
 <p class="lead">Second post in this DCMA walkthrough, and it's the one that catches schedulers off guard the most: a lead. Not because the math is complicated — it's the opposite, one negative number — but because most people have used one without knowing it had a name, let alone that DCMA wants it gone entirely.</p>
@@ -502,7 +502,7 @@ module.exports = [
     ogImage: 'https://www.ordo7.pro/brand/manufacturing-capital-boom-project-controls-cover.jpg',
     title: "Manufacturing's Capital Boom Is Outrunning Project Controls",
     headline: "Manufacturing's Capital Boom, Seen From the Inside",
-    description: "Data centers and manufacturing plants are surging right now — and the project controls function meant to run them hasn't scaled to match. A firsthand look at what that stretch actually looks like.",
+    description: "Data centers and manufacturing plants are surging — the project controls function meant to run them hasn't scaled to match. A firsthand look at that stretch.",
     category: 'Founder Log',
     contentHtml: `
 <p class="lead">Manufacturing plants are being built and reinvested in at a pace I haven't seen before — and I didn't watch that from an industry report. I watched it from inside one.</p>
