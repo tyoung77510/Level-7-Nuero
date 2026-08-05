@@ -2471,6 +2471,7 @@ function serveSitemap(req, res) {
   const base = 'https://www.ordo7.pro';
   const staticPages = [
     ['/', '1.0', 'weekly'],
+    ['/check', '0.9', 'weekly'],
     ['/blog', '0.8', 'weekly'],
     ['/blog/founder-log', '0.5', 'weekly'],
     ['/privacy', '0.3', 'yearly'],
