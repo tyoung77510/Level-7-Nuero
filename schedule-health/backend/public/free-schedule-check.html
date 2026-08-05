@@ -9,209 +9,777 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/brand/musk/icon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
 <style>
   :root {
-    --ink: #f4f8fc; --paper: #06090f; --muted: #8695a8; --card: #0e1626; --line: #1d222a;
-    --good: #46d19e; --warn: #f4b955; --bad: #f2716a; --teal: #5eead4; --accent-2: #22d3b0; --on-accent: #06231f;
+    --ink: #e8f0ee;
+    --bg: #080d12;
+    --surf: #0e1720;
+    --surf2: #122029;
+    --line: rgba(232,240,238,.10);
+    --ac: #34d399;
+    --ac-dim: #1d5f4e;
+    --ac-deep: #12352d;
+    --warn: #fbbf24;
+    --crit: #f87171;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: 'Manrope', -apple-system, sans-serif; background: var(--paper); background-image: radial-gradient(1400px 700px at 22% -8%, #0f1c2d 0%, #06090f 58%); background-attachment: fixed; color: var(--ink); }
-  h1, h2, h3 { font-family: 'Space Grotesk', 'Manrope', sans-serif; }
-  .wrap { max-width: 640px; margin: 0 auto; padding: 40px 20px 100px; }
-  .top-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 40px; }
-  .top-nav img { width: 26px; height: 26px; }
-  .top-nav .word { font-weight: 700; font-size: 18px; letter-spacing: -0.01em; }
-  .top-nav .word span { color: var(--teal); }
-  .kicker { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .16em; color: var(--teal); margin-bottom: 14px; }
-  h1 { font-size: 36px; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 14px; }
-  .sub { font-size: 16px; line-height: 1.6; color: var(--muted); margin: 0 0 34px; max-width: 520px; }
-  .dropzone { display: block; border: 1.5px dashed rgba(148,163,184,0.3); border-radius: 16px; padding: 40px 24px; text-align: center; background: var(--card); cursor: pointer; transition: border-color .15s ease, background .15s ease; }
-  .dropzone.drag { border-color: var(--teal); background: #0f1a2c; }
-  .dropzone .icon { font-size: 30px; margin-bottom: 10px; }
-  .dropzone .primary { font-size: 15.5px; font-weight: 600; margin-bottom: 6px; }
-  .dropzone .secondary { font-size: 13px; color: var(--muted); }
-  .dropzone input[type=file] { display: none; }
-  .filename-chip { display: none; margin-top: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--teal); }
-  .checkbtn { display: block; width: 100%; margin-top: 18px; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 15px; color: var(--on-accent); background: linear-gradient(135deg,var(--teal),var(--accent-2)); border: none; border-radius: 12px; padding: 15px; cursor: pointer; opacity: 0.4; pointer-events: none; transition: opacity .15s ease; }
-  .checkbtn.ready { opacity: 1; pointer-events: auto; }
-  .checkbtn:hover.ready { filter: brightness(1.05); }
-  .privacy-note { font-size: 12.5px; color: var(--muted); margin-top: 14px; text-align: center; }
-  #errorBox { display: none; margin-top: 16px; background: rgba(242,113,106,0.1); border: 1px solid rgba(242,113,106,0.3); color: var(--bad); border-radius: 10px; padding: 12px 16px; font-size: 14px; }
-  #results { display: none; margin-top: 40px; }
-  .score-row { display: flex; align-items: center; gap: 24px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 28px 30px; margin-bottom: 22px; }
-  .score-ring { position: relative; width: 96px; height: 96px; border-radius: 50%; flex-shrink: 0; }
-  .score-ring-hole { position: absolute; inset: 8px; border-radius: 50%; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .score-num { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; line-height: 1; }
-  .score-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
-  .score-meta h2 { font-size: 20px; margin: 0 0 6px; }
-  .score-meta p { font-size: 14px; color: var(--muted); margin: 0; }
-  .issue-card { background: var(--card); border: 1px solid var(--line); border-left-width: 3px; border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
-  .issue-card.crit { border-left-color: var(--bad); }
-  .issue-card.risk { border-left-color: var(--warn); }
-  .issue-name { font-size: 14.5px; font-weight: 600; margin-bottom: 4px; }
-  .issue-sub { font-size: 13px; color: var(--muted); }
-  .locked-note { font-size: 13.5px; color: var(--muted); text-align: center; margin: 18px 0 26px; }
-  .cta-block { display: block; text-align: center; font-weight: 700; font-size: 15px; color: var(--on-accent); background: linear-gradient(135deg,var(--teal),var(--accent-2)); border-radius: 12px; padding: 16px; text-decoration: none; }
-  .again-link { display: block; text-align: center; font-size: 13.5px; color: var(--muted); margin-top: 16px; }
-  .again-link a { color: var(--teal); }
+  html { background: var(--bg); }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    position: relative; overflow-x: hidden;
+  }
+  h1, h2, h3, h4 { font-weight: 600; letter-spacing: -0.02em; text-wrap: balance; margin: 0; }
+  p { text-wrap: pretty; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+  :focus-visible { outline: 2px solid var(--ac); outline-offset: 3px; border-radius: 4px; }
+
+  /* ---------- background layers ---------- */
+  .bg-spot, .bg-vignette { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  .bg-spot {
+    background: radial-gradient(620px circle at var(--x,60%) var(--y,12%), rgba(52,211,153,.13), rgba(52,211,153,.04) 42%, transparent 68%);
+    transition: background .12s linear;
+  }
+  .bg-vignette {
+    background:
+      radial-gradient(900px 420px at 50% -12%, rgba(52,211,153,.07), transparent 70%),
+      linear-gradient(180deg, rgba(8,13,18,0), rgba(8,13,18,.85));
+  }
+
+  /* ---------- shell ---------- */
+  .shell { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 26px 32px 80px; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 54px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+    background: linear-gradient(160deg,#123a30,#0b1f1a);
+    box-shadow: inset 0 0 0 1px rgba(52,211,153,.4);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ac); font-weight: 700; font-size: 15px;
+  }
+  .brand-word { font-size: 19px; font-weight: 600; }
+  .brand-word span { color: var(--ac); }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .free-badge {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .1em;
+    color: rgba(232,240,238,.5); text-transform: uppercase;
+  }
+  .ghost-btn {
+    font: inherit; font-size: 13.5px; color: var(--ink); text-decoration: none;
+    background: transparent; border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 16px; cursor: pointer; transition: border-color .15s ease, background .15s ease;
+  }
+  .ghost-btn:hover { border-color: rgba(52,211,153,.4); background: rgba(52,211,153,.06); }
+
+  /* ---------- layout grid ---------- */
+  .layout { display: grid; grid-template-columns: minmax(0,1.02fr) minmax(0,.98fr); gap: 56px; align-items: start; }
+  @media (max-width: 1080px) { .layout { grid-template-columns: 1fr; } }
+
+  .left-col { min-width: 0; }
+  .kicker { font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .14em; font-size: 11px; color: var(--ac); margin-bottom: 16px; }
+  h1.headline { font-size: clamp(38px,4.6vw,60px); line-height: 1.02; margin-bottom: 20px; }
+  .lead { font-size: 17px; line-height: 1.55; max-width: 52ch; color: rgba(232,240,238,.66); margin-bottom: 12px; }
+  .lead strong { color: var(--ink); font-weight: 500; }
+  .sub { font-size: 14.5px; color: rgba(232,240,238,.5); margin-bottom: 30px; }
+
+  /* ---------- upload states ---------- */
+  #uploadState { margin-bottom: 18px; }
+
+  .dropzone {
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    padding: 40px 24px; border-radius: 14px; cursor: pointer;
+    background: var(--surf); border: 1.5px dashed rgba(232,240,238,.16);
+    transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+  }
+  .dropzone.drag { border-color: var(--ac); background: var(--surf2); box-shadow: 0 0 0 4px rgba(52,211,153,.12); }
+  .dropzone input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+  .dz-icon-well {
+    width: 46px; height: 46px; border-radius: 50%; margin-bottom: 16px;
+    background: rgba(52,211,153,.12); color: var(--ac);
+    display: flex; align-items: center; justify-content: center;
+    animation: float 3.4s ease-in-out infinite, glowPulse 2.8s ease-out infinite;
+  }
+  .dz-icon-well svg { width: 22px; height: 22px; }
+  .dz-title { font-size: 19px; font-weight: 600; margin-bottom: 6px; }
+  .dz-sub { font-size: 13.5px; color: rgba(232,240,238,.5); margin-bottom: 12px; }
+  .dz-lock { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(232,240,238,.42); }
+  .dz-lock svg { width: 13px; height: 13px; flex-shrink: 0; }
+  .dz-error { display: none; margin-top: 14px; font-size: 13px; color: var(--crit); }
+  .dropzone.has-error .dz-error { display: block; }
+
+  .file-chip {
+    display: flex; align-items: center; gap: 14px; padding: 22px;
+    border-radius: 14px; background: var(--surf2); border: 1px solid rgba(52,211,153,.4);
+  }
+  .file-chip-icon {
+    width: 40px; height: 40px; border-radius: 9px; flex-shrink: 0;
+    background: rgba(52,211,153,.14); color: var(--ac);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .file-chip-icon svg { width: 19px; height: 19px; }
+  .file-chip-info { min-width: 0; flex: 1; }
+  .file-chip-name { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-chip-sub { font-size: 12.5px; color: var(--ac); margin-top: 3px; }
+  .file-chip-remove {
+    font: inherit; font-size: 13px; color: rgba(232,240,238,.5); background: none; border: none;
+    cursor: pointer; padding: 6px 10px; border-radius: 6px; flex-shrink: 0;
+  }
+  .file-chip-remove:hover { color: var(--ink); background: rgba(232,240,238,.06); }
+
+  .progress-panel { padding: 22px; border-radius: 14px; background: var(--surf2); border: 1px solid rgba(52,211,153,.4); }
+  .progress-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .progress-phase { font-size: 14px; font-weight: 500; }
+  .progress-pct { font-size: 13px; color: var(--ac); }
+  .progress-track { height: 5px; border-radius: 99px; background: rgba(232,240,238,.09); overflow: hidden; margin-bottom: 10px; }
+  .progress-fill {
+    height: 100%; width: 0%; border-radius: 99px; position: relative;
+    background: linear-gradient(90deg,#1d5f4e,#34d399);
+    transition: width .25s ease-out;
+  }
+  .progress-fill::after {
+    content: ''; position: absolute; inset: 0; width: 40%;
+    background: linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);
+    animation: sweep 1.1s linear infinite;
+  }
+  .progress-filename { font-size: 12.5px; color: rgba(232,240,238,.5); }
+
+  .cta-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+    padding: 17px; font: inherit; font-size: 16px; font-weight: 600; border-radius: 12px;
+    cursor: pointer; margin-top: 18px; transition: background .15s ease, box-shadow .15s ease, transform .1s ease, color .15s ease, border-color .15s ease;
+    border: 1px solid var(--line); background: rgba(232,240,238,.03); color: rgba(232,240,238,.32);
+  }
+  .cta-btn svg { width: 17px; height: 17px; transition: transform .15s ease; }
+  .cta-btn:disabled { cursor: not-allowed; }
+  .cta-btn.enabled {
+    border-color: rgba(52,211,153,.55); background: rgba(52,211,153,.13); color: #a7f3d0; cursor: pointer;
+  }
+  .cta-btn.enabled:hover { background: #34d399; color: #04140f; box-shadow: 0 8px 34px rgba(52,211,153,.28); }
+  .cta-btn.enabled:hover svg { transform: translateX(5px); }
+  .cta-btn.enabled:active { transform: translateY(1px); }
+  #uploadState[data-stage="running"] .cta-btn { display: none; }
+
+  .sample-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 20px 0 26px; font-size: 13.5px; color: rgba(232,240,238,.5); }
+  .sample-btn {
+    display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13.5px;
+    color: var(--ink); background: none; cursor: pointer;
+    border: 1px dashed rgba(232,240,238,.2); border-radius: 8px; padding: 7px 13px;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .sample-btn svg { width: 14px; height: 14px; color: rgba(232,240,238,.5); }
+  .sample-btn:hover { border-color: rgba(52,211,153,.5); color: var(--ac); }
+  .sample-btn:hover svg { color: var(--ac); }
+
+  .trust-row { display: flex; gap: 32px; padding-top: 22px; border-top: 1px solid var(--line); }
+  @media (max-width: 720px) { .trust-row { flex-direction: column; gap: 16px; } }
+  .trust-item { display: flex; align-items: flex-start; gap: 10px; }
+  .trust-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ac); margin-top: 7px; flex-shrink: 0; animation: dotPulse 2.2s ease-in-out infinite; }
+  .trust-item strong { display: block; font-size: 14.5px; font-weight: 600; }
+  .trust-item span { display: block; font-size: 12.5px; color: rgba(232,240,238,.5); margin-top: 1px; }
+
+  /* ---------- report panel ---------- */
+  .report-col { position: sticky; top: 26px; }
+  .report-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: rgba(232,240,238,.42); margin-bottom: 12px; transition: color .2s ease; }
+  .report-label.is-real { color: var(--ac); }
+
+  .report-card {
+    position: relative; border-radius: 16px; background: var(--surf); border: 1px solid var(--line);
+    box-shadow: 0 20px 60px rgba(0,0,0,.5); overflow: hidden;
+    transition: border-color .25s ease, box-shadow .25s ease, transform .35s ease;
+  }
+  .report-card:hover { transform: translateY(-3px); }
+  .report-card.is-real { border-color: rgba(52,211,153,.45); box-shadow: 0 20px 60px rgba(0,0,0,.5), 0 0 40px rgba(52,211,153,.10); }
+  .report-card::before {
+    content: ''; position: absolute; top: 0; right: 0; width: 260px; height: 200px; pointer-events: none;
+    background: radial-gradient(circle at 100% 0%, rgba(52,211,153,.12), transparent 70%);
+  }
+  .report-header { position: relative; display: flex; align-items: center; gap: 18px; padding: 26px 24px 22px; }
+  .ring-wrap { position: relative; width: 78px; height: 78px; flex-shrink: 0; }
+  .ring-wrap svg { width: 78px; height: 78px; transform: rotate(-90deg); }
+  .ring-track { fill: none; stroke: rgba(232,240,238,.1); stroke-width: 8; }
+  .ring-fill { fill: none; stroke: var(--ac); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 264; stroke-dashoffset: 264; transition: stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1); }
+  .ring-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 23px; font-weight: 600; }
+  .report-headtext h3 { font-size: 17px; margin-bottom: 5px; }
+  .report-verdict { font-size: 13px; color: rgba(232,240,238,.5); max-width: 26ch; line-height: 1.4; }
+
+  .stat-strip { position: relative; display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .stat-cell { padding: 14px 16px; text-align: center; border-left: 1px solid var(--line); }
+  .stat-cell:first-child { border-left: none; }
+  .stat-val { font-size: 20px; font-weight: 600; line-height: 1; margin-bottom: 5px; }
+  .stat-val.warn { color: var(--warn); }
+  .stat-val.crit { color: var(--crit); }
+  .stat-label { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: rgba(232,240,238,.42); }
+
+  .issue-rows { position: relative; }
+  .issue-row { display: flex; align-items: center; gap: 10px; padding: 11px 22px; transition: background .15s ease; }
+  .issue-row:hover { background: rgba(232,240,238,.03); }
+  .issue-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .issue-dot.crit { background: var(--crit); }
+  .issue-dot.warn { background: var(--warn); }
+  .issue-dot.good { background: var(--ac); }
+  .issue-name { flex: 1; min-width: 0; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .issue-count { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: rgba(232,240,238,.5); flex-shrink: 0; }
+
+  .report-footer {
+    position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 13px 22px; border-top: 1px solid var(--line); background: rgba(232,240,238,.02);
+  }
+  .report-footer-note { font-size: 11.5px; color: rgba(232,240,238,.42); }
+  .report-footer-tag { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(232,240,238,.42); text-decoration: none; }
+  .report-footer-tag.is-link { color: var(--ac); }
+  .report-footer-tag.is-link:hover { text-decoration: underline; }
+
+  .steps-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 14px; }
+  @media (max-width: 560px) { .steps-grid { grid-template-columns: 1fr; } }
+  .step-card { padding: 14px 14px; border-radius: 11px; border: 1px solid var(--line); background: var(--surf); }
+  .step-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ac); margin-bottom: 6px; }
+  .step-text { font-size: 12.5px; line-height: 1.4; color: rgba(232,240,238,.66); }
+
+  /* ---------- bottom section ---------- */
+  .checks-section { margin-top: 88px; }
+  .checks-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+  .checks-head h2 { font-size: 20px; }
+  .checks-note { font-size: 13px; color: rgba(232,240,238,.5); }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .pill {
+    font-size: 12.5px; padding: 9px 16px; border-radius: 99px; border: 1px solid var(--line);
+    color: rgba(232,240,238,.8); cursor: default; transition: transform .15s ease, border-color .15s ease;
+  }
+  .pill:hover { transform: translateY(-2px); border-color: rgba(52,211,153,.4); }
+
+  .foot-note { margin-top: 40px; font-size: 13px; color: rgba(232,240,238,.42); max-width: 70ch; }
+  .foot-note a { color: var(--ac); }
+
+  /* ---------- motion ---------- */
+  @keyframes riseIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  @keyframes glowPulse { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,.35); } 70% { box-shadow: 0 0 0 14px rgba(52,211,153,0); } 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); } }
+  @keyframes dotPulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+  @keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(220%); } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  [class*="d"].anim { opacity: 0; animation: riseIn .62s cubic-bezier(.2,.8,.2,1) both; }
+  .d1 { animation-delay: .05s; } .d2 { animation-delay: .12s; } .d3 { animation-delay: .19s; }
+  .d4 { animation-delay: .26s; } .d5 { animation-delay: .34s; } .d6 { animation-delay: .46s; }
+  .d7 { animation-delay: .54s; } .d8 { animation-delay: .6s; }
+
+  .issue-row.anim { opacity: 0; animation: fadeUp .5s ease both; }
+  .issue-row.anim:nth-child(1) { animation-delay: .30s; }
+  .issue-row.anim:nth-child(2) { animation-delay: .37s; }
+  .issue-row.anim:nth-child(3) { animation-delay: .44s; }
+  .issue-row.anim:nth-child(4) { animation-delay: .51s; }
+  .issue-row.anim:nth-child(5) { animation-delay: .58s; }
+
+  .step-card.anim { opacity: 0; animation: fadeUp .5s ease both; }
+  .step-card.anim:nth-child(1) { animation-delay: .50s; }
+  .step-card.anim:nth-child(2) { animation-delay: .58s; }
+  .step-card.anim:nth-child(3) { animation-delay: .66s; }
+
+  .pill.anim { opacity: 0; animation: fadeUp .4s ease both; }
+  .pill.anim:nth-child(1) { animation-delay: .02s; } .pill.anim:nth-child(2) { animation-delay: .07s; }
+  .pill.anim:nth-child(3) { animation-delay: .12s; } .pill.anim:nth-child(4) { animation-delay: .17s; }
+  .pill.anim:nth-child(5) { animation-delay: .22s; } .pill.anim:nth-child(6) { animation-delay: .27s; }
+  .pill.anim:nth-child(7) { animation-delay: .32s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important;
+    }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top-nav">
-    <img src="/brand/musk/icon-64.png" alt="Ordo7">
-    <div class="word">Ordo<span>7</span></div>
+<div class="bg-spot" id="bgSpot" aria-hidden="true"></div>
+<div class="bg-vignette" aria-hidden="true"></div>
+
+<div class="shell">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">7</div>
+      <div class="brand-word">Ordo<span>7</span></div>
+    </div>
+    <div class="topbar-right">
+      <div class="free-badge mono">Free check</div>
+      <a class="ghost-btn" href="/">Sign in</a>
+    </div>
   </div>
 
-  <div class="kicker">FREE · NO SIGNUP · NOTHING STORED</div>
-  <h1>What's actually wrong with your schedule?</h1>
-  <p class="sub">Upload a Primavera P6 (.xer), MS Project (.xml), or CSV export. Ordo7 runs the same DCMA-style checks as the full product and scores it in seconds — no account, no card, and the file is never saved.</p>
+  <div class="layout">
+    <div class="left-col">
+      <div class="kicker anim d1">Free · No signup · Nothing stored</div>
+      <h1 class="headline anim d2">What's actually wrong with your schedule?</h1>
+      <p class="lead anim d3">Drop in a Primavera P6, MS Project or CSV export. Ordo7 runs the same DCMA-style checks as the full product and hands back a scored, prioritized punch list <strong>in about 8 seconds</strong>.</p>
+      <p class="sub anim d4">No account. No card. The file is parsed in memory and discarded — it never touches a disk.</p>
 
-  <form id="checkForm">
-    <label class="dropzone" id="dropzone" for="fileInput">
-      <div class="icon">↑</div>
-      <div class="primary">Drop your schedule file here</div>
-      <div class="secondary">or click to browse — .xer, .xml, .csv, up to 25MB</div>
-      <input type="file" id="fileInput" accept=".xer,.csv,.txt,.xml">
-    </label>
-    <div class="filename-chip" id="filenameChip"></div>
-    <button type="submit" class="checkbtn" id="checkBtn">Check my schedule</button>
-    <div id="errorBox"></div>
-  </form>
-  <p class="privacy-note">This file is analyzed in memory and discarded — nothing is written to disk or a database. See our <a href="/privacy" style="color:var(--teal);">Privacy Policy</a>.</p>
+      <div id="uploadState" class="anim d5" data-stage="idle">
+        <label class="dropzone" id="dropzone" for="fileInput">
+          <span class="dz-icon-well">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          </span>
+          <div class="dz-title" id="dzTitle">Drop your schedule file here</div>
+          <div class="dz-sub">.xer, .xml, .csv or .mpp — up to 25MB</div>
+          <div class="dz-lock">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <span>Analyzed in memory, then discarded</span>
+          </div>
+          <div class="dz-error" id="dzError"></div>
+          <input type="file" id="fileInput" accept=".xer,.xml,.csv,.txt,.mpp">
+        </label>
 
-  <div id="results">
-    <div class="score-row">
-      <div class="score-ring" id="scoreRing">
-        <div class="score-ring-hole">
-          <div class="score-num" id="scoreNum">—</div>
-          <div class="score-label">/ 100</div>
+        <div class="file-chip" id="fileChip" style="display:none;">
+          <div class="file-chip-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/></svg>
+          </div>
+          <div class="file-chip-info">
+            <div class="file-chip-name" id="fileChipName">—</div>
+            <div class="file-chip-sub mono" id="fileChipSub">Ready to check</div>
+          </div>
+          <button type="button" class="file-chip-remove" id="fileChipRemove">Remove</button>
         </div>
+
+        <div class="progress-panel" id="progressPanel" style="display:none;">
+          <div class="progress-head">
+            <div class="progress-phase" id="progressPhase">Parsing activities</div>
+            <div class="progress-pct mono" id="progressPct">0%</div>
+          </div>
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="progress-filename" id="progressFilename">—</div>
+        </div>
+
+        <button type="button" class="cta-btn" id="checkBtn" disabled>
+          <span id="checkBtnLabel">Add a file to check</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        </button>
       </div>
-      <div class="score-meta">
-        <h2 id="scoreHeadline">—</h2>
-        <p id="scoreSub">—</p>
+
+      <div class="sample-row anim d6">
+        <span>No schedule handy?</span>
+        <button type="button" class="sample-btn" id="sampleBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 .9-1 1.7"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg>
+          Try a sample 6-activity schedule
+        </button>
+      </div>
+
+      <div class="trust-row anim d7">
+        <div class="trust-item"><span class="trust-dot"></span><div><strong>~8 seconds</strong><span>Typical run time</span></div></div>
+        <div class="trust-item"><span class="trust-dot"></span><div><strong>Never saved</strong><span>Parsed in memory only</span></div></div>
+        <div class="trust-item"><span class="trust-dot"></span><div><strong>No account</strong><span>No email, no card</span></div></div>
       </div>
     </div>
-    <div id="issueList"></div>
-    <p class="locked-note" id="lockedNote"></p>
-    <a href="/" class="cta-block">See every issue + how to fix it — sign up free →</a>
-    <p class="again-link"><a href="#" id="checkAgain">Check another schedule</a></p>
+
+    <div class="report-col anim d8">
+      <div class="report-label mono" id="reportLabel">Example report — what you get back</div>
+      <div class="report-card" id="reportCard">
+        <div class="report-header">
+          <div class="ring-wrap">
+            <svg viewBox="0 0 96 96" aria-hidden="true">
+              <circle class="ring-track" cx="48" cy="48" r="42"></circle>
+              <circle class="ring-fill" id="ringFill" cx="48" cy="48" r="42"></circle>
+            </svg>
+            <div class="ring-num" id="ringNum">0</div>
+          </div>
+          <div class="report-headtext">
+            <h3>Schedule health</h3>
+            <p class="report-verdict" id="reportVerdict">Scored 0–100 against DCMA-style thresholds.</p>
+          </div>
+        </div>
+        <div class="stat-strip">
+          <div class="stat-cell"><div class="stat-val" id="statActivities">—</div><div class="stat-label mono">Activities</div></div>
+          <div class="stat-cell"><div class="stat-val warn" id="statIssues">—</div><div class="stat-label mono">Issues found</div></div>
+          <div class="stat-cell"><div class="stat-val crit" id="statCritical">—</div><div class="stat-label mono">Critical</div></div>
+        </div>
+        <div class="issue-rows" id="issueRows"></div>
+        <div class="report-footer">
+          <div class="report-footer-note" id="reportFooterNote">7 schedule-health checks · same engine as the full product</div>
+          <a class="report-footer-tag mono" id="reportFooterTag">Sample data</a>
+        </div>
+      </div>
+      <div class="steps-grid">
+        <div class="step-card anim"><div class="step-num mono">01</div><div class="step-text">Export from P6 or MS Project</div></div>
+        <div class="step-card anim"><div class="step-num mono">02</div><div class="step-text">Drop the file in — nothing stored</div></div>
+        <div class="step-card anim"><div class="step-num mono">03</div><div class="step-text">Read the scored punch list</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="checks-section">
+    <div class="checks-head">
+      <h2>Every check it runs</h2>
+      <div class="checks-note">The same engine as the paid product — nothing is held back on the free check.</div>
+    </div>
+    <div class="pill-row" id="pillRow">
+      <div class="pill anim">Missing logic</div>
+      <div class="pill anim">Negative float</div>
+      <div class="pill anim">High float</div>
+      <div class="pill anim">High duration</div>
+      <div class="pill anim">Hard constraints</div>
+      <div class="pill anim">Invalid dates</div>
+      <div class="pill anim">Out-of-sequence (XER)</div>
+    </div>
+    <p class="foot-note">Files are parsed in memory and discarded — nothing is written to disk or a database, and no account is created. See our <a href="/privacy">Privacy Policy</a>.</p>
   </div>
 </div>
 
+<div id="liveRegion" class="sr-only" aria-live="polite"></div>
+
 <script>
 (function () {
-  var fileInput = document.getElementById('fileInput');
-  var dropzone = document.getElementById('dropzone');
-  var filenameChip = document.getElementById('filenameChip');
-  var checkBtn = document.getElementById('checkBtn');
-  var form = document.getElementById('checkForm');
-  var errorBox = document.getElementById('errorBox');
-  var results = document.getElementById('results');
-  var selectedFile = null;
+  'use strict';
 
-  function setFile(file) {
-    if (!file) return;
-    selectedFile = file;
-    filenameChip.textContent = file.name;
-    filenameChip.style.display = 'block';
-    checkBtn.classList.add('ready');
+  /* ---------- cursor spotlight (no React, no state — direct style writes) ---------- */
+  var spot = document.getElementById('bgSpot');
+  var ticking = false;
+  var lastX = 60, lastY = 12;
+  function onMove(e) {
+    lastX = (e.clientX / window.innerWidth * 100);
+    lastY = (e.clientY / window.innerHeight * 100);
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(function () {
+        spot.style.setProperty('--x', lastX + '%');
+        spot.style.setProperty('--y', lastY + '%');
+        ticking = false;
+      });
+    }
+  }
+  window.addEventListener('pointermove', onMove, { passive: true });
+
+  /* ---------- constants ---------- */
+  var MAX_BYTES = 25 * 1024 * 1024;
+  var ALLOWED_EXT = ['.xer', '.xml', '.csv', '.txt', '.mpp'];
+  var SAMPLE_XER =
+    "%T\tTASK\n%F\ttask_id\ttask_code\ttask_name\ttotal_float_hr_cnt\tremain_drtn_hr_cnt\ttarget_drtn_hr_cnt\tstatus_code\ttask_type\tcstr_type\tact_start_date\tact_end_date\n" +
+    "%R\t1\tA1010\tMobilize site\t40\t80\t80\tTK_Complete\tTT_Task\t\t2026-01-05\t2026-01-08\n" +
+    "%R\t2\tA1040\tFoundation pour\t0\t120\t120\tTK_Active\tTT_Task\t\t2026-01-09\t\n" +
+    "%R\t3\tA1120\tSteel delivery\t-8\t40\t40\tTK_Active\tTT_Task\t\t2026-01-15\t2026-01-16\n" +
+    "%R\t4\tA1210\tRoofing\t400\t200\t200\tTK_NotStart\tTT_Task\t\t\t\n" +
+    "%R\t5\tA1300\tMEP rough-in\t16\t500\t500\tTK_NotStart\tTT_Task\tCS_MSO\t\t\n" +
+    "%R\t6\tA1400\tFinal inspection\t0\t16\t16\tTK_NotStart\tTT_Mile\t\t\t\n" +
+    "%T\tTASKPRED\n%F\ttask_pred_id\ttask_id\tpred_task_id\tpred_type\tlag_hr_cnt\n" +
+    "%R\t1\t2\t1\tPR_FS\t0\n" +
+    "%R\t2\t3\t2\tPR_FS\t0\n";
+
+  var SAMPLE_REPORT = {
+    score: 68,
+    activities: 1240,
+    issuesFound: 17,
+    critical: 4,
+    rows: [
+      { name: 'Missing logic', count: '32 acts', sev: 'crit' },
+      { name: 'Hard constraints', count: '11 acts', sev: 'crit' },
+      { name: 'High float (>44d)', count: '186 acts', sev: 'warn' },
+      { name: 'Negative float', count: '7 acts', sev: 'warn' },
+      { name: 'Invalid dates', count: '0', sev: 'good' }
+    ]
+  };
+
+  /* ---------- elements ---------- */
+  var uploadState = document.getElementById('uploadState');
+  var dropzone = document.getElementById('dropzone');
+  var dzTitle = document.getElementById('dzTitle');
+  var dzError = document.getElementById('dzError');
+  var fileInput = document.getElementById('fileInput');
+  var fileChip = document.getElementById('fileChip');
+  var fileChipName = document.getElementById('fileChipName');
+  var fileChipSub = document.getElementById('fileChipSub');
+  var fileChipRemove = document.getElementById('fileChipRemove');
+  var progressPanel = document.getElementById('progressPanel');
+  var progressPhase = document.getElementById('progressPhase');
+  var progressPct = document.getElementById('progressPct');
+  var progressFill = document.getElementById('progressFill');
+  var progressFilename = document.getElementById('progressFilename');
+  var checkBtn = document.getElementById('checkBtn');
+  var checkBtnLabel = document.getElementById('checkBtnLabel');
+  var sampleBtn = document.getElementById('sampleBtn');
+  var liveRegion = document.getElementById('liveRegion');
+
+  var reportLabel = document.getElementById('reportLabel');
+  var reportCard = document.getElementById('reportCard');
+  var ringFill = document.getElementById('ringFill');
+  var ringNum = document.getElementById('ringNum');
+  var reportVerdict = document.getElementById('reportVerdict');
+  var statActivities = document.getElementById('statActivities');
+  var statIssues = document.getElementById('statIssues');
+  var statCritical = document.getElementById('statCritical');
+  var issueRows = document.getElementById('issueRows');
+  var reportFooterNote = document.getElementById('reportFooterNote');
+  var reportFooterTag = document.getElementById('reportFooterTag');
+
+  var selectedFile = null;
+  var currentScore = 0;
+
+  function announce(msg) { liveRegion.textContent = msg; }
+
+  function setStage(stage) {
+    uploadState.setAttribute('data-stage', stage);
+    dropzone.style.display = stage === 'idle' ? 'flex' : 'none';
+    fileChip.style.display = stage === 'ready' ? 'flex' : 'none';
+    progressPanel.style.display = stage === 'running' ? 'block' : 'none';
+    if (stage === 'idle') {
+      checkBtn.disabled = true;
+      checkBtn.classList.remove('enabled');
+      checkBtnLabel.textContent = 'Add a file to check';
+    } else if (stage === 'ready') {
+      checkBtn.disabled = false;
+      checkBtn.classList.add('enabled');
+      checkBtnLabel.textContent = 'Check my schedule';
+    } else if (stage === 'done') {
+      checkBtn.disabled = false;
+      checkBtn.classList.add('enabled');
+      checkBtnLabel.textContent = 'Check another schedule';
+    }
   }
 
-  fileInput.addEventListener('change', function () { setFile(fileInput.files[0]); });
-  dropzone.addEventListener('dragover', function (e) { e.preventDefault(); dropzone.classList.add('drag'); });
-  dropzone.addEventListener('dragleave', function () { dropzone.classList.remove('drag'); });
+  function fmtSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+  }
+
+  function validExt(name) {
+    var lower = name.toLowerCase();
+    return ALLOWED_EXT.some(function (ext) { return lower.endsWith(ext); });
+  }
+
+  function showDzError(msg) {
+    dzError.textContent = msg;
+    dropzone.classList.add('has-error');
+  }
+  function clearDzError() {
+    dzError.textContent = '';
+    dropzone.classList.remove('has-error');
+  }
+
+  function pick(file) {
+    clearDzError();
+    if (!file) return;
+    if (!validExt(file.name)) {
+      showDzError('Unsupported file type — use .xer, .xml, .csv or .mpp.');
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      showDzError('File is over 25MB — trim it and try again.');
+      return;
+    }
+    selectedFile = file;
+    fileChipName.textContent = file.name;
+    fileChipSub.textContent = 'Ready to check · ' + fmtSize(file.size);
+    setStage('ready');
+    announce('File ready: ' + file.name);
+  }
+
+  fileInput.addEventListener('change', function () { pick(fileInput.files[0]); });
+  dropzone.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    dropzone.classList.add('drag');
+    dzTitle.textContent = 'Release to check it';
+  });
+  dropzone.addEventListener('dragleave', function () {
+    dropzone.classList.remove('drag');
+    dzTitle.textContent = 'Drop your schedule file here';
+  });
   dropzone.addEventListener('drop', function (e) {
     e.preventDefault();
     dropzone.classList.remove('drag');
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+    dzTitle.textContent = 'Drop your schedule file here';
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) pick(e.dataTransfer.files[0]);
   });
 
-  function severityColor(sev) { return sev === 'crit' ? 'var(--bad)' : 'var(--warn)'; }
-
-  function scoreColor(score) {
-    if (score >= 80) return 'var(--good)';
-    if (score >= 50) return 'var(--warn)';
-    return 'var(--bad)';
-  }
-
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (!selectedFile) return;
-    errorBox.style.display = 'none';
-    checkBtn.disabled = true;
-    checkBtn.textContent = 'Analyzing…';
-    var fd = new FormData();
-    fd.append('file', selectedFile);
-    fetch('/api/public/check-schedule', { method: 'POST', body: fd })
-      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
-      .then(function (result) {
-        checkBtn.disabled = false;
-        checkBtn.textContent = 'Check my schedule';
-        if (!result.ok) {
-          errorBox.textContent = result.data.error || 'Something went wrong — try again.';
-          errorBox.style.display = 'block';
-          return;
-        }
-        renderResults(result.data);
-      })
-      .catch(function () {
-        checkBtn.disabled = false;
-        checkBtn.textContent = 'Check my schedule';
-        errorBox.textContent = 'Network error — try again.';
-        errorBox.style.display = 'block';
-      });
-  });
-
-  function renderResults(data) {
-    form.style.display = 'none';
-    document.querySelector('.privacy-note').style.display = 'none';
-    results.style.display = 'block';
-    var color = scoreColor(data.score);
-    var ring = document.getElementById('scoreRing');
-    ring.style.background = 'conic-gradient(' + color + ' ' + (data.score * 3.6) + 'deg, rgba(148,163,184,0.12) 0deg)';
-    var inner = document.createElement('div');
-    document.getElementById('scoreNum').textContent = data.score;
-    document.getElementById('scoreNum').style.color = color;
-    document.getElementById('scoreHeadline').textContent = data.totalIssueCount + ' issue' + (data.totalIssueCount === 1 ? '' : 's') + ' found';
-    document.getElementById('scoreSub').textContent = data.totalActivities + ' activities checked · ' + data.critCount + ' critical · ' + data.riskCount + ' risk';
-
-    var list = document.getElementById('issueList');
-    list.innerHTML = '';
-    data.topIssues.forEach(function (issue) {
-      var card = document.createElement('div');
-      card.className = 'issue-card ' + (issue.sev === 'crit' ? 'crit' : 'risk');
-      var name = document.createElement('div');
-      name.className = 'issue-name';
-      name.textContent = issue.name;
-      var sub = document.createElement('div');
-      sub.className = 'issue-sub';
-      sub.textContent = issue.sub;
-      card.appendChild(name);
-      card.appendChild(sub);
-      list.appendChild(card);
-    });
-
-    var remaining = data.totalIssueCount - data.topIssues.length;
-    var lockedNote = document.getElementById('lockedNote');
-    lockedNote.textContent = remaining > 0
-      ? ('+ ' + remaining + ' more issue' + (remaining === 1 ? '' : 's') + ', with fix guidance for each, once you sign up.')
-      : 'Sign up free to save this analysis and track it over time.';
-  }
-
-  document.getElementById('checkAgain').addEventListener('click', function (e) {
-    e.preventDefault();
-    results.style.display = 'none';
-    form.style.display = 'block';
-    document.querySelector('.privacy-note').style.display = 'block';
+  fileChipRemove.addEventListener('click', function () {
     selectedFile = null;
     fileInput.value = '';
-    filenameChip.style.display = 'none';
-    checkBtn.classList.remove('ready');
-    errorBox.style.display = 'none';
+    setStage('idle');
   });
+
+  /* ---------- report rendering ---------- */
+  function ringOffsetFor(score) { return 264 - 264 * score / 100; }
+
+  function animateScore(target) {
+    var start = currentScore;
+    var delta = target - start;
+    var t0 = performance.now();
+    var dur = 1100;
+    function ease(t) { return 1 - Math.pow(1 - t, 3); }
+    function tick(now) {
+      var t = Math.min(1, (now - t0) / dur);
+      var eased = ease(t);
+      var shown = Math.round(start + delta * eased);
+      ringNum.textContent = shown;
+      ringFill.style.strokeDashoffset = ringOffsetFor(start + delta * eased);
+      if (t < 1) requestAnimationFrame(tick);
+      else currentScore = target;
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function renderSample() {
+    animateScore(SAMPLE_REPORT.score);
+    statActivities.textContent = SAMPLE_REPORT.activities.toLocaleString();
+    statIssues.textContent = SAMPLE_REPORT.issuesFound;
+    statCritical.textContent = SAMPLE_REPORT.critical;
+    reportVerdict.textContent = 'Scored 0–100 against DCMA-style thresholds.';
+    issueRows.innerHTML = '';
+    SAMPLE_REPORT.rows.forEach(function (row, i) {
+      var el = document.createElement('div');
+      el.className = 'issue-row anim';
+      el.innerHTML =
+        '<span class="issue-dot ' + row.sev + '"></span>' +
+        '<span class="issue-name">' + row.name + '</span>' +
+        '<span class="issue-count mono">' + row.count + '</span>';
+      issueRows.appendChild(el);
+    });
+  }
+
+  function sevLabel(sev) { return sev === 'crit' ? 'crit' : 'warn'; }
+
+  function renderReal(data) {
+    reportLabel.textContent = 'Your report — ready';
+    reportLabel.classList.add('is-real');
+    reportCard.classList.add('is-real');
+    animateScore(data.score);
+    statActivities.textContent = data.totalActivities.toLocaleString();
+    statIssues.textContent = data.totalIssueCount;
+    statCritical.textContent = data.critCount;
+    reportVerdict.textContent = data.totalIssueCount === 0
+      ? 'Clean bill of health — no DCMA-style issues found.'
+      : 'Fixable. ' + data.totalIssueCount + ' issue' + (data.totalIssueCount === 1 ? '' : 's') + ' drive most of the risk.';
+
+    issueRows.innerHTML = '';
+    if (!data.topIssues || !data.topIssues.length) {
+      var clean = document.createElement('div');
+      clean.className = 'issue-row anim';
+      clean.innerHTML = '<span class="issue-dot good"></span><span class="issue-name">No issues in the top checks — nice.</span>';
+      issueRows.appendChild(clean);
+    } else {
+      data.topIssues.forEach(function (issue) {
+        var el = document.createElement('div');
+        el.className = 'issue-row anim';
+        el.innerHTML =
+          '<span class="issue-dot ' + sevLabel(issue.sev) + '"></span>' +
+          '<span class="issue-name" title="' + escapeHtml(issue.name) + '">' + escapeHtml(issue.name) + '</span>' +
+          '<span class="issue-count mono">' + escapeHtml(issue.sub || '') + '</span>';
+        issueRows.appendChild(el);
+      });
+    }
+
+    var remaining = data.totalIssueCount - (data.topIssues ? data.topIssues.length : 0);
+    reportFooterNote.textContent = remaining > 0
+      ? ('+ ' + remaining + ' more issue' + (remaining === 1 ? '' : 's') + ', with fix guidance for each, once you sign up.')
+      : '7 schedule-health checks · same engine as the full product';
+    reportFooterTag.textContent = 'Sign up to see all issues →';
+    reportFooterTag.classList.add('is-link');
+    reportFooterTag.setAttribute('href', '/');
+    announce('Report ready, health score ' + data.score);
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* ---------- run (real upload or sample) via XHR for real progress ---------- */
+  function run(file, filenameForUi) {
+    setStage('running');
+    progressFilename.textContent = filenameForUi;
+    progressFill.style.width = '0%';
+    progressPct.textContent = '0%';
+    progressPhase.textContent = 'Parsing activities';
+    announce('Analyzing ' + filenameForUi);
+
+    var fd = new FormData();
+    fd.append('file', file, filenameForUi);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/public/check-schedule', true);
+
+    var settleTimer = null;
+
+    xhr.upload.onprogress = function (e) {
+      if (!e.lengthComputable) return;
+      var pct = Math.min(60, Math.round((e.loaded / e.total) * 60));
+      setProgress(pct);
+    };
+
+    xhr.upload.onload = function () {
+      // Upload done; interpolate through the analysis phases while we wait on the response
+      // (the real engine finishes in well under a second for typical files, so this window is short).
+      var pct = 60;
+      settleTimer = setInterval(function () {
+        pct = Math.min(92, pct + 4);
+        setProgress(pct);
+      }, 90);
+    };
+
+    xhr.onload = function () {
+      if (settleTimer) clearInterval(settleTimer);
+      setProgress(100);
+      var data;
+      try { data = JSON.parse(xhr.responseText); } catch (e) { data = null; }
+      setTimeout(function () {
+        if (xhr.status >= 200 && xhr.status < 300 && data) {
+          renderReal(data);
+          setStage('done');
+        } else {
+          var msg = (data && data.error) || 'Something went wrong — try again.';
+          showDzError(msg);
+          setStage('idle');
+          announce('Error: ' + msg);
+        }
+      }, 200);
+    };
+
+    xhr.onerror = function () {
+      if (settleTimer) clearInterval(settleTimer);
+      showDzError('Network error — try again.');
+      setStage('idle');
+      announce('Network error');
+    };
+
+    xhr.send(fd);
+  }
+
+  function setProgress(pct) {
+    progressFill.style.width = pct + '%';
+    progressPct.textContent = pct + '%';
+    if (pct < 25) progressPhase.textContent = 'Parsing activities';
+    else if (pct < 50) progressPhase.textContent = 'Running DCMA checks';
+    else if (pct < 80) progressPhase.textContent = 'Tracing critical path';
+    else progressPhase.textContent = 'Scoring & ranking issues';
+  }
+
+  checkBtn.addEventListener('click', function () {
+    if (checkBtn.disabled) return;
+    if (uploadState.getAttribute('data-stage') === 'done') {
+      selectedFile = null;
+      fileInput.value = '';
+      reportLabel.textContent = 'Example report — what you get back';
+      reportLabel.classList.remove('is-real');
+      reportCard.classList.remove('is-real');
+      renderSample();
+      setStage('idle');
+      return;
+    }
+    if (!selectedFile) return;
+    run(selectedFile, selectedFile.name);
+  });
+
+  sampleBtn.addEventListener('click', function () {
+    var blob = new Blob([SAMPLE_XER], { type: 'text/plain' });
+    run(blob, 'sample-schedule.xer');
+  });
+
+  /* ---------- init ---------- */
+  renderSample();
+  setTimeout(function () { animateScore(SAMPLE_REPORT.score); }, 620);
 })();
 </script>
 </body>
