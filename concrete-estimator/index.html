@@ -220,7 +220,7 @@
       <p class="hint" style="margin:8px 0">Set these once — they’re saved on this device. All figures are <b>your cost</b>; markup is added at the end.</p>
       <div class="grid2">
         <div>
-          <label>Concrete <span class="hint">$/yd³ delivered</span></label>
+          <label>Concrete <span class="hint">$/yd³ area avg</span></label>
           <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="pConcrete" value="165"></div>
         </div>
         <div>
@@ -228,8 +228,12 @@
           <input type="number" inputmode="decimal" id="pWaste" value="10">
         </div>
         <div>
-          <label>Gravel <span class="hint">$/ton delivered</span></label>
+          <label>Base rock <span class="hint">$/ton area avg</span></label>
           <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="pGravel" value="38"></div>
+        </div>
+        <div>
+          <label>Concrete &amp; base variance <span class="hint">% added</span></label>
+          <input type="number" inputmode="decimal" id="pMixAdj" value="5">
         </div>
         <div>
           <label>Site prep <span class="hint">$/ft²</span></label>
@@ -316,7 +320,7 @@ const money = n => "$" + (Math.round(n)).toLocaleString("en-US");
 const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
 
 /* ---------- persistence of price settings ---------- */
-const PRICE_IDS = ["pConcrete","pWaste","pGravel","pPrep","pLabor","pLumber","pRebar",
+const PRICE_IDS = ["pConcrete","pWaste","pGravel","pMixAdj","pPrep","pLabor","pLumber","pRebar",
   "pRebarSp","pDemo","pDirt","pDig","pPump","pContingency","pMarkup"];
 const DEFAULTS = {};
 PRICE_IDS.forEach(id => DEFAULTS[id] = $(id).value);
@@ -411,14 +415,17 @@ function recalc(){
   const thk = num($("thickness").value), gthk = num($("gravelThk").value);
   const crew = num($("crew").value), days = num($("days").value);
 
+  // Area/mix variance uplift applied to area-average concrete & base rock prices
+  const mix = 1 + P.pMixAdj/100;
+
   // Concrete volume (yd³) with waste
   const concreteYd = area * (thk/12) / 27 * (1 + P.pWaste/100);
-  const cConcrete = concreteYd * P.pConcrete;
+  const cConcrete = concreteYd * P.pConcrete * mix;
 
-  // Gravel base -> tons
+  // Base rock -> tons
   const gravelYd = area * (gthk/12) / 27;
   const gravelTons = gravelYd * TON_PER_YD3_GRAVEL;
-  const cGravel = gravelTons * P.pGravel;
+  const cGravel = gravelTons * P.pGravel * mix;
 
   // Site prep
   const cPrep = $("optPrep").checked ? area * P.pPrep : 0;
@@ -446,8 +453,8 @@ function recalc(){
   const cEquip = cPump + cEquipExtra;
 
   const lines = [
-    ["Concrete", concreteYd.toFixed(1)+" yd³", cConcrete, true],
-    ["Gravel base", gravelTons.toFixed(1)+" tons", cGravel, $("optPrep").checked||true],
+    ["Concrete", concreteYd.toFixed(1)+" yd³ · area avg +"+P.pMixAdj+"%", cConcrete, true],
+    ["Base rock", gravelTons.toFixed(1)+" tons · area avg +"+P.pMixAdj+"%", cGravel, true],
     ["Rebar", $("optRebar").checked ? Math.round(rebarLf)+" lin ft" : "—", cRebar, $("optRebar").checked],
     ["Forming lumber", Math.round(perim)+" lin ft", cLumber, cLumber>0],
     ["Site prep / grading", $("optPrep").checked ? Math.round(area)+" ft²" : "—", cPrep, $("optPrep").checked],
