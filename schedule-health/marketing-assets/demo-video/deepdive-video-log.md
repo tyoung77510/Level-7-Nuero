@@ -74,3 +74,19 @@ First comment (post immediately after publishing, if posted): `Try it free → h
 **Two real UI hurdles hit and fixed during this build, noted in case they recur:** (1) a first-time account shows a real `welcomeHero` full-screen intro and a real guided-tour overlay (`#tourOverlay`) that block interaction until dismissed (`#welcomeHeroCta`, `#tourSkipBtn`) — not documented in any prior entry since earlier recordings apparently didn't hit a genuinely fresh account state; (2) "Issue Punch List" is its own tab (`v-issues`), not part of the health/dashboard view, and at this vertical 720px viewport the sidebar nav is hidden behind a mobile drawer (`#mobileSidebarToggle`) — needed an explicit click to open the drawer before a nav button was clickable. Both are real product behavior, not bugs, and now documented for the next Deep Dive build.
 
 > **Source files:** built in-session via ElevenLabs `text_to_speech` + Playwright + ffmpeg; none committed. Delivered as `ordo7-deepdive-05-pain-point.mp4` via `SendUserFile`.
+
+## Draft caption — Deep Dive #5 (pain-point-first), written 2026-08-06
+
+> You don't find out your schedule slipped. Your client does — in the status meeting.
+>
+> I've been in that room. Somewhere in a 400-line P6 export is the logic error that caused it, and nobody had time to go find it by hand before the call.
+>
+> Ordo7 runs DCMA-style checks on a P6, MS Project, or CSV export and hands you the exact issue — and how to fix it — in seconds, not after the fact.
+>
+> What's the closest you've come to finding out about a schedule slip in the room, instead of before it?
+>
+> #Ordo7 #ProjectControls #Scheduling #PrimaveraP6
+
+First comment (post immediately after publishing, if posted): `Try Ordo7 free → https://ordo7.pro`
+
+**Not resolved here:** same open question as entry #4 — Taj's call on whether/where/when this posts, and whether it's better suited to LinkedIn as-is or needs the raw-series silent treatment too.
