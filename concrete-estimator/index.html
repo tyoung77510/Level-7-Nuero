@@ -1,0 +1,523 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f2a37">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Concrete Estimator — BoxxedOut</title>
+<style>
+  :root{
+    --navy:#1f2a37; --orange:#f2711c; --sky:#2f6f9c; --gold:#f5bc3d;
+    --ink:#1c2433; --muted:#5b667a; --line:#e2e7f0; --bg:#f4f6fb; --card:#ffffff;
+    --good:#1e9e6a; --shadow:0 1px 3px rgba(28,36,51,.08),0 6px 24px rgba(28,36,51,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); background:var(--bg); line-height:1.45;
+    -webkit-text-size-adjust:100%;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .wrap{max-width:640px; margin:0 auto; padding:0 14px 96px}
+  header{
+    background:linear-gradient(135deg,var(--navy),var(--sky));
+    color:#fff; padding:calc(env(safe-area-inset-top) + 16px) 16px 16px;
+    position:sticky; top:0; z-index:20; box-shadow:0 2px 12px rgba(28,36,51,.15);
+  }
+  .hdr-inner{max-width:640px;margin:0 auto;display:flex;align-items:center;gap:12px}
+  .logo{
+    width:40px;height:40px;border-radius:10px;background:#fff;color:var(--navy);
+    display:grid;place-items:center;font-weight:800;font-size:18px;flex:0 0 auto;
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.4)
+  }
+  header h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.2px}
+  header p{font-size:12px;margin:2px 0 0;opacity:.9}
+  h2{font-size:14px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:22px 4px 8px}
+  .card{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:16px;margin-bottom:12px}
+  .tabs{display:flex;gap:6px;background:#eef1f8;border-radius:12px;padding:4px;margin-bottom:14px}
+  .tab{flex:1;text-align:center;padding:9px 6px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border:0;background:transparent}
+  .tab.active{background:#fff;color:var(--navy);box-shadow:var(--shadow)}
+  label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin:10px 0 5px}
+  .hint{font-weight:400;color:var(--muted);font-size:12px}
+  input[type=number],input[type=text]{
+    width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:16px;background:#fff;color:var(--ink)
+  }
+  input:focus{outline:2px solid var(--sky);border-color:var(--sky)}
+  .row{display:flex;gap:10px}
+  .row>div{flex:1}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    padding:14px;border:0;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;
+  }
+  .btn-primary{background:var(--orange);color:#fff}
+  .btn-primary:active{filter:brightness(.94)}
+  .btn-nav{background:var(--navy);color:#fff}
+  .btn-ghost{background:#eef1f8;color:var(--navy)}
+  .btn-sm{width:auto;padding:9px 14px;font-size:13px;border-radius:10px}
+  .btnrow{display:flex;gap:8px;margin-top:8px}
+  .switch{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line)}
+  .switch:first-of-type{border-top:0}
+  .switch .lbl{font-weight:600;font-size:14px}
+  .switch .lbl small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+  .toggle{position:relative;width:48px;height:28px;flex:0 0 auto}
+  .toggle input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:#cfd6e4;border-radius:28px;transition:.2s;cursor:pointer}
+  .slider:before{content:"";position:absolute;height:22px;width:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .toggle input:checked+.slider{background:var(--good)}
+  .toggle input:checked+.slider:before{transform:translateX(20px)}
+  .gps-readout{background:#eef6fb;border:1px solid #d3e7f4;border-radius:12px;padding:14px;text-align:center;margin-bottom:12px}
+  .gps-readout .big{font-size:34px;font-weight:800;color:var(--navy);line-height:1}
+  .gps-readout .sub{font-size:12px;color:var(--muted);margin-top:4px}
+  .acc{font-size:12px;margin-top:8px;font-weight:600}
+  .acc.good{color:var(--good)} .acc.warn{color:var(--orange)}
+  .pts{list-style:none;margin:10px 0 0;padding:0;max-height:150px;overflow:auto}
+  .pts li{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:6px 8px;border-radius:8px}
+  .pts li:nth-child(odd){background:#f6f8fc}
+  .result-hero{background:linear-gradient(135deg,var(--navy),#33465c);color:#fff;border-radius:16px;padding:20px;text-align:center;box-shadow:var(--shadow)}
+  .result-hero .label{font-size:12px;text-transform:uppercase;letter-spacing:1px;opacity:.85}
+  .result-hero .quote{font-size:44px;font-weight:800;letter-spacing:-1px;margin:2px 0}
+  .result-hero .persf{font-size:13px;opacity:.9}
+  .chips{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+  .chip{background:rgba(255,255,255,.15);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  td{padding:9px 2px;border-bottom:1px solid var(--line)}
+  td.amt{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+  tr.sub td{font-weight:700}
+  tr.total td{font-weight:800;font-size:16px;border-bottom:0;padding-top:12px}
+  tr.total td:first-child{color:var(--navy)}
+  .muted-row td{color:var(--muted);font-size:13px}
+  details.settings summary{font-weight:700;cursor:pointer;color:var(--navy);font-size:14px;padding:4px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .prefix{position:relative}
+  .prefix span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px}
+  .prefix input{padding-left:26px}
+  .suffix-note{font-size:11px;color:var(--muted);margin-top:2px}
+  footer{max-width:640px;margin:20px auto 0;text-align:center;color:var(--muted);font-size:11px;padding:0 16px}
+  .warn-note{background:#fff6ee;border:1px solid #f5d9c2;color:#9a5b2a;border-radius:10px;padding:10px 12px;font-size:12px;margin-top:10px}
+  @media print{
+    header,.tabs,.no-print,.btn,details.settings{display:none!important}
+    body{background:#fff} .card{box-shadow:none;border:1px solid var(--line)}
+  }
+</style>
+
+<header>
+  <div class="hdr-inner">
+    <div class="logo">BX</div>
+    <div>
+      <h1>Concrete Estimator</h1>
+      <p>BoxxedOut · quote a slab in seconds</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ============ MEASURE ============ -->
+  <h2>1 · Measure the area</h2>
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" data-tab="gps">📍 GPS Walk</button>
+      <button class="tab" data-tab="rect">▭ Length × Width</button>
+      <button class="tab" data-tab="man">✎ Sq Ft</button>
+    </div>
+
+    <!-- GPS -->
+    <div class="pane" id="pane-gps">
+      <div class="gps-readout">
+        <div class="big"><span id="gpsArea">0</span> ft²</div>
+        <div class="sub"><span id="gpsPerim">0</span> ft perimeter · <span id="gpsCount">0</span> points</div>
+        <div class="acc" id="gpsAcc"></div>
+      </div>
+      <p class="hint">Walk the outline of the slab. Stand on each corner and tap <b>Add corner</b>. Add at least 3 corners, then finish. Works best outdoors with a clear sky view.</p>
+      <button class="btn btn-primary no-print" id="btnAddPoint">📍 Add corner (GPS)</button>
+      <div class="btnrow no-print">
+        <button class="btn btn-ghost btn-sm" id="btnUndo">↩︎ Undo</button>
+        <button class="btn btn-ghost btn-sm" id="btnClear">🗑 Clear</button>
+      </div>
+      <ul class="pts" id="ptsList"></ul>
+      <div class="warn-note" id="gpsWarn" style="display:none"></div>
+    </div>
+
+    <!-- RECTANGLE -->
+    <div class="pane" id="pane-rect" style="display:none">
+      <div class="row">
+        <div>
+          <label>Length <span class="hint">(ft)</span></label>
+          <input type="number" inputmode="decimal" id="rectL" placeholder="e.g. 40">
+        </div>
+        <div>
+          <label>Width <span class="hint">(ft)</span></label>
+          <input type="number" inputmode="decimal" id="rectW" placeholder="e.g. 24">
+        </div>
+      </div>
+      <p class="hint" style="margin-top:10px">Area and perimeter are calculated automatically for a rectangle.</p>
+    </div>
+
+    <!-- MANUAL -->
+    <div class="pane" id="pane-man" style="display:none">
+      <label>Total area <span class="hint">(ft²)</span></label>
+      <input type="number" inputmode="decimal" id="manArea" placeholder="e.g. 960">
+      <label>Perimeter <span class="hint">(ft — used for forming lumber; estimated if left blank)</span></label>
+      <input type="number" inputmode="decimal" id="manPerim" placeholder="auto-estimated">
+    </div>
+  </div>
+
+  <!-- ============ JOB OPTIONS ============ -->
+  <h2>2 · Job details</h2>
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Slab thickness <span class="hint">(in)</span></label>
+        <input type="number" inputmode="decimal" id="thickness" value="4">
+      </div>
+      <div>
+        <label>Gravel base <span class="hint">(in)</span></label>
+        <input type="number" inputmode="decimal" id="gravelThk" value="4">
+      </div>
+    </div>
+    <div class="row" style="margin-top:4px">
+      <div>
+        <label>Crew size <span class="hint">(guys)</span></label>
+        <input type="number" inputmode="numeric" id="crew" value="3">
+      </div>
+      <div>
+        <label>Days on job</label>
+        <input type="number" inputmode="decimal" id="days" value="2">
+      </div>
+    </div>
+
+    <div style="margin-top:14px">
+      <div class="switch">
+        <div class="lbl">Rebar reinforcement<small>#4 bar grid at your spacing</small></div>
+        <label class="toggle"><input type="checkbox" id="optRebar" checked><span class="slider"></span></label>
+      </div>
+      <div class="switch">
+        <div class="lbl">Concrete pump<small>Flat rate per job</small></div>
+        <label class="toggle"><input type="checkbox" id="optPump"><span class="slider"></span></label>
+      </div>
+      <div class="switch">
+        <div class="lbl">Demo existing slab<small>Break out & remove old concrete</small></div>
+        <label class="toggle"><input type="checkbox" id="optDemo"><span class="slider"></span></label>
+      </div>
+      <div class="switch">
+        <div class="lbl">Dirt removal / haul-off<small>Excavate & haul spoil away</small></div>
+        <label class="toggle"><input type="checkbox" id="optDirt" checked><span class="slider"></span></label>
+      </div>
+      <div class="switch">
+        <div class="lbl">Site prep / grading<small>Per sq ft</small></div>
+        <label class="toggle"><input type="checkbox" id="optPrep" checked><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <label style="margin-top:14px">Extra equipment rental <span class="hint">(compactor, skid steer, etc. — flat $)</span></label>
+    <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="equipExtra" value="0"></div>
+  </div>
+
+  <!-- ============ PRICING SETTINGS ============ -->
+  <div class="card">
+    <details class="settings">
+      <summary>⚙︎ Your unit prices & rates</summary>
+      <p class="hint" style="margin:8px 0">Set these once — they’re saved on this device. All figures are <b>your cost</b>; markup is added at the end.</p>
+      <div class="grid2">
+        <div>
+          <label>Concrete <span class="hint">$/yd³ delivered</span></label>
+          <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="pConcrete" value="165"></div>
+        </div>
+        <div>
+          <label>Concrete waste <span class="hint">%</span></label>
+          <input type="number" inputmode="decimal" id="pWaste" value="10">
+        </div>
+        <div>
+          <label>Gravel <span class="hint">$/ton delivered</span></label>
+          <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="pGravel" value="38"></div>
+        </div>
+        <div>
+          <label>Site prep <span class="hint">$/ft²</span></label>
+          <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="pPrep" value="0.60"></div>
+        </div>
+        <div>
+          <label>Labor <span class="hint">$/day per guy</span></label>
+          <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="pLabor" value="500"></div>
+        </div>
+        <div>
+          <label>Forming lumber <span class="hint">$/lin ft</span></label>
+          <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="pLumber" value="2.75"></div>
+        </div>
+        <div>
+          <label>Rebar <span class="hint">$/lin ft</span></label>
+          <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="pRebar" value="0.78"></div>
+        </div>
+        <div>
+          <label>Rebar spacing <span class="hint">in (grid)</span></label>
+          <input type="number" inputmode="decimal" id="pRebarSp" value="18">
+        </div>
+        <div>
+          <label>Demo <span class="hint">$/ft²</span></label>
+          <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="pDemo" value="2.50"></div>
+        </div>
+        <div>
+          <label>Dirt haul-off <span class="hint">$/yd³</span></label>
+          <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="pDirt" value="22"></div>
+        </div>
+        <div>
+          <label>Excavation depth <span class="hint">in</span></label>
+          <input type="number" inputmode="decimal" id="pDig" value="8">
+        </div>
+        <div>
+          <label>Pump <span class="hint">$/job</span></label>
+          <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="pPump" value="650"></div>
+        </div>
+        <div>
+          <label>Contingency <span class="hint">%</span></label>
+          <input type="number" inputmode="decimal" id="pContingency" value="15">
+        </div>
+        <div>
+          <label>Markup / margin <span class="hint">%</span></label>
+          <input type="number" inputmode="decimal" id="pMarkup" value="30">
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm no-print" id="btnReset" style="margin-top:12px">Reset prices to defaults</button>
+    </details>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <h2>3 · The quote</h2>
+  <div class="result-hero">
+    <div class="label">Customer Quote</div>
+    <div class="quote" id="quoteBig">$0</div>
+    <div class="persf" id="quotePerSf">—</div>
+    <div class="chips">
+      <div class="chip"><span id="chipArea">0</span> ft²</div>
+      <div class="chip"><span id="chipYards">0</span> yd³ concrete</div>
+      <div class="chip" id="chipMargin">$0 margin</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <table id="breakdown"></table>
+  </div>
+
+  <div class="btnrow no-print">
+    <button class="btn btn-nav" id="btnPrint">🖨 Print / Save PDF</button>
+    <button class="btn btn-ghost" id="btnCopy">📋 Copy quote</button>
+  </div>
+
+  <footer>
+    Estimates use your saved unit prices and standard slab formulas. Verify concrete volume with your ready-mix supplier before ordering.<br>
+    BoxxedOut · Fast, accurate concrete quotes
+  </footer>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const FT2_PER_M2 = 10.7639104, FT_PER_M = 3.2808399, TON_PER_YD3_GRAVEL = 1.35;
+const money = n => "$" + (Math.round(n)).toLocaleString("en-US");
+const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+
+/* ---------- persistence of price settings ---------- */
+const PRICE_IDS = ["pConcrete","pWaste","pGravel","pPrep","pLabor","pLumber","pRebar",
+  "pRebarSp","pDemo","pDirt","pDig","pPump","pContingency","pMarkup"];
+const DEFAULTS = {};
+PRICE_IDS.forEach(id => DEFAULTS[id] = $(id).value);
+function loadPrices(){
+  try{
+    const s = JSON.parse(localStorage.getItem("bx_prices")||"{}");
+    PRICE_IDS.forEach(id => { if(s[id]!=null) $(id).value = s[id]; });
+  }catch(e){}
+}
+function savePrices(){
+  const s = {}; PRICE_IDS.forEach(id => s[id] = $(id).value);
+  try{ localStorage.setItem("bx_prices", JSON.stringify(s)); }catch(e){}
+}
+loadPrices();
+
+/* ---------- tabs ---------- */
+let mode = "gps";
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+  t.classList.add("active");
+  mode = t.dataset.tab;
+  ["gps","rect","man"].forEach(m => $("pane-"+m).style.display = (m===mode)?"":"none");
+  recalc();
+});
+
+/* ---------- GPS measurement ---------- */
+let points = [];
+function projXY(lat, lng, lat0){
+  const R = 6378137;
+  return { x: R*(lng*Math.PI/180)*Math.cos(lat0*Math.PI/180), y: R*(lat*Math.PI/180) };
+}
+function gpsAreaPerim(){
+  if(points.length < 3) return {area:0, perim:0};
+  const lat0 = points.reduce((a,p)=>a+p.lat,0)/points.length;
+  const pts = points.map(p => projXY(p.lat, p.lng, lat0));
+  let area = 0, perim = 0;
+  for(let i=0;i<pts.length;i++){
+    const j = (i+1)%pts.length;
+    area += pts[i].x*pts[j].y - pts[j].x*pts[i].y;
+    perim += Math.hypot(pts[j].x-pts[i].x, pts[j].y-pts[i].y);
+  }
+  return { area: Math.abs(area/2)*FT2_PER_M2, perim: perim*FT_PER_M };
+}
+function renderPts(){
+  $("ptsList").innerHTML = points.map((p,i)=>
+    `<li><span>Corner ${i+1}</span><span>±${p.acc?p.acc.toFixed(0):"?"} m</span></li>`).join("");
+  $("gpsCount").textContent = points.length;
+}
+$("btnAddPoint").onclick = () => {
+  if(!navigator.geolocation){ showGpsWarn("This device/browser has no GPS support. Use the Length × Width tab instead."); return; }
+  const btn = $("btnAddPoint"); const label = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = "📡 Locating…";
+  navigator.geolocation.getCurrentPosition(pos => {
+    points.push({ lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy });
+    const acc = pos.coords.accuracy;
+    const el = $("gpsAcc");
+    el.textContent = "GPS accuracy: ±" + acc.toFixed(0) + " m";
+    el.className = "acc " + (acc<=8 ? "good" : "warn");
+    if(acc > 15) showGpsWarn("GPS accuracy is low (±"+acc.toFixed(0)+" m). Move to open sky for a tighter measurement.");
+    else $("gpsWarn").style.display = "none";
+    renderPts(); recalc();
+    btn.disabled = false; btn.innerHTML = label;
+  }, err => {
+    showGpsWarn("Couldn’t get location: " + err.message + ". GPS needs HTTPS and location permission.");
+    btn.disabled = false; btn.innerHTML = label;
+  }, { enableHighAccuracy:true, timeout:15000, maximumAge:0 });
+};
+$("btnUndo").onclick = () => { points.pop(); renderPts(); recalc(); };
+$("btnClear").onclick = () => { points = []; renderPts(); $("gpsAcc").textContent=""; $("gpsWarn").style.display="none"; recalc(); };
+function showGpsWarn(msg){ const w=$("gpsWarn"); w.textContent=msg; w.style.display="block"; }
+
+/* ---------- get area + perimeter from active mode ---------- */
+function getMeasure(){
+  if(mode==="gps"){
+    const g = gpsAreaPerim();
+    return { area:g.area, perim:g.perim };
+  }
+  if(mode==="rect"){
+    const L=num($("rectL").value), W=num($("rectW").value);
+    return { area:L*W, perim:2*(L+W) };
+  }
+  const a=num($("manArea").value);
+  let p=num($("manPerim").value);
+  if(!p && a>0) p = 4*Math.sqrt(a); // assume square if not given
+  return { area:a, perim:p };
+}
+
+/* ---------- the estimate engine ---------- */
+function recalc(){
+  const { area, perim } = getMeasure();
+  const P = {}; PRICE_IDS.forEach(id => P[id] = num($(id).value));
+  const thk = num($("thickness").value), gthk = num($("gravelThk").value);
+  const crew = num($("crew").value), days = num($("days").value);
+
+  // Concrete volume (yd³) with waste
+  const concreteYd = area * (thk/12) / 27 * (1 + P.pWaste/100);
+  const cConcrete = concreteYd * P.pConcrete;
+
+  // Gravel base -> tons
+  const gravelYd = area * (gthk/12) / 27;
+  const gravelTons = gravelYd * TON_PER_YD3_GRAVEL;
+  const cGravel = gravelTons * P.pGravel;
+
+  // Site prep
+  const cPrep = $("optPrep").checked ? area * P.pPrep : 0;
+
+  // Demo
+  const cDemo = $("optDemo").checked ? area * P.pDemo : 0;
+
+  // Dirt removal (excavation, with 25% swell for hauled loose material)
+  const digYd = area * (P.pDig/12) / 27 * 1.25;
+  const cDirt = $("optDirt").checked ? digYd * P.pDirt : 0;
+
+  // Rebar grid: total lin ft ≈ 24*area/spacing, +10% laps
+  const rebarLf = P.pRebarSp>0 ? (24*area/P.pRebarSp)*1.10 : 0;
+  const cRebar = $("optRebar").checked ? rebarLf * P.pRebar : 0;
+
+  // Forming lumber (perimeter based)
+  const cLumber = perim * P.pLumber;
+
+  // Labor
+  const cLabor = crew * days * P.pLabor;
+
+  // Equipment
+  const cPump = $("optPump").checked ? P.pPump : 0;
+  const cEquipExtra = num($("equipExtra").value);
+  const cEquip = cPump + cEquipExtra;
+
+  const lines = [
+    ["Concrete", concreteYd.toFixed(1)+" yd³", cConcrete, true],
+    ["Gravel base", gravelTons.toFixed(1)+" tons", cGravel, $("optPrep").checked||true],
+    ["Rebar", $("optRebar").checked ? Math.round(rebarLf)+" lin ft" : "—", cRebar, $("optRebar").checked],
+    ["Forming lumber", Math.round(perim)+" lin ft", cLumber, cLumber>0],
+    ["Site prep / grading", $("optPrep").checked ? Math.round(area)+" ft²" : "—", cPrep, $("optPrep").checked],
+    ["Demo existing slab", $("optDemo").checked ? Math.round(area)+" ft²" : "—", cDemo, $("optDemo").checked],
+    ["Dirt removal / haul-off", $("optDirt").checked ? digYd.toFixed(1)+" yd³" : "—", cDirt, $("optDirt").checked],
+    ["Labor", crew+" guys × "+days+" days", cLabor, cLabor>0],
+    ["Concrete pump", $("optPump").checked ? "1 job" : "—", cPump, $("optPump").checked],
+    ["Extra equipment", cEquipExtra>0 ? "rental" : "—", cEquipExtra, cEquipExtra>0],
+  ];
+
+  const subtotal = lines.reduce((a,l)=>a+l[2],0);
+  const contingency = subtotal * P.pContingency/100;
+  const yourCost = subtotal + contingency;
+  const quote = yourCost * (1 + P.pMarkup/100);
+  const margin = quote - yourCost;
+  const perSf = area>0 ? quote/area : 0;
+
+  // render breakdown
+  let html = "";
+  lines.forEach(l => {
+    if(l[2] === 0 && !l[3]) return;
+    html += `<tr class="muted-row"><td>${l[0]}<br><span class="hint">${l[1]}</span></td><td class="amt">${money(l[2])}</td></tr>`;
+  });
+  html += `<tr class="sub"><td>Subtotal</td><td class="amt">${money(subtotal)}</td></tr>`;
+  html += `<tr class="muted-row"><td>Contingency (${P.pContingency}%)</td><td class="amt">${money(contingency)}</td></tr>`;
+  html += `<tr class="sub"><td>Your cost</td><td class="amt">${money(yourCost)}</td></tr>`;
+  html += `<tr class="muted-row"><td>Markup (${P.pMarkup}%)</td><td class="amt">${money(margin)}</td></tr>`;
+  html += `<tr class="total"><td>Customer quote</td><td class="amt">${money(quote)}</td></tr>`;
+  $("breakdown").innerHTML = html;
+
+  // hero + chips + gps readout
+  $("quoteBig").textContent = money(quote);
+  $("quotePerSf").textContent = area>0 ? money(perSf) + " / ft²" : "enter an area to price";
+  $("chipArea").textContent = Math.round(area).toLocaleString();
+  $("chipYards").textContent = concreteYd.toFixed(1);
+  $("chipMargin").textContent = money(margin) + " margin";
+  $("gpsArea").textContent = Math.round(area).toLocaleString();
+  $("gpsPerim").textContent = Math.round(perim).toLocaleString();
+
+  window._lastQuote = { area, concreteYd, subtotal, yourCost, quote, margin, lines, P };
+}
+
+/* recalc on any input change + persist prices */
+document.querySelectorAll("input").forEach(el => el.addEventListener("input", () => { savePrices(); recalc(); }));
+document.querySelectorAll("input[type=checkbox]").forEach(el => el.addEventListener("change", recalc));
+
+$("btnReset").onclick = () => {
+  PRICE_IDS.forEach(id => $(id).value = DEFAULTS[id]);
+  savePrices(); recalc();
+};
+
+/* print + copy */
+$("btnPrint").onclick = () => window.print();
+$("btnCopy").onclick = async () => {
+  const q = window._lastQuote; if(!q) return;
+  let txt = "BOXXEDOUT — CONCRETE QUOTE\n";
+  txt += "Area: " + Math.round(q.area).toLocaleString() + " ft²\n";
+  txt += "Concrete: " + q.concreteYd.toFixed(1) + " yd³\n\n";
+  q.lines.forEach(l => { if(l[2]>0||l[3]) txt += l[0] + " (" + l[1] + "): " + money(l[2]) + "\n"; });
+  txt += "\nContingency ("+q.P.pContingency+"%): "+money(q.subtotal*q.P.pContingency/100)+"\n";
+  txt += "Your cost: " + money(q.yourCost) + "\n";
+  txt += "CUSTOMER QUOTE: " + money(q.quote) + "\n";
+  txt += "Margin: " + money(q.margin) + "\n";
+  try{ await navigator.clipboard.writeText(txt); $("btnCopy").textContent = "✅ Copied"; setTimeout(()=>$("btnCopy").textContent="📋 Copy quote",1500);}catch(e){ alert(txt); }
+};
+
+/* service worker for offline use on the job site */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+
+renderPts(); recalc();
+</script>
