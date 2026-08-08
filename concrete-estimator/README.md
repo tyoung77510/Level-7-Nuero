@@ -8,7 +8,8 @@ A self-contained, installable mobile web app (PWA). Open it on your phone, walk 
 
 1. **Measure the area** three ways:
    - **📍 GPS Walk** — stand on each corner, tap *Add corner*. The app computes area (shoelace formula) and perimeter from the GPS points. Shows live accuracy (±m) so you know the reading is good.
-   - **▭ Length × Width** — type dimensions for a simple rectangle.
+   - **▭ L×W** — type dimensions for a simple rectangle.
+   - **⊞ Sections** — add a length × width box for each rectangle of the pour (L-shapes, separate pads); areas are summed automatically. Tick **Subtract** on a box to remove a cutout you're not pouring.
    - **✎ Sq Ft** — enter a known area (and optional perimeter) directly.
 2. **Set job details** — slab thickness, gravel base depth, crew size, days, and toggles for rebar, pump, demo, dirt haul-off, site prep, plus any extra equipment rental.
 3. **Get the quote** — a full itemized breakdown (your cost) plus the marked-up **customer quote** and price per ft². Print/Save-PDF or copy to text to send in seconds.

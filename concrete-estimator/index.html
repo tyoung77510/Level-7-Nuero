@@ -73,6 +73,12 @@
   .pts{list-style:none;margin:10px 0 0;padding:0;max-height:150px;overflow:auto}
   .pts li{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:6px 8px;border-radius:8px}
   .pts li:nth-child(odd){background:#f6f8fc}
+  .secrow{display:flex;align-items:center;gap:7px;margin-top:8px}
+  .secrow .n{width:20px;font-size:12px;color:var(--muted);font-weight:700;flex:0 0 auto;text-align:center}
+  .secrow input{flex:1;min-width:0;padding:11px 8px}
+  .secrow .x{color:var(--muted);font-size:13px;flex:0 0 auto}
+  .secrow .sub-t{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);flex:0 0 auto}
+  .secrow .rm{flex:0 0 auto;width:34px;height:40px;border:0;background:#f1f3f8;color:#c0492e;border-radius:9px;font-size:18px;line-height:1;cursor:pointer}
   .result-hero{background:linear-gradient(135deg,var(--navy),#33465c);color:#fff;border-radius:16px;padding:20px;text-align:center;box-shadow:var(--shadow)}
   .result-hero .label{font-size:12px;text-transform:uppercase;letter-spacing:1px;opacity:.85}
   .result-hero .quote{font-size:44px;font-weight:800;letter-spacing:-1px;margin:2px 0}
@@ -116,8 +122,9 @@
   <h2>1 · Measure the area</h2>
   <div class="card">
     <div class="tabs">
-      <button class="tab active" data-tab="gps">📍 GPS Walk</button>
-      <button class="tab" data-tab="rect">▭ Length × Width</button>
+      <button class="tab active" data-tab="gps">📍 GPS</button>
+      <button class="tab" data-tab="rect">▭ L×W</button>
+      <button class="tab" data-tab="sec">⊞ Sections</button>
       <button class="tab" data-tab="man">✎ Sq Ft</button>
     </div>
 
@@ -151,6 +158,19 @@
         </div>
       </div>
       <p class="hint" style="margin-top:10px">Area and perimeter are calculated automatically for a rectangle.</p>
+    </div>
+
+    <!-- SECTIONS -->
+    <div class="pane" id="pane-sec" style="display:none">
+      <div class="gps-readout">
+        <div class="big"><span id="secArea">0</span> ft²</div>
+        <div class="sub"><span id="secCount">0</span> sections</div>
+      </div>
+      <p class="hint">Add a box for each rectangle of the pour — main slab, the leg of an L, separate pads. Areas add up automatically. For a cutout (a hole you’re <b>not</b> pouring), enter it and tick <b>Subtract</b>.</p>
+      <div id="secRows"></div>
+      <button class="btn btn-ghost btn-sm no-print" id="btnAddSec" style="margin-top:10px">＋ Add section</button>
+      <label style="margin-top:12px">Formed perimeter <span class="hint">(ft — for lumber; estimated if blank)</span></label>
+      <input type="number" inputmode="decimal" id="secPerim" placeholder="auto-estimated">
     </div>
 
     <!-- MANUAL -->
@@ -342,7 +362,7 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
   t.classList.add("active");
   mode = t.dataset.tab;
-  ["gps","rect","man"].forEach(m => $("pane-"+m).style.display = (m===mode)?"":"none");
+  ["gps","rect","sec","man"].forEach(m => $("pane-"+m).style.display = (m===mode)?"":"none");
   recalc();
 });
 
@@ -392,6 +412,39 @@ $("btnUndo").onclick = () => { points.pop(); renderPts(); recalc(); };
 $("btnClear").onclick = () => { points = []; renderPts(); $("gpsAcc").textContent=""; $("gpsWarn").style.display="none"; recalc(); };
 function showGpsWarn(msg){ const w=$("gpsWarn"); w.textContent=msg; w.style.display="block"; }
 
+/* ---------- Sections (multi-rectangle) ---------- */
+function addSection(l="", w=""){
+  const row = document.createElement("div");
+  row.className = "secrow";
+  row.innerHTML =
+    '<span class="n"></span>' +
+    '<input type="number" inputmode="decimal" class="secL" placeholder="L ft" value="'+l+'">' +
+    '<span class="x">×</span>' +
+    '<input type="number" inputmode="decimal" class="secW" placeholder="W ft" value="'+w+'">' +
+    '<label class="sub-t"><input type="checkbox" class="secSub">−</label>' +
+    '<button class="rm" type="button" aria-label="remove section">×</button>';
+  row.querySelector(".rm").onclick = () => { row.remove(); renumberSec(); recalc(); };
+  $("secRows").appendChild(row);
+  renumberSec();
+}
+function renumberSec(){
+  const rows = document.querySelectorAll("#secRows .secrow");
+  rows.forEach((r,i)=> r.querySelector(".n").textContent = i+1);
+  $("secCount").textContent = rows.length;
+}
+function sectionsArea(){
+  let a = 0;
+  document.querySelectorAll("#secRows .secrow").forEach(r => {
+    const v = num(r.querySelector(".secL").value) * num(r.querySelector(".secW").value);
+    a += r.querySelector(".secSub").checked ? -v : v;
+  });
+  return Math.max(0, a);
+}
+$("btnAddSec").onclick = () => { addSection(); recalc(); };
+$("secRows").addEventListener("input", recalc);
+$("secRows").addEventListener("change", recalc);
+addSection(); addSection(); // start with two blank rows
+
 /* ---------- get area + perimeter from active mode ---------- */
 function getMeasure(){
   if(mode==="gps"){
@@ -401,6 +454,12 @@ function getMeasure(){
   if(mode==="rect"){
     const L=num($("rectL").value), W=num($("rectW").value);
     return { area:L*W, perim:2*(L+W) };
+  }
+  if(mode==="sec"){
+    const a = sectionsArea();
+    let p = num($("secPerim").value);
+    if(!p && a>0) p = 4*Math.sqrt(a); // estimate outer edge if not entered
+    return { area:a, perim:p };
   }
   const a=num($("manArea").value);
   let p=num($("manPerim").value);
@@ -493,6 +552,7 @@ function recalc(){
   $("chipMargin").textContent = money(margin) + " margin";
   $("gpsArea").textContent = Math.round(area).toLocaleString();
   $("gpsPerim").textContent = Math.round(perim).toLocaleString();
+  $("secArea").textContent = Math.round(area).toLocaleString();
 
   window._lastQuote = { area, concreteYd, subtotal, yourCost, quote, margin, lines, P };
 }
