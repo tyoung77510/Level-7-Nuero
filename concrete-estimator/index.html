@@ -100,9 +100,26 @@
   .suffix-note{font-size:11px;color:var(--muted);margin-top:2px}
   footer{max-width:640px;margin:20px auto 0;text-align:center;color:var(--muted);font-size:11px;padding:0 16px}
   .warn-note{background:#fff6ee;border:1px solid #f5d9c2;color:#9a5b2a;border-radius:10px;padding:10px 12px;font-size:12px;margin-top:10px}
+  .print-only{display:none}
+  /* customer quote sheet (shown on screen preview + print) */
+  #custSheet{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:22px;margin-top:12px}
+  #custSheet .cs-top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--navy);padding-bottom:12px;margin-bottom:14px}
+  #custSheet .cs-co{font-size:22px;font-weight:800;color:var(--navy);letter-spacing:.3px}
+  #custSheet .cs-co small{display:block;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.4px;text-transform:uppercase;margin-top:2px}
+  #custSheet .cs-meta{font-size:12px;color:var(--muted);text-align:right;line-height:1.7}
+  #custSheet h3{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:14px 0 6px}
+  #custSheet .cs-scope{list-style:none;padding:0;margin:0}
+  #custSheet .cs-scope li{padding:5px 0;border-bottom:1px solid var(--line);font-size:14px}
+  #custSheet .cs-scope li:before{content:"✓";color:var(--good);font-weight:800;margin-right:8px}
+  #custSheet .cs-total{display:flex;justify-content:space-between;align-items:center;background:var(--navy);color:#fff;border-radius:12px;padding:16px 18px;margin-top:16px}
+  #custSheet .cs-total .t-lbl{font-size:13px;text-transform:uppercase;letter-spacing:1px;opacity:.9}
+  #custSheet .cs-total .t-amt{font-size:30px;font-weight:800}
+  #custSheet .cs-note{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6}
   @media print{
-    header,.tabs,.no-print,.btn,details.settings{display:none!important}
-    body{background:#fff} .card{box-shadow:none;border:1px solid var(--line)}
+    body{background:#fff;padding:0}
+    body *{visibility:hidden}
+    #custSheet, #custSheet *{visibility:visible}
+    #custSheet{position:absolute;top:0;left:0;width:100%;border:0;box-shadow:none;margin:0;padding:0}
   }
 </style>
 
@@ -304,8 +321,44 @@
     </details>
   </div>
 
-  <!-- ============ RESULTS ============ -->
-  <h2>3 · The quote</h2>
+  <div class="card">
+    <details class="settings">
+      <summary>🏢 Your business info (shown on the quote)</summary>
+      <p class="hint" style="margin:8px 0">Saved on this device and printed on every customer quote.</p>
+      <label>Business name</label>
+      <input type="text" id="bizName" value="BoxxedOut">
+      <div class="row" style="margin-top:4px">
+        <div><label>Phone</label><input type="tel" id="bizPhone" placeholder="(555) 555-5555"></div>
+        <div><label>Email</label><input type="email" id="bizEmail" placeholder="you@boxxedout.com"></div>
+      </div>
+      <label style="margin-top:8px">License # <span class="hint">(optional)</span></label>
+      <input type="text" id="bizLicense" placeholder="optional">
+      <label style="margin-top:8px">Quote valid for <span class="hint">days</span></label>
+      <input type="number" inputmode="numeric" id="bizValid" value="30">
+    </details>
+  </div>
+
+  <!-- ============ CUSTOMER ============ -->
+  <h2>3 · Customer</h2>
+  <div class="card">
+    <label>Customer name</label>
+    <input type="text" id="custName" placeholder="e.g. John Smith">
+    <div class="row" style="margin-top:4px">
+      <div>
+        <label>Phone <span class="hint">(to text)</span></label>
+        <input type="tel" id="custPhone" placeholder="optional">
+      </div>
+      <div>
+        <label>Email <span class="hint">(to email)</span></label>
+        <input type="email" id="custEmail" placeholder="optional">
+      </div>
+    </div>
+    <label style="margin-top:8px">Job address / notes <span class="hint">(optional)</span></label>
+    <input type="text" id="custAddr" placeholder="123 Main St — driveway replacement">
+  </div>
+
+  <!-- ============ RESULTS (internal) ============ -->
+  <h2>4 · The quote <span class="hint" style="text-transform:none;letter-spacing:0">— your view</span></h2>
   <div class="result-hero">
     <div class="label">Customer Quote</div>
     <div class="quote" id="quoteBig">$0</div>
@@ -319,12 +372,21 @@
 
   <div class="card" style="margin-top:12px">
     <table id="breakdown"></table>
+    <p class="hint" style="margin:10px 2px 0">🔒 This breakdown (cost &amp; margin) is for you only. Customers never see it — the Send options below share a clean quote with the total price and scope only.</p>
   </div>
 
+  <!-- ============ SEND (customer-facing) ============ -->
+  <h2>5 · Send to customer</h2>
+  <button class="btn btn-primary no-print" id="btnSend">📤 Send quote to customer</button>
   <div class="btnrow no-print">
-    <button class="btn btn-nav" id="btnPrint">🖨 Print / Save PDF</button>
-    <button class="btn btn-ghost" id="btnCopy">📋 Copy quote</button>
+    <button class="btn btn-ghost btn-sm" id="btnText">💬 Text</button>
+    <button class="btn btn-ghost btn-sm" id="btnEmail">✉️ Email</button>
+    <button class="btn btn-ghost btn-sm" id="btnPrint">🖨 PDF</button>
+    <button class="btn btn-ghost btn-sm" id="btnCopy">📋 Copy</button>
   </div>
+
+  <!-- customer-facing quote sheet (this is what the customer sees / prints) -->
+  <div id="custSheet"></div>
 
   <footer>
     Estimates use your saved unit prices and standard slab formulas. Verify concrete volume with your ready-mix supplier before ordering.<br>
@@ -355,6 +417,21 @@ function savePrices(){
   try{ localStorage.setItem("bx_prices", JSON.stringify(s)); }catch(e){}
 }
 loadPrices();
+
+/* ---------- persistence of business info ---------- */
+const BIZ_IDS = ["bizName","bizPhone","bizEmail","bizLicense","bizValid"];
+function loadBiz(){
+  try{
+    const s = JSON.parse(localStorage.getItem("bx_biz")||"{}");
+    BIZ_IDS.forEach(id => { if(s[id]!=null && s[id]!=="") $(id).value = s[id]; });
+  }catch(e){}
+}
+function saveBiz(){
+  const s = {}; BIZ_IDS.forEach(id => s[id] = $(id).value);
+  try{ localStorage.setItem("bx_biz", JSON.stringify(s)); }catch(e){}
+}
+loadBiz();
+BIZ_IDS.forEach(id => $(id).addEventListener("input", () => { saveBiz(); recalc(); }));
 
 /* ---------- tabs ---------- */
 let mode = "gps";
@@ -554,7 +631,52 @@ function recalc(){
   $("gpsPerim").textContent = Math.round(perim).toLocaleString();
   $("secArea").textContent = Math.round(area).toLocaleString();
 
-  window._lastQuote = { area, concreteYd, subtotal, yourCost, quote, margin, lines, P };
+  // scope = names of everything included (NO prices — safe for the customer)
+  const scope = lines.filter(l => l[2] > 0).map(l => l[0]);
+
+  window._lastQuote = { area, perim, concreteYd, thk, subtotal, yourCost, quote, margin, perSf, lines, scope, P };
+  renderCustomerSheet();
+}
+
+/* ---------- customer-facing quote (no cost/margin) ---------- */
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function today(){ try{ return new Date().toLocaleDateString(); }catch(e){ return ""; } }
+function renderCustomerSheet(){
+  const q = window._lastQuote; if(!q){ $("custSheet").innerHTML=""; return; }
+  const biz = { name:$("bizName").value.trim()||"BoxxedOut", phone:$("bizPhone").value.trim(),
+    email:$("bizEmail").value.trim(), lic:$("bizLicense").value.trim(), valid:num($("bizValid").value)||30 };
+  const cust = { name:$("custName").value.trim(), addr:$("custAddr").value.trim() };
+  if(q.area<=0 || q.quote<=0){ $("custSheet").innerHTML =
+    '<p class="hint" style="text-align:center;margin:6px 0">Enter an area to generate the customer quote sheet.</p>'; return; }
+  const contact = [biz.phone, biz.email].filter(Boolean).join(" · ");
+  let s = '<div class="cs-top"><div class="cs-co">'+esc(biz.name)+'<small>Concrete Quote</small></div>'+
+    '<div class="cs-meta">'+esc(today())+(contact?'<br>'+esc(contact):'')+(biz.lic?'<br>Lic# '+esc(biz.lic):'')+'</div></div>';
+  if(cust.name || cust.addr){
+    s += '<h3>Prepared for</h3><div style="font-size:14px">'+
+      (cust.name?'<b>'+esc(cust.name)+'</b>':'')+(cust.addr?(cust.name?'<br>':'')+esc(cust.addr):'')+'</div>';
+  }
+  s += '<h3>Project</h3><div style="font-size:14px">'+Math.round(q.area).toLocaleString()+' ft² concrete slab · '+
+    num($("thickness").value)+'" thick · ~'+q.concreteYd.toFixed(1)+' yd³ concrete</div>';
+  s += '<h3>Includes</h3><ul class="cs-scope">'+q.scope.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
+  s += '<div class="cs-total"><div class="t-lbl">Total</div><div class="t-amt">'+money(q.quote)+'</div></div>';
+  s += '<div class="cs-note">Includes all materials, labor, and equipment listed above plus a '+q.P.pContingency+
+    '% contingency. Final concrete volume confirmed at pour. This quote is valid for '+biz.valid+' days from the date above.</div>';
+  $("custSheet").innerHTML = s;
+}
+function buildCustomerText(){
+  const q = window._lastQuote; if(!q || q.quote<=0) return "";
+  const bizName = $("bizName").value.trim()||"BoxxedOut";
+  const cust = $("custName").value.trim();
+  const phone = $("bizPhone").value.trim(), email = $("bizEmail").value.trim();
+  let t = bizName.toUpperCase()+" — CONCRETE QUOTE\n"+today()+"\n";
+  if(cust) t += "Prepared for: "+cust+"\n";
+  t += "\nProject: "+Math.round(q.area).toLocaleString()+" ft² concrete slab, "+
+    num($("thickness").value)+'" thick (~'+q.concreteYd.toFixed(1)+" yd³)\n";
+  t += "\nIncludes:\n"+q.scope.map(x=>"  • "+x).join("\n")+"\n";
+  t += "\nTOTAL QUOTE: "+money(q.quote)+"\n";
+  t += "\nIncludes all materials, labor & equipment plus a "+q.P.pContingency+"% contingency.\n";
+  if(phone||email) t += "\n"+bizName+" · "+[phone,email].filter(Boolean).join(" · ")+"\n";
+  return t;
 }
 
 /* recalc on any input change + persist prices */
@@ -566,20 +688,41 @@ $("btnReset").onclick = () => {
   savePrices(); recalc();
 };
 
-/* print + copy */
-$("btnPrint").onclick = () => window.print();
-$("btnCopy").onclick = async () => {
-  const q = window._lastQuote; if(!q) return;
-  let txt = "BOXXEDOUT — CONCRETE QUOTE\n";
-  txt += "Area: " + Math.round(q.area).toLocaleString() + " ft²\n";
-  txt += "Concrete: " + q.concreteYd.toFixed(1) + " yd³\n\n";
-  q.lines.forEach(l => { if(l[2]>0||l[3]) txt += l[0] + " (" + l[1] + "): " + money(l[2]) + "\n"; });
-  txt += "\nContingency ("+q.P.pContingency+"%): "+money(q.subtotal*q.P.pContingency/100)+"\n";
-  txt += "Your cost: " + money(q.yourCost) + "\n";
-  txt += "CUSTOMER QUOTE: " + money(q.quote) + "\n";
-  txt += "Margin: " + money(q.margin) + "\n";
-  try{ await navigator.clipboard.writeText(txt); $("btnCopy").textContent = "✅ Copied"; setTimeout(()=>$("btnCopy").textContent="📋 Copy quote",1500);}catch(e){ alert(txt); }
+/* ---------- send the quote to the customer (customer-safe text only) ---------- */
+function noQuote(){ const q=window._lastQuote; if(!q || q.quote<=0){ alert("Enter an area first so there's a quote to send."); return true; } return false; }
+function subjectLine(){ return ($("bizName").value.trim()||"BoxxedOut")+" — Concrete Quote"; }
+
+$("btnSend").onclick = async () => {
+  if(noQuote()) return;
+  const text = buildCustomerText();
+  if(navigator.share){
+    try{ await navigator.share({ title: subjectLine(), text }); return; }catch(e){ if(e && e.name==="AbortError") return; }
+  }
+  // fallback: copy + tell the user
+  try{ await navigator.clipboard.writeText(text); flash($("btnSend"),"✅ Copied — paste to send"); }
+  catch(e){ alert(text); }
 };
+$("btnText").onclick = () => {
+  if(noQuote()) return;
+  const ph = $("custPhone").value.replace(/[^\d+]/g,"");
+  const body = encodeURIComponent(buildCustomerText());
+  const sep = /android/i.test(navigator.userAgent) ? "?" : "&";
+  window.location.href = "sms:"+ph+sep+"body="+body;
+};
+$("btnEmail").onclick = () => {
+  if(noQuote()) return;
+  const to = encodeURIComponent($("custEmail").value.trim());
+  const su = encodeURIComponent(subjectLine());
+  const body = encodeURIComponent(buildCustomerText());
+  window.location.href = "mailto:"+to+"?subject="+su+"&body="+body;
+};
+$("btnPrint").onclick = () => { if(noQuote()) return; window.print(); };
+$("btnCopy").onclick = async () => {
+  if(noQuote()) return;
+  try{ await navigator.clipboard.writeText(buildCustomerText()); flash($("btnCopy"),"✅ Copied"); }
+  catch(e){ alert(buildCustomerText()); }
+};
+function flash(btn,msg){ const t=btn.textContent; btn.textContent=msg; setTimeout(()=>btn.textContent=t,1600); }
 
 /* service worker for offline use on the job site */
 if("serviceWorker" in navigator){

@@ -12,7 +12,15 @@ A self-contained, installable mobile web app (PWA). Open it on your phone, walk 
    - **⊞ Sections** — add a length × width box for each rectangle of the pour (L-shapes, separate pads); areas are summed automatically. Tick **Subtract** on a box to remove a cutout you're not pouring.
    - **✎ Sq Ft** — enter a known area (and optional perimeter) directly.
 2. **Set job details** — slab thickness, gravel base depth, crew size, days, and toggles for rebar, pump, demo, dirt haul-off, site prep, plus any extra equipment rental.
-3. **Get the quote** — a full itemized breakdown (your cost) plus the marked-up **customer quote** and price per ft². Print/Save-PDF or copy to text to send in seconds.
+3. **Get the quote** — a full itemized breakdown (your cost, contingency, markup, margin) — **your eyes only**.
+4. **Send it to the customer** — the app builds a clean, branded quote sheet showing only the scope of work and the total price (never your cost or margin). Send it straight from your phone:
+   - **📤 Send** — opens your phone's share sheet (text, email, WhatsApp, AirDrop…).
+   - **💬 Text** — opens Messages pre-filled to the customer's number.
+   - **✉️ Email** — opens your email app pre-filled to the customer.
+   - **🖨 PDF** — prints/saves the branded quote sheet as a PDF.
+   - **📋 Copy** — copies the customer quote text to paste anywhere.
+
+   Fill in your business name, phone, email, license #, and quote-valid days once (⚙︎ **Your business info**) and they print on every quote. Add the customer's name, phone, email, and job address per job.
 
 ## Line items covered (everything you asked for)
 
