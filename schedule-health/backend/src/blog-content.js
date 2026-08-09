@@ -238,7 +238,7 @@ module.exports = [
   {
     slug: 'utility-maintenance-schedule-discipline-safety',
     ogImage: 'https://www.ordo7.pro/brand/founder-log-004-cover.jpg',
-    title: "Schedule Discipline and Safety in Utility Maintenance Programs",
+    title: "Schedule Discipline and Safety in Utility Work",
     headline: "In Utility Work, a Missed Schedule Isn't Just Late. It's a Safety Problem.",
     description: "Compliance-driven maintenance schedules don't get extensions. A look back at a water utility program where enforcing schedule discipline cut safety incidents by 9%.",
     category: 'Founder Log',
@@ -254,7 +254,7 @@ module.exports = [
   {
     slug: 'eight-years-in-project-controls',
     ogImage: 'https://www.ordo7.pro/brand/founder-log-005-cover.jpg',
-    title: "What 8+ Years in Project Controls Taught Me About Scheduling Tools",
+    title: "8+ Years in Project Controls: What I Learned",
     headline: "Eight Years in Project Controls Taught Me One Thing Keeps Breaking",
     description: "PMP-certified, deep in Primavera P6 and EVM, across $100M+ in portfolios and five industries. The tools were always powerful. They were never built for the person actually running the schedule.",
     category: 'Founder Log',
