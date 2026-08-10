@@ -1,6 +1,6 @@
 # Level 7 Consulting — Key Decisions Log
 > **Purpose:** Track every significant decision, its rationale, who made it, and why.
-> **Status:** ✅ Active | **Last Updated:** 2026-07-19
+> **Status:** ✅ Active | **Last Updated:** 2026-08-09
 
 ## Decision Log
 | Date | Decision | Rationale | Made By | Status |
@@ -21,6 +21,7 @@
 | 2026-07-11 | Documented Knock (linked to cto.new) as notification infrastructure in tech-stack.md | Was connected but undocumented; workflows not yet built | Owner | ✅ |
 | 2026-07-19 | Stripe activated via cto.new — live path to collect payment now exists | Business filings completed, unblocking payment processing | Owner | ✅ |
 | 2026-07-20 | Ordo7 Founder Log: 90-day daily content series (LinkedIn + blog), built on a 7-slot weekly theme wheel with a Playwright render pipeline for consistent graphics | Owner wants daily posting with a different topic each day but a consistent brand feel; render pipeline makes each day's graphic one command instead of manual design work | Owner | ✅ |
+| 2026-08-09 | Ordo7 lead-magnet PDF topics (from a third-party "PDF Trend Lab" opportunity-score tool) fold into the existing free lead-magnet pipeline, not a paid standalone store | A paid PDF store would compete with Ordo7's own SaaS pitch ("stop doing this by hand" vs. selling a one-time PDF that does the same job), and Ordo7 is pre-Gate-1 (10 paying customers, per `gate-1-plan.md`) — a second commerce product line is founder-bandwidth Ordo7 can't spend twice. Free lead magnets reuse infrastructure that already exists (`/api/public/lead-magnet`). See `schedule-health/docs/blog-drafts/lead-magnet/topic-backlog.md` for the 4 candidate topics and which ones have a real (non-overclaiming) Ordo7 feature to tie the CTA to. | Owner | ✅ |
 
 ## Open Action Items
 | Item | Why It Matters | Owner Action Needed |
