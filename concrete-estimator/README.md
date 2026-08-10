@@ -50,6 +50,9 @@ A per-job **Exclusions** list (unsuitable soils/over-excavation, buried obstruct
 ### The quote *is* the proposal (terms, warranty, signature)
 The printed/PDF customer sheet is a signable proposal, not just a price. It carries an editable **Terms & warranty** block pre-loaded with the four standard concrete clauses — cracking disclaimer, a narrow 1-year workmanship warranty with a measurable 1/4" threshold, soils/site-conditions disclaimer, and finish/color/efflorescence variation — plus owner responsibilities (drainage, sealing, no deicing salts, load limits). Stamped/colored jobs add a **color-selection acknowledgment** line. A **signature block** ("this proposal becomes a binding contract upon signature") closes it. All terms are saved on-device and editable. The texted/emailed version stays short and points to the printed proposal for full terms.
 
+### Progress-payment schedule
+The proposal prints a milestone payment schedule that computes off the price: down payment (at signing), demo & excavation 25%, base & forms 25%, pour 35%, and final = remainder — each with its completion trigger. The down payment is automatically capped at the **lesser of your set cap ($1,000) or 10% of the contract** to comply with California home-improvement law, so it stays legal on small jobs. Percentages and the cap are editable and saved on-device; the schedule always ties out to the total.
+
 ### Pricing off margin (not markup)
 The price is computed as **Price = Total job cost ÷ (1 − target gross margin)** — never cost × markup. A finish-type selector presets the target margin (broom 30%, commercial/repair 35%, stamped/colored 40%) and it's editable. The "your view" breakdown shows direct cost, total job cost, customer price, **gross profit + gross %**, overhead, and **estimated net profit + net %**. A minimum charge floors small jobs and flags when it's applied. None of this reaches the customer sheet — they only ever see scope + total price.
 
