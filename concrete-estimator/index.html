@@ -111,6 +111,8 @@
   #custSheet .cs-scope{list-style:none;padding:0;margin:0}
   #custSheet .cs-scope li{padding:5px 0;border-bottom:1px solid var(--line);font-size:14px}
   #custSheet .cs-scope li:before{content:"✓";color:var(--good);font-weight:800;margin-right:8px}
+  #custSheet .cs-excl li:before{content:"✕";color:#c0492e;font-weight:800;margin-right:8px}
+  #custSheet .cs-excl li{color:var(--muted);font-size:13px}
   #custSheet .cs-total{display:flex;justify-content:space-between;align-items:center;background:var(--navy);color:#fff;border-radius:12px;padding:16px 18px;margin-top:16px}
   #custSheet .cs-total .t-lbl{font-size:13px;text-transform:uppercase;letter-spacing:1px;opacity:.9}
   #custSheet .cs-total .t-amt{font-size:30px;font-weight:800}
@@ -209,6 +211,15 @@
       <option value="40">Stamped / colored — 40% margin</option>
       <option value="">Custom (set in ⚙︎ prices)</option>
     </select>
+    <label style="margin-top:12px">Risk profile <span class="hint">(sets your contingency %)</span></label>
+    <select id="risk" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:16px;background:#fff;color:var(--ink)">
+      <option value="4">New pour · open access · subgrade seen — 4%</option>
+      <option value="9">Tear-out &amp; replace · decent access — 9%</option>
+      <option value="13">Stamped / colored finish — 13%</option>
+      <option value="17">Unknown subgrade / clay / drainage / tight access — 17%</option>
+      <option value="22">Pump · can’t see under existing slab — 22%</option>
+      <option value="">Custom (set in ⚙︎ prices)</option>
+    </select>
     <div class="row" style="margin-top:12px">
       <div>
         <label>Slab thickness <span class="hint">(in)</span></label>
@@ -255,6 +266,9 @@
 
     <label style="margin-top:14px">Extra equipment rental <span class="hint">(compactor, skid steer, etc. — flat $)</span></label>
     <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="equipExtra" value="0"></div>
+
+    <label style="margin-top:12px">Allowances <span class="hint">(known unknowns — over-excavation, etc. — flat $)</span></label>
+    <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="allowExtra" value="0"></div>
   </div>
 
   <!-- ============ PRICING SETTINGS ============ -->
@@ -316,8 +330,8 @@
           <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="pPump" value="650"></div>
         </div>
         <div>
-          <label>Contingency <span class="hint">%</span></label>
-          <input type="number" inputmode="decimal" id="pContingency" value="15">
+          <label>Contingency <span class="hint">% (set by Risk profile)</span></label>
+          <input type="number" inputmode="decimal" id="pContingency" value="9">
         </div>
         <div>
           <label>Target gross margin <span class="hint">%</span></label>
@@ -350,6 +364,14 @@
       <input type="text" id="bizLicense" placeholder="optional">
       <label style="margin-top:8px">Quote valid for <span class="hint">days</span></label>
       <input type="number" inputmode="numeric" id="bizValid" value="30">
+      <label style="margin-top:8px">Exclusions <span class="hint">(one per line — printed on the customer quote; protects your margin)</span></label>
+      <textarea id="bizExclusions" rows="6" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:14px;background:#fff;color:var(--ink);resize:vertical;font-family:inherit">Unsuitable or expansive soils and any over-excavation beyond stated allowances
+Rock or buried obstructions below existing grade
+Undisclosed or unmarked utilities
+Drainage, grading, or engineering not shown on plans
+Permit and inspection fees
+Weather-related re-mobilization
+Work outside this scope is handled by written change order</textarea>
     </details>
   </div>
 
@@ -435,7 +457,7 @@ function savePrices(){
 loadPrices();
 
 /* ---------- persistence of business info ---------- */
-const BIZ_IDS = ["bizName","bizPhone","bizEmail","bizLicense","bizValid"];
+const BIZ_IDS = ["bizName","bizPhone","bizEmail","bizLicense","bizValid","bizExclusions"];
 function loadBiz(){
   try{
     const s = JSON.parse(localStorage.getItem("bx_biz")||"{}");
@@ -604,6 +626,9 @@ function recalc(){
   const cEquipExtra = num($("equipExtra").value);
   const cEquip = cPump + cEquipExtra;
 
+  // Allowances (known unknowns, bid explicitly) — a direct-cost line
+  const cAllow = num($("allowExtra").value);
+
   const lines = [
     ["Concrete", concreteYd.toFixed(1)+" yd³ · area avg +"+P.pMixAdj+"%", cConcrete, true],
     ["Base rock", gravelTons.toFixed(1)+" tons · area avg +"+P.pMixAdj+"%", cGravel, true],
@@ -615,6 +640,7 @@ function recalc(){
     ["Labor", crew+" guys × "+days+" days", cLabor, cLabor>0],
     ["Concrete pump", $("optPump").checked ? "1 job" : "—", cPump, $("optPump").checked],
     ["Extra equipment", cEquipExtra>0 ? "rental" : "—", cEquipExtra, cEquipExtra>0],
+    ["Allowances", cAllow>0 ? "known unknowns" : "—", cAllow, cAllow>0],
   ];
 
   const directCost = lines.reduce((a,l)=>a+l[2],0);
@@ -662,8 +688,8 @@ function recalc(){
   $("gpsPerim").textContent = Math.round(perim).toLocaleString();
   $("secArea").textContent = Math.round(area).toLocaleString();
 
-  // scope = names of everything included (NO prices — safe for the customer)
-  const scope = lines.filter(l => l[2] > 0).map(l => l[0]);
+  // scope = physical work included (NO prices, NO internal cost lines like Allowances — safe for the customer)
+  const scope = lines.filter(l => l[2] > 0 && l[0] !== "Allowances").map(l => l[0]);
 
   window._lastQuote = { area, perim, concreteYd, thk, directCost, jobCost, quote, grossProfit, grossPct, netProfit, netPct, perSf, lines, scope, P };
   renderCustomerSheet();
@@ -690,6 +716,10 @@ function renderCustomerSheet(){
     num($("thickness").value)+'" thick · ~'+q.concreteYd.toFixed(1)+' yd³ concrete</div>';
   s += '<h3>Includes</h3><ul class="cs-scope">'+q.scope.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
   s += '<div class="cs-total"><div class="t-lbl">Total</div><div class="t-amt">'+money(q.quote)+'</div></div>';
+  const excl = $("bizExclusions").value.split("\n").map(x=>x.trim()).filter(Boolean);
+  if(excl.length){
+    s += '<h3>Not included (exclusions)</h3><ul class="cs-scope cs-excl">'+excl.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
+  }
   s += '<div class="cs-note">Includes all materials, labor, and equipment for the work listed above. '+
     'Final concrete volume confirmed at pour. This quote is valid for '+biz.valid+' days from the date above.</div>';
   $("custSheet").innerHTML = s;
@@ -705,6 +735,8 @@ function buildCustomerText(){
     num($("thickness").value)+'" thick (~'+q.concreteYd.toFixed(1)+" yd³)\n";
   t += "\nIncludes:\n"+q.scope.map(x=>"  • "+x).join("\n")+"\n";
   t += "\nTOTAL QUOTE: "+money(q.quote)+"\n";
+  const excl = $("bizExclusions").value.split("\n").map(x=>x.trim()).filter(Boolean);
+  if(excl.length) t += "\nNot included (exclusions):\n"+excl.map(x=>"  – "+x).join("\n")+"\n";
   t += "\nIncludes all materials, labor & equipment for the work listed above.\n";
   if(phone||email) t += "\n"+bizName+" · "+[phone,email].filter(Boolean).join(" · ")+"\n";
   return t;
@@ -720,8 +752,17 @@ $("finish").addEventListener("change", () => {
   if(v !== ""){ $("pMargin").value = v; savePrices(); }
   recalc();
 });
-/* on load, match the finish dropdown to the saved margin */
-(function(){ const presets={"30":1,"35":1,"40":1}; const v=$("pMargin").value; $("finish").value = presets[v]?v:""; })();
+/* risk profile sets the contingency % */
+$("risk").addEventListener("change", () => {
+  const v = $("risk").value;
+  if(v !== ""){ $("pContingency").value = v; savePrices(); }
+  recalc();
+});
+/* on load, match the dropdowns to the saved values */
+(function(){
+  const mP={"30":1,"35":1,"40":1}; $("finish").value = mP[$("pMargin").value] ? $("pMargin").value : "";
+  const rP={"4":1,"9":1,"13":1,"17":1,"22":1}; $("risk").value = rP[$("pContingency").value] ? $("pContingency").value : "";
+})();
 
 $("btnReset").onclick = () => {
   PRICE_IDS.forEach(id => $(id).value = DEFAULTS[id]);

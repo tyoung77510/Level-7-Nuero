@@ -36,10 +36,16 @@ A self-contained, installable mobile web app (PWA). Open it on your phone, walk 
 | **Lumber (forming)** | perimeter × $ per lin ft |
 | **Rebar** | #5 grid ≈ 24 × area ÷ spacing, +10% laps, × $/lin ft |
 | **Equipment** | concrete pump $650/job (toggle) + any extra rental |
-| **Contingency** | % of direct cost → total job cost |
+| **Allowances** | known-unknowns (over-excavation, etc.), bid as an explicit direct-cost line |
+| **Contingency** | unknown-unknowns, % of direct cost, set by **Risk profile** |
 | **Target gross margin** | price is **cost ÷ (1 − margin)**, not cost × markup |
 | **Minimum charge** | price floor for small jobs |
 | **Overhead** | % of price, used to show estimated **net** profit |
+
+### Risk-based contingency, allowances, and exclusions
+Contingency is **sized to risk**, not a flat number. A **Risk profile** selector sets it: new pour/open access 4%, tear-out & replace 9%, stamped/colored 13%, unknown subgrade/clay/tight access 17%, pump/can't-see-under-slab 22% (all editable). **Allowances** (known-unknowns with a quantifiable range) are bid as their own explicit line, separate from contingency. Order of operations: **direct costs → + allowances → + contingency → ÷ (1 − margin) → price**. Contingency and allowances live only in your cost buildup — the customer never sees them.
+
+A per-job **Exclusions** list (unsuitable soils/over-excavation, buried obstructions, undisclosed utilities, drainage/engineering not shown, permits, weather re-mobilization, change-order clause) prints on the customer quote sheet — the real margin protector alongside a defined scope.
 
 ### Pricing off margin (not markup)
 The price is computed as **Price = Total job cost ÷ (1 − target gross margin)** — never cost × markup. A finish-type selector presets the target margin (broom 30%, commercial/repair 35%, stamped/colored 40%) and it's editable. The "your view" breakdown shows direct cost, total job cost, customer price, **gross profit + gross %**, overhead, and **estimated net profit + net %**. A minimum charge floors small jobs and flags when it's applied. None of this reaches the customer sheet — they only ever see scope + total price.
