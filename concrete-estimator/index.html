@@ -117,6 +117,14 @@
   #custSheet .cs-total .t-lbl{font-size:13px;text-transform:uppercase;letter-spacing:1px;opacity:.9}
   #custSheet .cs-total .t-amt{font-size:30px;font-weight:800}
   #custSheet .cs-note{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6}
+  #custSheet .cs-terms p{font-size:11px;color:#3a4557;line-height:1.5;margin:0 0 8px}
+  #custSheet .cs-terms p b{color:var(--ink)}
+  #custSheet .cs-sign{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+  #custSheet .cs-sign .accept{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:14px}
+  #custSheet .cs-sig-row{display:flex;gap:18px;margin-top:22px}
+  #custSheet .cs-sig-row .sig{flex:1}
+  #custSheet .cs-sig-row .line{border-top:1px solid var(--ink);padding-top:4px;font-size:11px;color:var(--muted)}
+  #custSheet .cs-ack{font-size:11px;color:#3a4557;margin-top:14px;padding:8px 10px;border:1px dashed var(--line);border-radius:8px}
   @media print{
     body{background:#fff;padding:0}
     body *{visibility:hidden}
@@ -372,6 +380,16 @@ Drainage, grading, or engineering not shown on plans
 Permit and inspection fees
 Weather-related re-mobilization
 Work outside this scope is handled by written change order</textarea>
+      <label style="margin-top:8px">Terms &amp; warranty <span class="hint">(one clause per paragraph — prints on the proposal)</span></label>
+      <textarea id="bizTerms" rows="10" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:13px;background:#fff;color:var(--ink);resize:vertical;font-family:inherit">Cracking: Concrete shrinks as it cures and will develop hairline and shrinkage cracks. Cracking is inherent to concrete and is not a defect in workmanship or materials. Contractor installs control joints at industry-standard spacing to direct cracking but cannot guarantee all cracking occurs within joints. Contractor does not warrant against hairline, shrinkage, or non-structural cracking.
+
+Workmanship warranty: Contractor warrants workmanship for one (1) year from date of substantial completion against structural failure, differential settlement caused by Contractor's base preparation, and separation exceeding 1/4 inch in width or 1/4 inch in vertical displacement.
+
+Soils & site conditions: Contractor is not responsible for cracking, heaving, settlement, or displacement resulting from expansive soils, subsurface conditions, soil movement, tree roots, drainage conditions, vehicle loads exceeding residential use, or seismic activity. Contractor has not performed and is not responsible for soils testing or geotechnical engineering unless separately contracted.
+
+Finish, color & appearance: Variation in color, shade, texture, and surface appearance is inherent in concrete and is affected by weather, humidity, cure conditions, and batch variation. Efflorescence may appear and is a natural occurrence, not a defect. Samples and photographs are representative only; exact matching is not guaranteed.
+
+Owner responsibilities: Owner is responsible for maintaining positive drainage away from the slab, sealing the surface at intervals recommended by Contractor, and refraining from use of deicing salts. Warranty is void if the slab is subjected to loads exceeding standard passenger-vehicle use, or if drainage is altered after completion.</textarea>
     </details>
   </div>
 
@@ -457,7 +475,7 @@ function savePrices(){
 loadPrices();
 
 /* ---------- persistence of business info ---------- */
-const BIZ_IDS = ["bizName","bizPhone","bizEmail","bizLicense","bizValid","bizExclusions"];
+const BIZ_IDS = ["bizName","bizPhone","bizEmail","bizLicense","bizValid","bizExclusions","bizTerms"];
 function loadBiz(){
   try{
     const s = JSON.parse(localStorage.getItem("bx_biz")||"{}");
@@ -722,6 +740,29 @@ function renderCustomerSheet(){
   }
   s += '<div class="cs-note">Includes all materials, labor, and equipment for the work listed above. '+
     'Final concrete volume confirmed at pour. This quote is valid for '+biz.valid+' days from the date above.</div>';
+
+  // Terms & warranty
+  const terms = $("bizTerms").value.split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean);
+  if(terms.length){
+    s += '<h3>Terms &amp; warranty</h3><div class="cs-terms">'+terms.map(para => {
+      const i = para.indexOf(":");
+      if(i>0 && i<40) return '<p><b>'+esc(para.slice(0,i+1))+'</b>'+esc(para.slice(i+1))+'</p>';
+      return '<p>'+esc(para)+'</p>';
+    }).join('')+'</div>';
+  }
+
+  // Color acknowledgment for stamped/colored work
+  if($("finish").value === "40"){
+    s += '<div class="cs-ack"><b>Color selection acknowledgment:</b> Owner has selected the color/finish below and understands the cured result will vary from the sample chip. '+
+      'Selected color/finish: ______________________________</div>';
+  }
+
+  // Signature block — makes the proposal signable
+  s += '<div class="cs-sign"><div class="accept">This proposal becomes a binding contract upon signature. '+
+    'Accepted price: '+money(q.quote)+'.</div>'+
+    '<div class="cs-sig-row"><div class="sig"><div class="line">Customer signature &nbsp; / &nbsp; Date</div></div>'+
+    '<div class="sig"><div class="line">'+esc(biz.name)+' &nbsp; / &nbsp; Date</div></div></div></div>';
+
   $("custSheet").innerHTML = s;
 }
 function buildCustomerText(){
@@ -738,6 +779,7 @@ function buildCustomerText(){
   const excl = $("bizExclusions").value.split("\n").map(x=>x.trim()).filter(Boolean);
   if(excl.length) t += "\nNot included (exclusions):\n"+excl.map(x=>"  – "+x).join("\n")+"\n";
   t += "\nIncludes all materials, labor & equipment for the work listed above.\n";
+  t += "Full terms, warranty & signature on the printed proposal (tap 🖨 PDF).\n";
   if(phone||email) t += "\n"+bizName+" · "+[phone,email].filter(Boolean).join(" · ")+"\n";
   return t;
 }
