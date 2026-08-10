@@ -34,9 +34,15 @@ A self-contained, installable mobile web app (PWA). Open it on your phone, walk 
 | **15% contingency** | % of subtotal (editable) |
 | **Labor** | crew × days × $500/day per guy (editable) |
 | **Lumber (forming)** | perimeter × $ per lin ft |
-| **Rebar** | #4 grid ≈ 24 × area ÷ spacing, +10% laps, × $/lin ft |
+| **Rebar** | #5 grid ≈ 24 × area ÷ spacing, +10% laps, × $/lin ft |
 | **Equipment** | concrete pump $650/job (toggle) + any extra rental |
-| **Markup / margin** | % added on top of your cost → the customer quote |
+| **Contingency** | % of direct cost → total job cost |
+| **Target gross margin** | price is **cost ÷ (1 − margin)**, not cost × markup |
+| **Minimum charge** | price floor for small jobs |
+| **Overhead** | % of price, used to show estimated **net** profit |
+
+### Pricing off margin (not markup)
+The price is computed as **Price = Total job cost ÷ (1 − target gross margin)** — never cost × markup. A finish-type selector presets the target margin (broom 30%, commercial/repair 35%, stamped/colored 40%) and it's editable. The "your view" breakdown shows direct cost, total job cost, customer price, **gross profit + gross %**, overhead, and **estimated net profit + net %**. A minimum charge floors small jobs and flags when it's applied. None of this reaches the customer sheet — they only ever see scope + total price.
 
 ## Your prices are saved
 

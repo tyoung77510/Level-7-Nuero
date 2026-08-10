@@ -202,7 +202,14 @@
   <!-- ============ JOB OPTIONS ============ -->
   <h2>2 · Job details</h2>
   <div class="card">
-    <div class="row">
+    <label>Finish type <span class="hint">(sets your target margin)</span></label>
+    <select id="finish" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:16px;background:#fff;color:var(--ink)">
+      <option value="30">Broom / flatwork — 30% margin</option>
+      <option value="35">Commercial / repair — 35% margin</option>
+      <option value="40">Stamped / colored — 40% margin</option>
+      <option value="">Custom (set in ⚙︎ prices)</option>
+    </select>
+    <div class="row" style="margin-top:12px">
       <div>
         <label>Slab thickness <span class="hint">(in)</span></label>
         <input type="number" inputmode="decimal" id="thickness" value="4">
@@ -313,8 +320,16 @@
           <input type="number" inputmode="decimal" id="pContingency" value="15">
         </div>
         <div>
-          <label>Markup / margin <span class="hint">%</span></label>
-          <input type="number" inputmode="decimal" id="pMarkup" value="30">
+          <label>Target gross margin <span class="hint">%</span></label>
+          <input type="number" inputmode="decimal" id="pMargin" value="30">
+        </div>
+        <div>
+          <label>Overhead <span class="hint">% of revenue</span></label>
+          <input type="number" inputmode="decimal" id="pOverhead" value="15">
+        </div>
+        <div>
+          <label>Minimum charge <span class="hint">$/job</span></label>
+          <div class="prefix"><span>$</span><input type="number" inputmode="decimal" id="pMin" value="2750"></div>
         </div>
       </div>
       <button class="btn btn-ghost btn-sm no-print" id="btnReset" style="margin-top:12px">Reset prices to defaults</button>
@@ -365,9 +380,10 @@
     <div class="persf" id="quotePerSf">—</div>
     <div class="chips">
       <div class="chip"><span id="chipArea">0</span> ft²</div>
-      <div class="chip"><span id="chipYards">0</span> yd³ concrete</div>
-      <div class="chip" id="chipMargin">$0 margin</div>
+      <div class="chip" id="chipGross">30% gross</div>
+      <div class="chip" id="chipNet">0% net</div>
     </div>
+    <div class="persf" id="chipMinNote" style="margin-top:8px;color:var(--gold);font-weight:600"></div>
   </div>
 
   <div class="card" style="margin-top:12px">
@@ -403,7 +419,7 @@ const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
 
 /* ---------- persistence of price settings ---------- */
 const PRICE_IDS = ["pConcrete","pWaste","pGravel","pMixAdj","pPrep","pLabor","pLumber","pRebar",
-  "pRebarSp","pDemo","pDirt","pDig","pPump","pContingency","pMarkup"];
+  "pRebarSp","pDemo","pDirt","pDig","pPump","pContingency","pMargin","pOverhead","pMin"];
 const DEFAULTS = {};
 PRICE_IDS.forEach(id => DEFAULTS[id] = $(id).value);
 function loadPrices(){
@@ -601,32 +617,47 @@ function recalc(){
     ["Extra equipment", cEquipExtra>0 ? "rental" : "—", cEquipExtra, cEquipExtra>0],
   ];
 
-  const subtotal = lines.reduce((a,l)=>a+l[2],0);
-  const contingency = subtotal * P.pContingency/100;
-  const yourCost = subtotal + contingency;
-  const quote = yourCost * (1 + P.pMarkup/100);
-  const margin = quote - yourCost;
+  const directCost = lines.reduce((a,l)=>a+l[2],0);
+  const contingency = directCost * P.pContingency/100;
+  const jobCost = directCost + contingency;            // total cost basis
+
+  // PRICE FROM MARGIN, not markup:  Price = Cost / (1 - margin)
+  const m = Math.min(Math.max(P.pMargin,0),95)/100;    // guard against >=100%
+  const priced = m<1 ? jobCost/(1-m) : jobCost;
+  const minCharge = P.pMin||0;
+  const belowMin = area>0 && jobCost>0 && priced<minCharge;
+  const quote = Math.max(priced, minCharge*(area>0?1:0));
+
+  const grossProfit = quote - jobCost;
+  const grossPct = quote>0 ? grossProfit/quote*100 : 0;
+  const overhead = quote * (P.pOverhead/100);
+  const netProfit = grossProfit - overhead;
+  const netPct = quote>0 ? netProfit/quote*100 : 0;
   const perSf = area>0 ? quote/area : 0;
 
-  // render breakdown
+  // render breakdown (YOUR view only)
   let html = "";
   lines.forEach(l => {
     if(l[2] === 0 && !l[3]) return;
     html += `<tr class="muted-row"><td>${l[0]}<br><span class="hint">${l[1]}</span></td><td class="amt">${money(l[2])}</td></tr>`;
   });
-  html += `<tr class="sub"><td>Subtotal</td><td class="amt">${money(subtotal)}</td></tr>`;
+  html += `<tr class="sub"><td>Direct job cost</td><td class="amt">${money(directCost)}</td></tr>`;
   html += `<tr class="muted-row"><td>Contingency (${P.pContingency}%)</td><td class="amt">${money(contingency)}</td></tr>`;
-  html += `<tr class="sub"><td>Your cost</td><td class="amt">${money(yourCost)}</td></tr>`;
-  html += `<tr class="muted-row"><td>Markup (${P.pMarkup}%)</td><td class="amt">${money(margin)}</td></tr>`;
-  html += `<tr class="total"><td>Customer quote</td><td class="amt">${money(quote)}</td></tr>`;
+  html += `<tr class="sub"><td>Total job cost</td><td class="amt">${money(jobCost)}</td></tr>`;
+  html += `<tr class="total"><td>Customer price</td><td class="amt">${money(quote)}</td></tr>`;
+  if(belowMin) html += `<tr class="muted-row"><td colspan="2" style="color:#b8860b">⚠︎ Minimum charge applied (margin-based price was ${money(priced)})</td></tr>`;
+  html += `<tr class="muted-row"><td>Gross profit (${grossPct.toFixed(1)}% margin)</td><td class="amt">${money(grossProfit)}</td></tr>`;
+  html += `<tr class="muted-row"><td>Overhead (${P.pOverhead}% of price)</td><td class="amt">−${money(overhead)}</td></tr>`;
+  html += `<tr class="sub"><td>Est. net profit (${netPct.toFixed(1)}%)</td><td class="amt">${money(netProfit)}</td></tr>`;
   $("breakdown").innerHTML = html;
 
   // hero + chips + gps readout
   $("quoteBig").textContent = money(quote);
   $("quotePerSf").textContent = area>0 ? money(perSf) + " / ft²" : "enter an area to price";
   $("chipArea").textContent = Math.round(area).toLocaleString();
-  $("chipYards").textContent = concreteYd.toFixed(1);
-  $("chipMargin").textContent = money(margin) + " margin";
+  $("chipGross").textContent = grossPct.toFixed(0)+"% gross · "+money(grossProfit);
+  $("chipNet").textContent = netPct.toFixed(0)+"% net · "+money(netProfit);
+  $("chipMinNote").textContent = belowMin ? "⚠︎ Minimum charge applied — thin job, consider scope" : "";
   $("gpsArea").textContent = Math.round(area).toLocaleString();
   $("gpsPerim").textContent = Math.round(perim).toLocaleString();
   $("secArea").textContent = Math.round(area).toLocaleString();
@@ -634,7 +665,7 @@ function recalc(){
   // scope = names of everything included (NO prices — safe for the customer)
   const scope = lines.filter(l => l[2] > 0).map(l => l[0]);
 
-  window._lastQuote = { area, perim, concreteYd, thk, subtotal, yourCost, quote, margin, perSf, lines, scope, P };
+  window._lastQuote = { area, perim, concreteYd, thk, directCost, jobCost, quote, grossProfit, grossPct, netProfit, netPct, perSf, lines, scope, P };
   renderCustomerSheet();
 }
 
@@ -659,8 +690,8 @@ function renderCustomerSheet(){
     num($("thickness").value)+'" thick · ~'+q.concreteYd.toFixed(1)+' yd³ concrete</div>';
   s += '<h3>Includes</h3><ul class="cs-scope">'+q.scope.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
   s += '<div class="cs-total"><div class="t-lbl">Total</div><div class="t-amt">'+money(q.quote)+'</div></div>';
-  s += '<div class="cs-note">Includes all materials, labor, and equipment listed above plus a '+q.P.pContingency+
-    '% contingency. Final concrete volume confirmed at pour. This quote is valid for '+biz.valid+' days from the date above.</div>';
+  s += '<div class="cs-note">Includes all materials, labor, and equipment for the work listed above. '+
+    'Final concrete volume confirmed at pour. This quote is valid for '+biz.valid+' days from the date above.</div>';
   $("custSheet").innerHTML = s;
 }
 function buildCustomerText(){
@@ -674,7 +705,7 @@ function buildCustomerText(){
     num($("thickness").value)+'" thick (~'+q.concreteYd.toFixed(1)+" yd³)\n";
   t += "\nIncludes:\n"+q.scope.map(x=>"  • "+x).join("\n")+"\n";
   t += "\nTOTAL QUOTE: "+money(q.quote)+"\n";
-  t += "\nIncludes all materials, labor & equipment plus a "+q.P.pContingency+"% contingency.\n";
+  t += "\nIncludes all materials, labor & equipment for the work listed above.\n";
   if(phone||email) t += "\n"+bizName+" · "+[phone,email].filter(Boolean).join(" · ")+"\n";
   return t;
 }
@@ -682,6 +713,15 @@ function buildCustomerText(){
 /* recalc on any input change + persist prices */
 document.querySelectorAll("input").forEach(el => el.addEventListener("input", () => { savePrices(); recalc(); }));
 document.querySelectorAll("input[type=checkbox]").forEach(el => el.addEventListener("change", recalc));
+
+/* finish type sets the target gross margin */
+$("finish").addEventListener("change", () => {
+  const v = $("finish").value;
+  if(v !== ""){ $("pMargin").value = v; savePrices(); }
+  recalc();
+});
+/* on load, match the finish dropdown to the saved margin */
+(function(){ const presets={"30":1,"35":1,"40":1}; const v=$("pMargin").value; $("finish").value = presets[v]?v:""; })();
 
 $("btnReset").onclick = () => {
   PRICE_IDS.forEach(id => $(id).value = DEFAULTS[id]);
