@@ -220,7 +220,7 @@ module.exports = [
   {
     slug: 'missing-predecessors-successors-p6-dcma-check-1',
     ogImage: 'https://www.ordo7.pro/brand/founder-log-003-cover.jpg',
-    title: "Missing Predecessors and Successors in P6: DCMA Check 1",
+    title: "Missing Predecessors/Successors: DCMA Check 1",
     headline: "An Activity With No Predecessor Isn't a Schedule, It's a Guess",
     description: "The first of the DCMA's 14 schedule-health checks is also the simplest: every activity needs something driving it and something depending on it. Here's why that rule catches so much.",
     category: 'Founder Log',
@@ -287,7 +287,7 @@ module.exports = [
   {
     slug: 'project-controls-staffing-shortage',
     ogImage: 'https://www.ordo7.pro/brand/founder-log-009-cover.jpg',
-    title: "The Project Controls Staffing Shortage, Explained",
+    title: "Project Controls Staffing Shortage, Explained",
     headline: "There Aren't Enough Project Controls Analysts. Everyone Feels It.",
     description: "A capital-projects boom is outpacing the supply of trained project controls talent — and the gap doesn't disappear, it gets absorbed by whoever's already on the project. Usually the PM.",
     category: 'Founder Log',
@@ -302,7 +302,7 @@ module.exports = [
   },
   {
     slug: 'contractor-baseline-red-flags-checklist',
-    title: "5 Red Flags to Check in a Contractor's Baseline Schedule",
+    title: "5 Red Flags in a Contractor's Baseline Schedule",
     headline: "The Non-Scheduler's Survival Guide: 5 Red Flags to Check Before You Accept a Contractor's Baseline",
     description: "You don't need a PSP certification to catch a bad baseline. Here are 5 concrete things to check in a contractor's schedule before you sign off — and why each one matters.",
     category: 'For owners & PMs',
@@ -500,7 +500,7 @@ module.exports = [
   {
     slug: 'manufacturing-capital-boom-project-controls',
     ogImage: 'https://www.ordo7.pro/brand/manufacturing-capital-boom-project-controls-cover.jpg',
-    title: "Manufacturing's Capital Boom Is Outrunning Project Controls",
+    title: "Manufacturing's Boom Outruns Project Controls",
     headline: "Manufacturing's Capital Boom, Seen From the Inside",
     description: "Data centers and manufacturing plants are surging right now — and the project controls function meant to run them hasn't scaled to match. A firsthand look at what that stretch actually looks like.",
     category: 'Founder Log',
@@ -517,7 +517,7 @@ module.exports = [
   {
     slug: 'schedule-baseline-accuracy-energy-portfolio',
     ogImage: 'https://www.ordo7.pro/brand/schedule-baseline-accuracy-energy-portfolio-cover.jpg',
-    title: "How I Improved Baseline Accuracy 17% on an Energy Portfolio",
+    title: "Baseline Accuracy Gains on an Energy Portfolio",
     headline: "Improving Baseline Accuracy 17%, One Portfolio at a Time",
     description: "On a $1M–$25M energy project portfolio, disciplined schedule logic and milestone placement improved baseline accuracy by 17%. Here's what that actually took.",
     category: 'Founder Log',
@@ -534,7 +534,7 @@ module.exports = [
   {
     slug: 'free-public-schedule-checker',
     ogImage: 'https://www.ordo7.pro/brand/free-public-schedule-checker-cover.jpg',
-    title: "Ordo7 Now Has a Free Schedule Checker With No Signup",
+    title: "Ordo7's Free Schedule Checker: No Signup Needed",
     headline: "I Shipped a Version of Ordo7 That Needs Zero Signup",
     description: "A new, completely free way to check a schedule's health — no account, no card, nothing stored. Here's why I built it and exactly where the free line sits.",
     category: 'Founder Log',
