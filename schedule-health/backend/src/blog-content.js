@@ -530,5 +530,22 @@ module.exports = [
 <h2>Why this is the whole thesis behind Ordo7</h2>
 <p>That result didn't come from a tool that told me the answer. It came from knowing which parts of a schedule's logic to actually go check. Ordo7 exists to shortcut that — the same discipline, applied automatically the moment you upload a schedule, instead of requiring eight years of doing it by hand first.</p>
 `.trim()
+  },
+  {
+    slug: 'california-migration-project-controls-capacity',
+    ogImage: 'https://www.ordo7.pro/brand/california-migration-project-controls-capacity-cover.jpg',
+    title: "The CA-to-TX Migration and Project Controls Have the Same Problem",
+    headline: "Infrastructure Can't Keep Up. Neither Can Project Controls.",
+    description: "The population migration out of California and the capital-projects boom are the same story: growth outpacing the capacity built to absorb it. Here's the parallel, and why it's Ordo7's real thesis.",
+    category: 'Founder Log',
+    contentHtml: `
+<p class="lead">Everyone's talking about the migration out of California right now — Houston, Dallas, Phoenix. What gets less attention: the roads and infrastructure in those receiving cities can't expand fast enough to absorb everyone showing up. Organizations building out project controls right now have the exact same problem.</p>
+<h2>The boom and the gap</h2>
+<p>Data centers, manufacturing plants, and major industrial capital projects are surging right now — I saw this firsthand inside a manufacturing employer in California riding that wave. Capital gets approved fast. The pipeline of qualified project controls talent to actually run those projects doesn't move nearly as fast. Staffing agencies can't keep up with the demand — there's a real, structural shortage of people trained to do this work relative to the number of active projects that need it.</p>
+<h2>The migration parallel</h2>
+<p>It's the same shape as the population migration out of California to lower-cost-of-living states: physical infrastructure — roads, freeways — in the receiving cities can't expand fast enough to absorb the influx. Organizations have the identical problem with project controls capacity. Project volume is growing faster than internal capacity (headcount, trained staff) to manage it. The demand shows up immediately; the capacity to serve it doesn't.</p>
+<h2>Who actually absorbs the gap</h2>
+<p>Because there aren't enough dedicated project controls analysts to hire, the slack gets absorbed by Project Managers — who end up doing cost control and schedule maintenance on top of the job they were actually hired for. That's not a training failure. It's a structural mismatch between growth and capacity, and it's the same pattern Taj has seen across multiple industries and employers, not a one-off complaint. Ordo7 exists to give that overloaded PM — or a company that can't staff a full project controls function — the schedule-health visibility a dedicated analyst would normally provide, without requiring Primavera-analyst-level expertise or a new headcount.</p>
+`.trim()
   }
 ];
