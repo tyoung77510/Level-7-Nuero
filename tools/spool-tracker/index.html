@@ -1,0 +1,650 @@
+<title>Foreman Spool Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: sticky job header + tab strip, then one working panel per tab; cards stack to one column on phones. */
+:root{
+  --bg:#eef1f5; --surface:#ffffff; --sunk:#e3e8ef; --fg:#162030; --muted:#5a6578; --line:#d3dae4;
+  --accent:#d9561f; --accent-ink:#ffffff; --navy:#33558f;
+  --ok:#23845a; --warn:#b07a00; --bad:#c23b2e;
+  --s-shop:#8a94a6; --s-transit:#7466d1; --s-offloaded:#2196cc; --s-staged:#d9a21f; --s-ready:#ef6a35; --s-installed:#2a9a66;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e131a; --surface:#171f2a; --sunk:#111821; --fg:#e6ebf2; --muted:#98a4b6; --line:#283342;
+  --accent:#f37443; --accent-ink:#1a0d06; --navy:#7f9fdc;
+  --ok:#43b885; --warn:#e2ab32; --bad:#ec6a5c;
+  --s-shop:#8d98ab; --s-transit:#9a8ff0; --s-offloaded:#43b2e6; --s-staged:#f2c043; --s-ready:#f6834f; --s-installed:#43b885;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e131a; --surface:#171f2a; --sunk:#111821; --fg:#e6ebf2; --muted:#98a4b6; --line:#283342;
+  --accent:#f37443; --accent-ink:#1a0d06; --navy:#7f9fdc;
+  --ok:#43b885; --warn:#e2ab32; --bad:#ec6a5c;
+  --s-shop:#8d98ab; --s-transit:#9a8ff0; --s-offloaded:#43b2e6; --s-staged:#f2c043; --s-ready:#f6834f; --s-installed:#43b885;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:.01em;text-wrap:balance;margin:0}
+h2{font-size:1.35rem}
+h3{font-size:1.1rem}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;flex-direction:column;gap:8px;padding-block:12px 0}
+.jobrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0;flex:1}
+.brand h1{font-size:1.6rem;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand .sub{color:var(--muted);font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin:0 -4px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{appearance:none;border:0;background:none;color:var(--muted);font:600 .95rem var(--body);padding:10px 12px 12px;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.tab .n{font-family:var(--mono);font-size:.75rem;margin-left:5px;color:var(--muted)}
+main{padding-block:20px 60px;display:flex;flex-direction:column;gap:20px}
+.btn{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 .9rem var(--body);padding:8px 13px;border-radius:6px;cursor:pointer;min-height:38px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{min-height:32px;padding:5px 10px;font-size:.84rem}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.danger{color:var(--bad)}
+.btn:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.spread{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono);font-size:.88em}
+.num{font-variant-numeric:tabular-nums}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kpi .v{font-family:var(--display);font-size:2rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:1rem;color:var(--muted);font-weight:600}
+.kpi .d{font-size:.84rem;color:var(--muted)}
+.bar{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden;display:flex}
+.bar > span{display:block;height:100%}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px}
+/* stage pipeline */
+.pipe{display:flex;height:34px;border-radius:6px;overflow:hidden;background:var(--sunk)}
+.pipe span{display:flex;align-items:center;justify-content:center;color:#fff;font:600 .8rem var(--mono);min-width:0;overflow:hidden}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px 12px}
+.legend button{appearance:none;background:none;border:0;padding:4px 0;display:flex;gap:8px;align-items:center;color:var(--fg);font:500 .9rem var(--body);cursor:pointer;text-align:left}
+.legend b{font-family:var(--mono);font-size:.85rem;margin-left:auto}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--sunk);white-space:nowrap}
+/* lists */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;border-left:4px solid var(--stage,var(--line))}
+.card .head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.card .id{font-family:var(--mono);font-size:1rem;font-weight:500;word-break:break-all}
+.card .meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.86rem;color:var(--muted)}
+.card .meta b{color:var(--fg);font-weight:600}
+.card .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+.feed{display:flex;flex-direction:column}
+.feed div{display:grid;grid-template-columns:92px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.feed div:last-child{border-bottom:0}
+.feed time{font-family:var(--mono);font-size:.78rem;color:var(--muted);padding-top:2px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.chip{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:500 .85rem var(--body);padding:6px 11px;border-radius:99px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-height:38px;width:100%;min-width:0}
+textarea{min-height:80px;resize:vertical}
+.filters input,.filters select{width:auto;flex:1 1 160px}
+.empty{border:2px dashed var(--line);border-radius:8px;padding:28px 20px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;color:var(--muted)}
+.empty h3{color:var(--fg)}
+.timer{font-family:var(--mono);color:var(--bad);font-weight:500}
+.over{color:var(--bad);font-weight:600}
+.banner{background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:.9rem}
+details.sys{background:var(--surface);border:1px solid var(--line);border-radius:8px}
+details.sys summary{list-style:none;cursor:pointer;padding:14px 16px;display:grid;grid-template-columns:1fr auto;gap:8px 16px;align-items:center}
+details.sys summary::-webkit-details-marker{display:none}
+details.sys .body{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
+.sysline{font-family:var(--mono);font-size:.82rem;color:var(--navy)}
+.catbars{display:flex;flex-direction:column;gap:8px}
+.catbars div{display:grid;grid-template-columns:minmax(110px,170px) 1fr 70px;gap:10px;align-items:center;font-size:.88rem}
+.catbars i{display:block;height:12px;border-radius:3px;background:var(--accent)}
+.report{font-family:var(--mono);font-size:.84rem;white-space:pre-wrap;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:16px;overflow-x:auto;line-height:1.55;margin:0}
+/* dialog */
+dialog{border:1px solid var(--line);border-radius:10px;padding:0;width:min(640px,calc(100vw - 24px));max-height:calc(100vh - 40px);background:var(--surface);color:var(--fg)}
+dialog::backdrop{background:rgba(8,12,18,.55)}
+dialog form{display:flex;flex-direction:column;max-height:calc(100vh - 42px)}
+dialog .dh{padding:16px 18px 10px;border-bottom:1px solid var(--line)}
+dialog .db{padding:14px 18px;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+dialog .df{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field.full{grid-column:1/-1}
+.field label{font-size:.78rem;font-weight:600;color:var(--muted);letter-spacing:.03em}
+.sect{grid-column:1/-1;font-family:var(--display);font-weight:700;font-size:1rem;color:var(--navy);padding-top:6px;border-top:1px solid var(--line);margin-top:4px}
+.sect:first-child{border-top:0;margin-top:0;padding-top:0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;z-index:60;max-width:calc(100vw - 32px)}
+@media (max-width:560px){
+  dialog .db{grid-template-columns:1fr}
+  .brand{flex-direction:column;gap:2px}
+  .brand h1{font-size:1.35rem;white-space:normal}
+  .feed div{grid-template-columns:76px 1fr}
+  .kpi .v{font-size:1.7rem}
+}
+@media (prefers-reduced-motion:no-preference){.bar>span,.pipe span{transition:width .3s ease}}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="jobrow">
+      <div class="brand"><h1 id="jobName">Foreman Spool Board</h1><span class="sub" id="jobSub">Piping install tracker</span></div>
+      <button class="btn small" id="jobBtn" type="button">Job info</button>
+    </div>
+    <nav class="tabs" role="tablist" id="tabs"></nav>
+  </div>
+</header>
+<main class="wrap" id="main"></main>
+<dialog id="dlg"><form id="dlgForm" novalidate></form></dialog>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const STAGES=[
+  {k:'shop',label:'At fab shop',short:'Shop'},
+  {k:'transit',label:'On trailer',short:'On trailer'},
+  {k:'offloaded',label:'Offloaded',short:'Offloaded'},
+  {k:'staged',label:'Staged',short:'Staged'},
+  {k:'ready',label:'Ready to fly',short:'Ready to fly'},
+  {k:'installed',label:'Installed',short:'Installed'}];
+const STAGE_DATE={offloaded:'offloadedAt',staged:'stagedAt',ready:'readyAt',installed:'installedAt'};
+const BN_CATS=['Crane / rigging','Materials','Engineering / RFI','Permits / safety','QC / inspection','Scaffold / access','Other trades','Equipment / tools','Weather','Manpower','Other'];
+const MAT_STATUS=[{k:'needed',label:'Needed'},{k:'ordered',label:'Ordered'},{k:'received',label:'Received'}];
+const TABS=[['overview','Overview'],['spools','Spools'],['systems','Systems'],['bottlenecks','Bottlenecks'],['materials','Materials'],['report','Daily report']];
+
+const S={systems:[],spools:[],bottlenecks:[],materials:[],activity:[],job:{},loaded:false};
+const UI={tab:'overview',q:'',sys:'',stage:'',matView:'needed',reportDate:today()};
+let db=null,user=null,me=null,canWrite=true,downloads=null;
+const names={};const pendingNames=new Set();
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const n=x=>{const v=Number(x);return isFinite(v)?v:0};
+function pad(x){return String(x).padStart(2,'0')}
+function localStamp(d=new Date()){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`}
+function today(){return localStamp().slice(0,10)}
+const dayOf=s=>(s||'').slice(0,10);
+function fmtDT(s){if(!s)return '';const d=new Date(s);if(isNaN(d))return esc(s);return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+(s.length>10?' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}):'')}
+function fmtDay(s){const d=new Date(s+'T12:00');return isNaN(d)?s:d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',year:'numeric'})}
+function mins(a,b){const x=new Date(a),y=b?new Date(b):new Date();return isNaN(x)||isNaN(y)?0:Math.max(0,(y-x)/60000)}
+function fmtDur(m){m=Math.round(m);const h=Math.floor(m/60),r=m%60;return h?`${h}h ${pad(r)}m`:`${r}m`}
+const fmtN=(v,d=0)=>n(v).toLocaleString(undefined,{maximumFractionDigits:d});
+const stageOf=k=>STAGES.find(s=>s.k===k)||STAGES[0];
+const stageIdx=k=>Math.max(0,STAGES.findIndex(s=>s.k===k));
+const sysById=id=>S.systems.find(s=>s.id===id);
+const sysLabel=id=>{const s=sysById(id);return s?(s.lineNo?s.lineNo+' · ':'')+s.name:'Unassigned'};
+const byNat=(a,b)=>String(a).localeCompare(String(b),undefined,{numeric:true,sensitivity:'base'});
+
+function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2600)}
+
+/* ---------- data ---------- */
+async function boot(){
+  render();
+  const C=window.claude;
+  if(!C){S.offline=true;render();return}
+  [db,user,downloads]=await Promise.all([C.use('db'),C.use('user'),C.use('downloads')].map(p=>p.catch(()=>null)));
+  if(!db){S.offline=true;render();return}
+  if(user){try{me=(await user.me()).id||null}catch{}try{const c=await user.can('data.write');if(c===false)canWrite=false}catch{}}
+  const watch=(name,q)=>(q||db.collection(name)).onSnapshot(snap=>{S[name]=snap.docs.map(d=>({id:d.id,...d.data()}));S.loaded=true;render()},e=>toast('Could not load '+name+': '+e.message));
+  ['systems','spools','bottlenecks','materials'].forEach(c=>watch(c));
+  watch('activity',db.collection('activity').orderBy('at','desc').limit(500));
+  db.doc('meta/job').onSnapshot(s=>{S.job=s.exists?s.data():{};render()},()=>{});
+  setInterval(()=>{if(S.bottlenecks.some(b=>!b.end))render()},30000);
+}
+function needDb(){if(!db){toast('Shared data is not available in this view. Open the page in claude.ai while signed in.');return false}return true}
+async function save(coll,id,data){
+  if(!needDb())return null;
+  data.updatedAt=localStamp();if(me)data.updatedBy=me;
+  try{
+    if(id){await db.collection(coll).doc(id).update(data);return id}
+    data.createdAt=localStamp();
+    const ref=await db.collection(coll).add(data);return ref.id;
+  }catch(e){toast(e.code==='not_granted'?'You have view-only access to this job.':'Save failed: '+e.message);throw e}
+}
+async function remove(coll,id){if(!needDb())return;try{await db.collection(coll).doc(id).delete()}catch(e){toast('Delete failed: '+e.message);throw e}}
+function log(text,extra={}){if(!db)return;const d={at:localStamp(),text,...extra};if(me)d.by=me;db.collection('activity').add(d).catch(()=>{})}
+
+function resolveNames(ids){
+  if(!user)return;const want=[...new Set(ids)].filter(id=>id&&!(id in names)&&!pendingNames.has(id));
+  if(!want.length)return;want.forEach(i=>pendingNames.add(i));
+  user.profiles(want).then(ps=>{want.forEach(id=>{names[id]=(ps&&ps[id]&&ps[id].name)||''});render()}).catch(()=>{});
+}
+
+/* ---------- derived numbers ---------- */
+function totals(spools=S.spools){
+  const t={count:spools.length,lf:0,lfInst:0,welds:0,weldsDone:0,inst:0,by:{}};
+  STAGES.forEach(s=>t.by[s.k]=0);
+  spools.forEach(p=>{const lf=n(p.lengthFt);t.lf+=lf;t.welds+=n(p.weldsTotal);t.weldsDone+=Math.min(n(p.weldsDone),n(p.weldsTotal)||Infinity);t.by[stageOf(p.status).k]++;if(p.status==='installed'){t.lfInst+=lf;t.inst++}});
+  return t;
+}
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+function weekStart(){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d}
+
+/* ---------- render ---------- */
+let raf=0;function render(){cancelAnimationFrame(raf);raf=requestAnimationFrame(draw)}
+function draw(){
+  const job=S.job||{};
+  $('#jobName').textContent=job.name||'Foreman Spool Board';
+  $('#jobSub').textContent=[job.number,job.foreman&&('Foreman: '+job.foreman),job.client].filter(Boolean).join(' · ')||'Piping install tracker';
+  $('#jobBtn').hidden=!canWrite;
+  const counts={spools:S.spools.length,systems:S.systems.length,bottlenecks:S.bottlenecks.filter(b=>!b.end).length,materials:S.materials.filter(m=>m.status!=='received').length};
+  $('#tabs').innerHTML=TABS.map(([k,l])=>`<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${UI.tab===k}">${l}${counts[k]?`<span class="n">${counts[k]}</span>`:''}</button>`).join('');
+  const m=$('#main');
+  const keep=document.activeElement&&document.activeElement.id;const sel=keep&&document.activeElement.selectionStart;
+  let html='';
+  if(S.offline)html+=`<div class="banner"><b>Viewing offline.</b> This page keeps the job's records in shared storage, which only loads inside claude.ai for signed-in people it is shared with. Nothing you enter here will be saved.</div>`;
+  else if(!canWrite)html+=`<div class="banner">You have view-only access. The foreman's updates appear here live.</div>`;
+  html+=({overview:vOverview,spools:vSpools,systems:vSystems,bottlenecks:vBottlenecks,materials:vMaterials,report:vReport})[UI.tab]();
+  m.innerHTML=html;
+  if(keep){const el=document.getElementById(keep);if(el&&el!==document.activeElement){el.focus();try{el.setSelectionRange(sel,sel)}catch{}}}
+  resolveNames(S.activity.slice(0,40).map(a=>a.by));
+}
+const W=s=>canWrite?s:'';
+
+function kpi(label,v,sub,d,barPct,color){return `<div class="kpi"><span class="label">${label}</span><span class="v">${v}${sub?` <small>${sub}</small>`:''}</span>${barPct!=null?`<div class="bar"><span style="width:${barPct}%;background:${color||'var(--accent)'}"></span></div>`:''}<span class="d">${d}</span></div>`}
+
+function pipeline(t){
+  const segs=STAGES.map(s=>t.by[s.k]?`<span style="width:${t.by[s.k]/t.count*100}%;background:var(--s-${s.k})" title="${s.label}: ${t.by[s.k]}">${t.by[s.k]/t.count>.06?t.by[s.k]:''}</span>`:'').join('');
+  return `<div class="pipe" role="img" aria-label="Spools by stage">${segs}</div>
+  <div class="legend">${STAGES.map(s=>`<button type="button" data-goto-stage="${s.k}"><i class="dot" style="background:var(--s-${s.k})"></i>${s.label}<b>${t.by[s.k]}</b></button>`).join('')}</div>`;
+}
+
+function vOverview(){
+  if(S.loaded&&!S.systems.length&&!S.spools.length)return emptyStart();
+  if(!S.loaded&&!S.offline)return `<div class="empty"><h3>Loading job data…</h3></div>`;
+  if(S.offline)return emptyStart();
+  const t=totals();
+  const ws=weekStart();
+  const bnWeek=S.bottlenecks.filter(b=>new Date(b.start)>=ws||!b.end);
+  const bnMin=bnWeek.reduce((a,b)=>a+mins(b.start,b.end),0);
+  const bnCrew=bnWeek.reduce((a,b)=>a+mins(b.start,b.end)*(n(b.crew)||1),0)/60;
+  const open=S.bottlenecks.filter(b=>!b.end);
+  const need=S.materials.filter(m=>m.status!=='received');
+  const late=need.filter(m=>m.neededBy&&m.neededBy<today());
+  const td=today();
+  const weldsToday=S.activity.filter(a=>a.kind==='weld'&&dayOf(a.at)===td).reduce((x,a)=>x+n(a.n),0);
+  const lfToday=S.spools.filter(p=>p.status==='installed'&&dayOf(p.installedAt)===td).reduce((x,p)=>x+n(p.lengthFt),0);
+  const ready=S.spools.filter(p=>p.status==='ready').sort((a,b)=>byNat(a.readyAt||'',b.readyAt||''));
+  let h=`<section class="kpis">
+    ${kpi('Linear feet installed',fmtN(t.lfInst,1),`/ ${fmtN(t.lf,1)} LF`,`${pct(t.lfInst,t.lf)}% complete · ${fmtN(lfToday,1)} LF today`,pct(t.lfInst,t.lf),'var(--s-installed)')}
+    ${kpi('Field welds complete',fmtN(t.weldsDone),`/ ${fmtN(t.welds)}`,`${pct(t.weldsDone,t.welds)}% · ${weldsToday} today`,pct(t.weldsDone,t.welds),'var(--navy)')}
+    ${kpi('Spools installed',t.inst,`/ ${t.count}`,`${t.by.ready} ready to fly · ${t.by.staged} staged`,pct(t.inst,t.count),'var(--s-installed)')}
+    ${kpi('Bottleneck time this week',fmtDur(bnMin),'',`${fmtN(bnCrew,1)} crew-hours lost · ${open.length} open now`)}
+    ${kpi('Materials needed',need.length,'',late.length?`<span class="over">${late.length} past need-by date</span>`:'None past need-by date')}
+  </section>
+  <section class="panel"><div class="spread"><h2>Spools by stage</h2><span class="muted num">${t.count} spools · ${S.systems.length} systems</span></div>${pipeline(t)}</section>
+  <div class="grid2">
+    <section class="panel"><div class="spread"><h2>Crane queue: ready to fly</h2><span class="pill"><i class="dot" style="background:var(--s-ready)"></i>${ready.length}</span></div>
+      ${ready.length?`<div class="tablewrap"><table><thead><tr><th>Spool</th><th>System</th><th>Staged at</th><th class="r">LF</th></tr></thead><tbody>${ready.map(p=>`<tr><td class="mono">${esc(p.spoolNo)}</td><td>${esc(sysLabel(p.systemId))}</td><td>${esc(p.stageLoc||'—')}</td><td class="r">${fmtN(p.lengthFt,1)}</td></tr>`).join('')}</tbody></table></div>`:`<p class="muted">No spools are marked ready to fly. Mark a staged spool ready once it is rigged and its supports are set.</p>`}
+    </section>
+    <section class="panel"><div class="spread"><h2>Open bottlenecks</h2>${W(`<button class="btn small" type="button" data-act="bn-new">Log bottleneck</button>`)}</div>
+      ${open.length?open.map(bnRow).join(''):`<p class="muted">Nothing is holding the crew up right now.</p>`}
+    </section>
+  </div>
+  <div class="grid2">
+    <section class="panel"><h2>Progress by system</h2>${sysTable()}</section>
+    <section class="panel"><h2>Latest updates</h2>${feed(S.activity.slice(0,14))}</section>
+  </div>`;
+  return h;
+}
+function emptyStart(){
+  return `<div class="empty"><h3>Set up your job</h3>
+  <p>Start by adding the piping systems you are responsible for, then add the spools on each system. Spool status, welds, bottlenecks and materials all build from there.</p>
+  ${W(`<div class="row" style="justify-content:center"><button class="btn primary" type="button" data-act="sys-new">Add a piping system</button><button class="btn" type="button" data-act="sample">Load a sample job to try it</button></div>
+  <p style="font-size:.85rem">Sample records are labelled “SAMPLE” and can be removed with one button.</p>`)}</div>`;
+}
+function sysTable(){
+  if(!S.systems.length)return `<p class="muted">No systems yet.</p>`;
+  const rows=[...S.systems].sort((a,b)=>byNat(a.lineNo||a.name,b.lineNo||b.name)).map(s=>{
+    const t=totals(S.spools.filter(p=>p.systemId===s.id));const p=pct(t.lfInst,t.lf);
+    return `<tr><td><div class="sysline">${esc(s.lineNo||'')}</div>${esc(s.name)}</td><td class="r">${t.count}</td><td style="min-width:120px"><div class="bar"><span style="width:${p}%;background:var(--s-installed)"></span></div><span class="muted num" style="font-size:.8rem">${fmtN(t.lfInst,1)} / ${fmtN(t.lf,1)} LF</span></td><td class="r">${t.weldsDone}/${t.welds}</td></tr>`}).join('');
+  return `<div class="tablewrap"><table><thead><tr><th>System</th><th class="r">Spools</th><th>LF installed</th><th class="r">Welds</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function feed(items){
+  if(!items.length)return `<p class="muted">Updates appear here as spools move, welds are logged and materials arrive.</p>`;
+  return `<div class="feed">${items.map(a=>{const who=a.by&&names[a.by];return `<div><time>${fmtDT(a.at)}</time><span>${esc(a.text)}${who?` <span class="muted">· ${esc(who)}</span>`:''}</span></div>`}).join('')}</div>`;
+}
+
+/* spools */
+function filteredSpools(){
+  const q=UI.q.trim().toLowerCase();
+  return S.spools.filter(p=>(!UI.sys||p.systemId===UI.sys)&&(!UI.stage||stageOf(p.status).k===UI.stage)&&(!q||[p.spoolNo,p.size,p.stageLoc,p.trailer,p.notes,sysLabel(p.systemId)].join(' ').toLowerCase().includes(q)))
+    .sort((a,b)=>byNat(sysLabel(a.systemId),sysLabel(b.systemId))||byNat(a.spoolNo,b.spoolNo));
+}
+function spoolCard(p){
+  const st=stageOf(p.status),i=stageIdx(st.k),next=STAGES[i+1];
+  const wt=n(p.weldsTotal),wd=n(p.weldsDone);
+  const where=st.k==='transit'?(p.trailer&&'Trailer '+p.trailer):(['staged','ready'].includes(st.k)?p.stageLoc:st.k==='offloaded'?(p.stageLoc||(p.trailer&&'Trailer '+p.trailer)):'');
+  const when=p[STAGE_DATE[st.k]];
+  return `<article class="card" style="--stage:var(--s-${st.k})">
+    <div class="head"><div><div class="id">${esc(p.spoolNo)}</div><div class="muted" style="font-size:.85rem">${esc(sysLabel(p.systemId))}</div></div>
+    <span class="pill"><i class="dot" style="background:var(--s-${st.k})"></i>${st.short}</span></div>
+    <div class="meta">${p.size?`<span><b>${esc(p.size)}</b></span>`:''}<span><b class="num">${fmtN(p.lengthFt,1)}</b> LF</span><span>Welds <b class="num">${wd}/${wt}</b></span>${where?`<span>At <b>${esc(where)}</b></span>`:''}${when?`<span>${st.short} ${fmtDT(when)}</span>`:''}</div>
+    ${wt?`<div class="bar" title="Welds ${wd} of ${wt}"><span style="width:${pct(wd,wt)}%;background:var(--navy)"></span></div>`:''}
+    ${p.notes?`<div style="font-size:.86rem">${esc(p.notes)}</div>`:''}
+    ${W(`<div class="acts">${next?`<button class="btn small primary" type="button" data-act="sp-next" data-id="${p.id}">→ ${next.short}</button>`:''}${wt&&wd<wt?`<button class="btn small" type="button" data-act="sp-weld" data-id="${p.id}">+1 weld</button>`:''}<button class="btn small ghost" type="button" data-act="sp-edit" data-id="${p.id}">Edit</button></div>`)}
+  </article>`;
+}
+function vSpools(){
+  const list=filteredSpools();const all=S.spools;
+  const cnt=k=>all.filter(p=>(!UI.sys||p.systemId===UI.sys)&&stageOf(p.status).k===k).length;
+  const t=totals(list);
+  return `<div class="spread"><h2>Spools</h2><div class="row">${W(`<button class="btn" type="button" data-act="sp-bulk">Bulk add</button><button class="btn primary" type="button" data-act="sp-new">Add spool</button>`)}${downloads?`<button class="btn" type="button" data-act="csv">Export CSV</button>`:''}</div></div>
+  <div class="filters"><input id="q" type="search" placeholder="Search spool no., location, trailer…" value="${esc(UI.q)}" aria-label="Search spools">
+  <select id="sysFilter" aria-label="Filter by system"><option value="">All systems</option>${S.systems.map(s=>`<option value="${s.id}" ${UI.sys===s.id?'selected':''}>${esc(sysLabel(s.id))}</option>`).join('')}</select></div>
+  <div class="chips"><button class="chip" type="button" data-stage="" aria-pressed="${!UI.stage}">All</button>${STAGES.map(s=>`<button class="chip" type="button" data-stage="${s.k}" aria-pressed="${UI.stage===s.k}"><i class="dot" style="background:var(--s-${s.k})"></i>${s.short} <span class="mono">${cnt(s.k)}</span></button>`).join('')}</div>
+  <div class="muted num">${list.length} spools · ${fmtN(t.lf,1)} LF · ${t.weldsDone}/${t.welds} welds</div>
+  ${list.length?`<div class="cards">${list.map(spoolCard).join('')}</div>`:`<div class="empty"><h3>${all.length?'No spools match these filters':'No spools yet'}</h3>${all.length?'':`<p>Add spools one at a time, or paste a spool list from the ISO drawings or fab shop log with Bulk add.</p>`}</div>`}`;
+}
+
+/* systems */
+function vSystems(){
+  const list=[...S.systems].sort((a,b)=>byNat(a.lineNo||a.name,b.lineNo||b.name));
+  return `<div class="spread"><h2>Piping systems</h2>${W(`<button class="btn primary" type="button" data-act="sys-new">Add system</button>`)}</div>
+  ${list.length?list.map(s=>{
+    const sp=S.spools.filter(p=>p.systemId===s.id).sort((a,b)=>byNat(a.spoolNo,b.spoolNo));const t=totals(sp);
+    return `<details class="sys"><summary><div style="min-width:0"><div class="sysline">${esc(s.lineNo||'')}${s.spec?' · '+esc(s.spec):''}</div><h3>${esc(s.name)}</h3><div class="muted" style="font-size:.86rem">${[s.service,s.area].filter(Boolean).map(esc).join(' · ')}</div></div>
+      <div style="text-align:right" class="num"><b>${pct(t.lfInst,t.lf)}%</b><div class="muted" style="font-size:.8rem">${t.inst}/${t.count} spools</div></div>
+      <div class="bar" style="grid-column:1/-1">${STAGES.map(st=>t.by[st.k]?`<span style="width:${t.by[st.k]/t.count*100}%;background:var(--s-${st.k})"></span>`:'').join('')}</div></summary>
+      <div class="body"><div class="meta muted" style="display:flex;gap:6px 16px;flex-wrap:wrap;font-size:.88rem"><span>${fmtN(t.lfInst,1)} / ${fmtN(t.lf,1)} LF installed</span><span>Welds ${t.weldsDone}/${t.welds}</span>${STAGES.map(st=>t.by[st.k]?`<span>${st.short}: ${t.by[st.k]}</span>`:'').join('')}</div>
+      ${s.notes?`<p style="margin:0">${esc(s.notes)}</p>`:''}
+      ${W(`<div class="row"><button class="btn small primary" type="button" data-act="sp-new" data-sys="${s.id}">Add spool</button><button class="btn small" type="button" data-act="sp-bulk" data-sys="${s.id}">Bulk add spools</button><button class="btn small ghost" type="button" data-act="sys-edit" data-id="${s.id}">Edit system</button></div>`)}
+      ${sp.length?`<div class="tablewrap"><table><thead><tr><th>Spool</th><th>Size</th><th class="r">LF</th><th class="r">Welds</th><th>Stage</th><th>Location</th></tr></thead><tbody>${sp.map(p=>{const st=stageOf(p.status);return `<tr><td class="mono">${canWrite?`<a href="#" data-act="sp-edit" data-id="${p.id}" style="color:inherit">${esc(p.spoolNo)}</a>`:esc(p.spoolNo)}</td><td>${esc(p.size||'')}</td><td class="r">${fmtN(p.lengthFt,1)}</td><td class="r">${n(p.weldsDone)}/${n(p.weldsTotal)}</td><td><span class="pill"><i class="dot" style="background:var(--s-${st.k})"></i>${st.short}</span></td><td>${esc(st.k==='transit'?(p.trailer?'Trailer '+p.trailer:''):(p.stageLoc||''))}</td></tr>`}).join('')}</tbody></table></div>`:`<p class="muted">No spools on this system yet.</p>`}
+      </div></details>`}).join(''):`<div class="empty"><h3>No piping systems yet</h3><p>Add each system you are responsible for: line or system number, service, spec and area.</p></div>`}
+  ${sampleTools()}`;
+}
+function sampleTools(){const has=['systems','spools','bottlenecks','materials'].some(c=>S[c].some(d=>d.sample));return has&&canWrite?`<div class="banner spread"><span>This job contains sample records.</span><button class="btn small danger" type="button" data-act="unsample">Remove sample data</button></div>`:''}
+
+/* bottlenecks */
+function bnRow(b){
+  const open=!b.end;const m=mins(b.start,b.end);
+  return `<div class="card" style="--stage:${open?'var(--bad)':'var(--line)'}"><div class="head"><div><b>${esc(b.title)}</b><div class="muted" style="font-size:.85rem">${esc(b.category||'')}${b.systemId?' · '+esc(sysLabel(b.systemId)):''}${b.spoolRef?' · '+esc(b.spoolRef):''}</div></div>
+  <span class="${open?'timer':'mono'}">${fmtDur(m)}</span></div>
+  <div class="meta"><span>Started ${fmtDT(b.start)}</span>${b.end?`<span>Cleared ${fmtDT(b.end)}</span>`:''}<span>Crew <b>${n(b.crew)||1}</b> · ${fmtN(m*(n(b.crew)||1)/60,1)} crew-hrs</span></div>
+  ${b.notes?`<div style="font-size:.86rem">${esc(b.notes)}</div>`:''}
+  ${W(`<div class="acts">${open?`<button class="btn small primary" type="button" data-act="bn-clear" data-id="${b.id}">Cleared now</button>`:''}<button class="btn small ghost" type="button" data-act="bn-edit" data-id="${b.id}">Edit</button></div>`)}</div>`;
+}
+function vBottlenecks(){
+  const open=S.bottlenecks.filter(b=>!b.end).sort((a,b)=>byNat(a.start,b.start));
+  const done=S.bottlenecks.filter(b=>b.end).sort((a,b)=>byNat(b.start,a.start));
+  const byCat={};S.bottlenecks.forEach(b=>{const c=b.category||'Other';byCat[c]=(byCat[c]||0)+mins(b.start,b.end)});
+  const cats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);const mx=cats.length?cats[0][1]:1;
+  const total=S.bottlenecks.reduce((a,b)=>a+mins(b.start,b.end),0);
+  const crew=S.bottlenecks.reduce((a,b)=>a+mins(b.start,b.end)*(n(b.crew)||1),0)/60;
+  return `<div class="spread"><h2>Bottlenecks</h2>${W(`<button class="btn primary" type="button" data-act="bn-new">Log bottleneck</button>`)}</div>
+  <section class="kpis">${kpi('Open now',open.length,'','Timers run until you tap Cleared')}${kpi('Total time lost',fmtDur(total),'',`${S.bottlenecks.length} logged`)}${kpi('Crew-hours lost',fmtN(crew,1),'','Duration × crew size waiting')}</section>
+  ${cats.length?`<section class="panel"><h3>Time lost by cause</h3><div class="catbars">${cats.map(([c,v])=>`<div><span>${esc(c)}</span><i style="width:${Math.max(2,v/mx*100)}%"></i><span class="mono r" style="text-align:right">${fmtDur(v)}</span></div>`).join('')}</div></section>`:''}
+  ${open.length?`<h3>Open</h3><div class="cards">${open.map(bnRow).join('')}</div>`:''}
+  <h3>History</h3>
+  ${done.length?`<div class="tablewrap"><table><thead><tr><th>Started</th><th>Bottleneck</th><th>Cause</th><th>System / spool</th><th class="r">Duration</th><th class="r">Crew-hrs</th>${W('<th></th>')}</tr></thead><tbody>${done.map(b=>{const m=mins(b.start,b.end);return `<tr><td class="num">${fmtDT(b.start)}</td><td>${esc(b.title)}${b.notes?`<div class="muted" style="font-size:.82rem">${esc(b.notes)}</div>`:''}</td><td>${esc(b.category||'')}</td><td>${esc(b.systemId?sysLabel(b.systemId):'')}${b.spoolRef?' · '+esc(b.spoolRef):''}</td><td class="r">${fmtDur(m)}</td><td class="r">${fmtN(m*(n(b.crew)||1)/60,1)}</td>${W(`<td><button class="btn small ghost" type="button" data-act="bn-edit" data-id="${b.id}">Edit</button></td>`)}</tr>`}).join('')}</tbody></table></div>`:`<p class="muted">Cleared bottlenecks are listed here with how long each one held up the crew.</p>`}`;
+}
+
+/* materials */
+function vMaterials(){
+  const need=S.materials.filter(m=>m.status!=='received').sort((a,b)=>byNat(a.neededBy||'9999',b.neededBy||'9999'));
+  const got=S.materials.filter(m=>m.status==='received').sort((a,b)=>byNat(b.receivedAt||'',a.receivedAt||''));
+  const v=UI.matView;const td=today();
+  const tbl=v==='needed'
+    ?(need.length?`<div class="tablewrap"><table><thead><tr><th>Item</th><th>Size</th><th class="r">Qty</th><th>System</th><th>Need by</th><th>Status</th><th>PO / ref</th>${W('<th></th>')}</tr></thead><tbody>${need.map(m=>`<tr><td><b>${esc(m.item)}</b>${m.notes?`<div class="muted" style="font-size:.82rem">${esc(m.notes)}</div>`:''}</td><td>${esc(m.size||'')}</td><td class="r">${fmtN(m.qty,2)} ${esc(m.unit||'')}</td><td>${esc(m.systemId?sysLabel(m.systemId):'')}</td><td class="${m.neededBy&&m.neededBy<td?'over':''}">${m.neededBy?fmtDT(m.neededBy):'—'}</td><td><span class="pill">${m.status==='ordered'?'Ordered':'Needed'}</span></td><td class="mono">${esc(m.po||'')}</td>${W(`<td><div class="row" style="flex-wrap:nowrap"><button class="btn small primary" type="button" data-act="mat-recv" data-id="${m.id}">Received</button><button class="btn small ghost" type="button" data-act="mat-edit" data-id="${m.id}">Edit</button></div></td>`)}</tr>`).join('')}</tbody></table></div>`:`<div class="empty"><h3>Nothing on the needed list</h3><p>Add material shortages here so the office and the warehouse see what the crew is waiting on.</p></div>`)
+    :(got.length?`<div class="tablewrap"><table><thead><tr><th>Received</th><th>Item</th><th>Size</th><th class="r">Qty</th><th>System</th><th>Stored at</th><th>PO / ref</th>${W('<th></th>')}</tr></thead><tbody>${got.map(m=>`<tr><td class="num">${fmtDT(m.receivedAt)}</td><td><b>${esc(m.item)}</b>${m.notes?`<div class="muted" style="font-size:.82rem">${esc(m.notes)}</div>`:''}</td><td>${esc(m.size||'')}</td><td class="r">${fmtN(m.qty,2)} ${esc(m.unit||'')}</td><td>${esc(m.systemId?sysLabel(m.systemId):'')}</td><td>${esc(m.location||'')}</td><td class="mono">${esc(m.po||'')}</td>${W(`<td><button class="btn small ghost" type="button" data-act="mat-edit" data-id="${m.id}">Edit</button></td>`)}</tr>`).join('')}</tbody></table></div>`:`<div class="empty"><h3>No materials received yet</h3><p>Log deliveries as they come in: bolts, gaskets, valves, supports, pipe.</p></div>`);
+  return `<div class="spread"><h2>Materials</h2>${W(`<div class="row"><button class="btn" type="button" data-act="mat-new" data-status="received">Log received</button><button class="btn primary" type="button" data-act="mat-new" data-status="needed">Add needed</button></div>`)}</div>
+  <div class="chips"><button class="chip" type="button" data-matview="needed" aria-pressed="${v==='needed'}">Needed <span class="mono">${need.length}</span></button><button class="chip" type="button" data-matview="received" aria-pressed="${v==='received'}">Received <span class="mono">${got.length}</span></button></div>${tbl}`;
+}
+
+/* daily report */
+function reportText(day){
+  const job=S.job||{};const t=totals();
+  const inst=S.spools.filter(p=>dayOf(p.installedAt)===day);
+  const off=S.spools.filter(p=>dayOf(p.offloadedAt)===day);
+  const stg=S.spools.filter(p=>dayOf(p.stagedAt)===day);
+  const ready=S.spools.filter(p=>p.status==='ready');
+  const welds=S.activity.filter(a=>a.kind==='weld'&&dayOf(a.at)===day).reduce((x,a)=>x+n(a.n),0);
+  const bn=S.bottlenecks.filter(b=>dayOf(b.start)===day||dayOf(b.end)===day||(!b.end&&dayOf(b.start)<=day));
+  const recv=S.materials.filter(m=>m.status==='received'&&dayOf(m.receivedAt)===day);
+  const need=S.materials.filter(m=>m.status!=='received');
+  const L=[];const lf=inst.reduce((a,p)=>a+n(p.lengthFt),0);
+  const spl=p=>`${p.spoolNo} (${sysLabel(p.systemId)}${p.lengthFt?', '+fmtN(p.lengthFt,1)+' LF':''})`;
+  L.push(`DAILY PIPING REPORT — ${fmtDay(day)}`);
+  if(job.name||job.number)L.push([job.name,job.number].filter(Boolean).join(' · '));
+  if(job.foreman)L.push('Foreman: '+job.foreman);
+  L.push('');
+  L.push('PRODUCTION');
+  L.push(`  Linear feet installed today: ${fmtN(lf,1)} LF (${inst.length} spools)`);
+  L.push(`  Field welds completed today: ${welds}`);
+  L.push(`  Job to date: ${fmtN(t.lfInst,1)} of ${fmtN(t.lf,1)} LF (${pct(t.lfInst,t.lf)}%) · welds ${t.weldsDone} of ${t.welds} (${pct(t.weldsDone,t.welds)}%) · spools ${t.inst} of ${t.count}`);
+  L.push('');
+  const sec=(title,arr,f,none)=>{L.push(title);arr.length?arr.forEach(x=>L.push('  - '+f(x))):L.push('  '+none);L.push('')};
+  sec('INSTALLED',inst,spl,'None');
+  sec('OFFLOADED FROM TRAILERS',off,p=>spl(p)+(p.trailer?' — trailer '+p.trailer:''),'None');
+  sec('STAGED',stg,p=>spl(p)+(p.stageLoc?' — '+p.stageLoc:''),'None');
+  sec('READY TO FLY (CRANE QUEUE)',ready,p=>spl(p)+(p.stageLoc?' — at '+p.stageLoc:''),'None');
+  sec('BOTTLENECKS',bn,b=>{const m=mins(b.start,b.end);return `${b.title} [${b.category||'Other'}] — ${fmtDur(m)}${b.end?'':' and counting'}, crew ${n(b.crew)||1} (${fmtN(m*(n(b.crew)||1)/60,1)} crew-hrs)${b.notes?' — '+b.notes:''}`},'None');
+  sec('MATERIALS RECEIVED',recv,m=>`${m.item}${m.size?' '+m.size:''} × ${fmtN(m.qty,2)} ${m.unit||''}${m.location?' — stored at '+m.location:''}`,'None');
+  sec('MATERIALS STILL NEEDED',need,m=>`${m.item}${m.size?' '+m.size:''} × ${fmtN(m.qty,2)} ${m.unit||''}${m.neededBy?' — need by '+fmtDay(m.neededBy):''}${m.status==='ordered'?' (ordered'+(m.po?', '+m.po:'')+')':''}`,'None');
+  return L.join('\n').trimEnd();
+}
+function vReport(){
+  return `<div class="spread"><h2>Daily report</h2><div class="row"><input id="repDate" type="date" value="${UI.reportDate}" aria-label="Report date" style="width:auto"><button class="btn primary" type="button" data-act="copy">Copy report</button>${downloads?`<button class="btn" type="button" data-act="rep-dl">Save as .txt</button>`:''}</div></div>
+  <p class="muted" style="margin:0">Built from today's spool moves, weld counts, bottlenecks and materials. Copy it into a text, email or the daily log.</p>
+  <pre class="report" id="reportBody">${esc(reportText(UI.reportDate))}</pre>`;
+}
+
+/* ---------- forms ---------- */
+function sysOptions(blank='Select a system'){return [{v:'',l:blank},...[...S.systems].sort((a,b)=>byNat(a.lineNo||a.name,b.lineNo||b.name)).map(s=>({v:s.id,l:sysLabel(s.id)}))]}
+function fieldHtml(f,v){
+  const id='f_'+f.k;const val=v??'';const req=f.req?'required':'';
+  let input;
+  if(f.type==='select')input=`<select id="${id}" name="${f.k}" ${req}>${f.options.map(o=>`<option value="${esc(o.v)}" ${String(o.v)===String(val)?'selected':''}>${esc(o.l)}</option>`).join('')}</select>`;
+  else if(f.type==='textarea')input=`<textarea id="${id}" name="${f.k}">${esc(val)}</textarea>`;
+  else input=`<input id="${id}" name="${f.k}" type="${f.type==='datetime'?'datetime-local':f.type||'text'}" value="${esc(val)}" ${f.type==='number'?'inputmode="decimal" step="any" min="0"':''} ${f.ph?`placeholder="${esc(f.ph)}"`:''} ${req}>`;
+  return `<div class="field ${f.full||f.type==='textarea'?'full':''}"><label for="${id}">${esc(f.label)}${f.req?' *':''}</label>${input}${f.hint?`<span class="muted" style="font-size:.78rem">${esc(f.hint)}</span>`:''}</div>`;
+}
+let formCtx=null;
+function openForm({title,fields,values={},onSave,onDelete,saveLabel='Save'}){
+  formCtx={fields,onSave,onDelete,armed:false};
+  $('#dlgForm').innerHTML=`<div class="dh"><h2>${esc(title)}</h2></div><div class="db">${fields.map(f=>f.sect?`<div class="sect">${esc(f.sect)}</div>`:fieldHtml(f,values[f.k])).join('')}</div>
+  <div class="df"><div>${onDelete?`<button class="btn danger" type="button" id="dlgDel">Delete</button>`:''}</div><div class="row"><button class="btn" type="button" id="dlgCancel">Cancel</button><button class="btn primary" type="submit">${esc(saveLabel)}</button></div></div>`;
+  const d=$('#dlg');d.showModal();const first=d.querySelector('.db input,.db select,.db textarea');if(first)first.focus();
+}
+$('#dlgForm').addEventListener('submit',async e=>{
+  e.preventDefault();if(!formCtx)return;const fm=e.target;
+  const bad=[...fm.querySelectorAll('[required]')].find(el=>!el.value.trim());
+  if(bad){bad.focus();toast('Fill in '+bad.closest('.field').querySelector('label').textContent.replace(' *',''));return}
+  const out={};formCtx.fields.forEach(f=>{if(!f.k)return;const el=fm.elements[f.k];if(!el)return;let v=el.value.trim();if(f.type==='number')v=v===''?0:n(v);out[f.k]=v});
+  const btn=fm.querySelector('[type=submit]');btn.disabled=true;
+  try{await formCtx.onSave(out);$('#dlg').close()}catch{}finally{btn.disabled=false}
+});
+$('#dlgForm').addEventListener('click',async e=>{
+  if(e.target.id==='dlgCancel')$('#dlg').close();
+  if(e.target.id==='dlgDel'){if(!formCtx.armed){formCtx.armed=true;e.target.textContent='Tap again to delete';return}try{await formCtx.onDelete();$('#dlg').close()}catch{}}
+});
+
+function spoolFields(){return [
+  {sect:'Spool'},
+  {k:'spoolNo',label:'Spool number',req:true,ph:'e.g. PW-200-03'},
+  {k:'systemId',label:'Piping system',type:'select',req:true,options:sysOptions()},
+  {k:'size',label:'Size',ph:'e.g. 6" Sch 40'},
+  {k:'lengthFt',label:'Length (LF)',type:'number'},
+  {k:'weldsTotal',label:'Field welds required',type:'number'},
+  {k:'weldsDone',label:'Field welds completed',type:'number'},
+  {sect:'Status and location'},
+  {k:'status',label:'Stage',type:'select',options:STAGES.map(s=>({v:s.k,l:s.label}))},
+  {k:'trailer',label:'Trailer / load no.',ph:'e.g. T-1142'},
+  {k:'offloadedAt',label:'Offloaded',type:'datetime'},
+  {k:'stageLoc',label:'Staging location',ph:'e.g. Laydown B, row 3'},
+  {k:'stagedAt',label:'Staged',type:'datetime'},
+  {k:'readyAt',label:'Ready to fly',type:'datetime'},
+  {k:'installedAt',label:'Installed',type:'datetime'},
+  {k:'notes',label:'Notes',type:'textarea'}]}
+
+async function saveSpool(old,v){
+  const st=v.status||'shop';const df=STAGE_DATE[st];
+  if(df&&!v[df])v[df]=localStamp();
+  if(v.weldsTotal&&v.weldsDone>v.weldsTotal)v.weldsDone=v.weldsTotal;
+  const id=await save('spools',old&&old.id,v);if(!id)return;
+  const lbl=`${v.spoolNo} (${sysLabel(v.systemId)})`;
+  if(!old)log(`Added spool ${lbl}, ${fmtN(v.lengthFt,1)} LF`,{kind:'spool',spoolId:id});
+  else if(old.status!==st)log(`${lbl} → ${stageOf(st).label}${st==='installed'?`, ${fmtN(v.lengthFt,1)} LF`:''}${st==='staged'&&v.stageLoc?' at '+v.stageLoc:''}${st==='offloaded'&&v.trailer?' from trailer '+v.trailer:''}`,{kind:'stage',stage:st,spoolId:id});
+  const dw=n(v.weldsDone)-n(old&&old.weldsDone);
+  if(dw>0)log(`${dw} field weld${dw>1?'s':''} completed on ${lbl} (${v.weldsDone}/${v.weldsTotal})`,{kind:'weld',n:dw,spoolId:id});
+  toast('Spool saved');
+}
+function editSpool(p,preset={}){
+  if(!S.systems.length){toast('Add a piping system first');return openSystem()}
+  const vals={status:'shop',...(p||{}),...preset};
+  openForm({title:p?'Edit spool '+p.spoolNo:'Add spool',fields:spoolFields(),values:vals,onSave:v=>saveSpool(p,v),onDelete:p?async()=>{await remove('spools',p.id);log(`Deleted spool ${p.spoolNo}`);toast('Spool deleted')}:null});
+}
+function openSystem(s){
+  openForm({title:s?'Edit system':'Add piping system',fields:[
+    {k:'lineNo',label:'Line / system number',ph:'e.g. PW-200'},
+    {k:'name',label:'System name',req:true,ph:'e.g. Process water supply'},
+    {k:'service',label:'Service',ph:'e.g. Process water'},
+    {k:'spec',label:'Spec / material',ph:'e.g. A106 Gr B, 150# CS'},
+    {k:'area',label:'Area / unit',ph:'e.g. Pipe rack 2, Unit 400',full:true},
+    {k:'notes',label:'Notes',type:'textarea'}],values:s||{},
+    onSave:async v=>{const id=await save('systems',s&&s.id,v);if(id&&!s)log(`Added piping system ${v.lineNo?v.lineNo+' · ':''}${v.name}`);if(id)toast('System saved')},
+    onDelete:s?async()=>{if(S.spools.some(p=>p.systemId===s.id)){toast('Move or delete this system\'s spools first');throw 0}await remove('systems',s.id);toast('System deleted')}:null});
+}
+function openBn(b){
+  openForm({title:b?'Edit bottleneck':'Log bottleneck',fields:[
+    {k:'title',label:'What is holding the crew up?',req:true,full:true,ph:'e.g. Crane down, waiting on operator'},
+    {k:'category',label:'Cause',type:'select',options:BN_CATS.map(c=>({v:c,l:c}))},
+    {k:'crew',label:'Crew members affected',type:'number'},
+    {k:'systemId',label:'System',type:'select',options:sysOptions('Not tied to one system')},
+    {k:'spoolRef',label:'Spool(s)',ph:'Optional'},
+    {k:'start',label:'Started',type:'datetime',req:true},
+    {k:'end',label:'Cleared',type:'datetime',hint:'Leave blank while it is still open.'},
+    {k:'notes',label:'Notes / resolution',type:'textarea'}],
+    values:b||{start:localStamp(),category:BN_CATS[0],crew:4},
+    onSave:async v=>{if(v.end&&v.end<v.start){toast('Cleared time is before the start time');throw 0}const id=await save('bottlenecks',b&&b.id,v);if(!id)return;
+      if(!b)log(`Bottleneck: ${v.title} [${v.category}]`,{kind:'bn'});else if(!b.end&&v.end)log(`Bottleneck cleared after ${fmtDur(mins(v.start,v.end))}: ${v.title}`,{kind:'bn'});toast('Bottleneck saved')},
+    onDelete:b?async()=>{await remove('bottlenecks',b.id);toast('Bottleneck deleted')}:null});
+}
+function openMat(m,preset={}){
+  openForm({title:m?'Edit material':(preset.status==='received'?'Log material received':'Add material needed'),fields:[
+    {k:'item',label:'Item',req:true,ph:'e.g. 6" 150# WN flange'},
+    {k:'size',label:'Size',ph:'e.g. 6"'},
+    {k:'qty',label:'Quantity',type:'number'},
+    {k:'unit',label:'Unit',ph:'ea, ft, box'},
+    {k:'systemId',label:'For system',type:'select',options:sysOptions('General / not one system')},
+    {k:'status',label:'Status',type:'select',options:MAT_STATUS.map(s=>({v:s.k,l:s.label}))},
+    {k:'neededBy',label:'Need by',type:'date'},
+    {k:'po',label:'PO / requisition no.'},
+    {k:'receivedAt',label:'Received',type:'datetime'},
+    {k:'location',label:'Stored at',ph:'e.g. Conex 2, shelf C'},
+    {k:'notes',label:'Notes',type:'textarea'}],
+    values:m||{status:'needed',unit:'ea',...preset},
+    onSave:async v=>{if(v.status==='received'&&!v.receivedAt)v.receivedAt=localStamp();const id=await save('materials',m&&m.id,v);if(!id)return;
+      if(v.status==='received'&&(!m||m.status!=='received'))log(`Material received: ${v.item}${v.size?' '+v.size:''} × ${fmtN(v.qty,2)} ${v.unit||''}`,{kind:'mat'});
+      else if(!m)log(`Material needed: ${v.item}${v.size?' '+v.size:''} × ${fmtN(v.qty,2)} ${v.unit||''}${v.neededBy?' by '+v.neededBy:''}`,{kind:'mat'});toast('Material saved')},
+    onDelete:m?async()=>{await remove('materials',m.id);toast('Material deleted')}:null});
+}
+function openBulk(sysId){
+  if(!S.systems.length){toast('Add a piping system first');return openSystem()}
+  openForm({title:'Bulk add spools',saveLabel:'Add spools',fields:[
+    {k:'systemId',label:'Piping system',type:'select',req:true,options:sysOptions(),full:true},
+    {k:'status',label:'Starting stage',type:'select',options:STAGES.map(s=>({v:s.k,l:s.label}))},
+    {k:'trailer',label:'Trailer / load no. (optional)'},
+    {k:'lines',label:'One spool per line: spool no., size, length LF, field welds',type:'textarea',req:true,hint:'Comma or tab separated, e.g.  PW-200-01, 6", 18.5, 3   — paste straight from a spreadsheet.'}],
+    values:{systemId:sysId||UI.sys||'',status:'shop'},
+    onSave:async v=>{
+      const rows=v.lines.split(/\n/).map(l=>l.split(/\t|,/).map(x=>x.trim())).filter(r=>r[0]);
+      if(!rows.length){toast('No spool lines found');throw 0}
+      const df=STAGE_DATE[v.status];let ok=0;
+      for(const r of rows){const d={spoolNo:r[0],size:r[1]||'',lengthFt:n(r[2]),weldsTotal:n(r[3]),weldsDone:0,systemId:v.systemId,status:v.status,trailer:v.trailer};if(df)d[df]=localStamp();if(await save('spools',null,d))ok++}
+      log(`Added ${ok} spools to ${sysLabel(v.systemId)}`,{kind:'spool'});toast(`${ok} spools added`)}});
+}
+function openJob(){
+  openForm({title:'Job info',fields:[
+    {k:'name',label:'Job name',req:true,ph:'e.g. Riverside Plant Expansion'},
+    {k:'number',label:'Job number'},
+    {k:'foreman',label:'Foreman'},
+    {k:'client',label:'Client / GC'}],values:S.job||{},
+    onSave:async v=>{if(!needDb())throw 0;try{await db.doc('meta/job').set({...v,updatedAt:localStamp()});toast('Job info saved')}catch(e){toast('Save failed: '+e.message);throw e}}});
+}
+
+/* sample data */
+async function loadSample(){
+  if(!needDb())return;toast('Loading sample job…');
+  const s1=await save('systems',null,{lineNo:'SAMPLE PW-200',name:'Process water supply (sample)',service:'Process water',spec:'A106 Gr B, 150# CS',area:'Pipe rack 2',sample:true});
+  const s2=await save('systems',null,{lineNo:'SAMPLE ST-310',name:'LP steam header (sample)',service:'Low-pressure steam',spec:'A106 Gr B, 300# CS',area:'Unit 400',sample:true});
+  const d=t=>{const x=new Date();x.setHours(t,0,0,0);return localStamp(x)};
+  const sp=[[s1,'PW-200-01','6"',18.5,3,3,'installed',{installedAt:d(9),stageLoc:'Laydown B, row 1'}],[s1,'PW-200-02','6"',22,4,2,'installed',{installedAt:d(13)}],[s1,'PW-200-03','6"',16,2,0,'ready',{stageLoc:'Laydown B, row 2',readyAt:d(10)}],[s1,'PW-200-04','4"',12.5,3,0,'staged',{stageLoc:'Laydown B, row 2',stagedAt:d(8)}],[s1,'PW-200-05','4"',9,2,0,'offloaded',{trailer:'T-1142',offloadedAt:d(7)}],[s2,'ST-310-01','10"',24,4,0,'staged',{stageLoc:'Laydown A, row 4',stagedAt:d(8)}],[s2,'ST-310-02','10"',20,3,0,'transit',{trailer:'T-1150'}],[s2,'ST-310-03','8"',14,2,0,'shop',{}]];
+  for(const [sid,no,size,lf,wt,wd,st,ex] of sp)await save('spools',null,{systemId:sid,spoolNo:'SAMPLE '+no,size,lengthFt:lf,weldsTotal:wt,weldsDone:wd,status:st,notes:'',sample:true,...ex});
+  await save('bottlenecks',null,{title:'Crane waiting on lift plan sign-off (sample)',category:'Crane / rigging',crew:5,systemId:s1,spoolRef:'PW-200-03',start:d(7),end:d(9),notes:'Signed by site super at 9:00.',sample:true});
+  await save('bottlenecks',null,{title:'Gaskets short for 6" flanges (sample)',category:'Materials',crew:2,systemId:s1,start:localStamp(new Date(Date.now()-75*60000)),end:'',sample:true});
+  await save('materials',null,{item:'Spiral-wound gasket (sample)',size:'6" 150#',qty:12,unit:'ea',systemId:s1,status:'needed',neededBy:today(),sample:true});
+  await save('materials',null,{item:'B7 stud bolts w/ 2H nuts (sample)',size:'3/4" × 4-1/4"',qty:96,unit:'ea',systemId:s2,status:'ordered',po:'PO-4471',sample:true});
+  await save('materials',null,{item:'Pipe shoes (sample)',size:'6"',qty:8,unit:'ea',systemId:s1,status:'received',receivedAt:d(7),location:'Conex 2',sample:true});
+  toast('Sample job loaded');
+}
+async function unSample(){
+  for(const c of ['spools','bottlenecks','materials','systems'])for(const d of S[c].filter(x=>x.sample))await remove(c,d.id).catch(()=>{});
+  toast('Sample data removed');
+}
+
+/* ---------- events ---------- */
+async function copyReport(){
+  const txt=reportText(UI.reportDate);
+  try{await navigator.clipboard.writeText(txt);toast('Report copied')}catch{const el=$('#reportBody');const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);toast('Report selected — copy it with your device')}
+}
+function csv(){
+  const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+  const head=['System','Spool','Size','LF','Welds required','Welds done','Stage','Trailer','Offloaded','Staging location','Staged','Ready to fly','Installed','Notes'];
+  const rows=filteredSpools().map(p=>[sysLabel(p.systemId),p.spoolNo,p.size,p.lengthFt,p.weldsTotal,p.weldsDone,stageOf(p.status).label,p.trailer,p.offloadedAt,p.stageLoc,p.stagedAt,p.readyAt,p.installedAt,p.notes].map(q).join(','));
+  return [head.map(q).join(','),...rows].join('\n');
+}
+async function dl(filename,data){try{await downloads.save({filename,data})}catch(e){if(e&&e.code!=='declined')toast('Could not save the file: '+(e.message||e.code))}}
+
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-tab],[data-act],[data-stage],[data-goto-stage],[data-matview]');if(!t)return;
+  if(t.dataset.tab){UI.tab=t.dataset.tab;render();scrollTo({top:0});return}
+  if(t.hasAttribute('data-goto-stage')){UI.tab='spools';UI.stage=t.dataset.gotoStage;render();return}
+  if(t.hasAttribute('data-stage')){UI.stage=t.dataset.stage;render();return}
+  if(t.dataset.matview){UI.matView=t.dataset.matview;render();return}
+  e.preventDefault();
+  const id=t.dataset.id,a=t.dataset.act;
+  const sp=id&&S.spools.find(x=>x.id===id);
+  switch(a){
+    case 'sys-new':return openSystem();
+    case 'sys-edit':return openSystem(S.systems.find(x=>x.id===id));
+    case 'sp-new':return editSpool(null,t.dataset.sys?{systemId:t.dataset.sys}:(UI.sys?{systemId:UI.sys}:{}));
+    case 'sp-edit':return editSpool(sp);
+    case 'sp-next':{const nx=STAGES[stageIdx(sp.status)+1];if(nx)editSpool(sp,{status:nx.k,[STAGE_DATE[nx.k]||'_']:localStamp()});setTimeout(()=>{const f=nx&&{transit:'f_trailer',offloaded:'f_trailer',staged:'f_stageLoc',ready:'f_stageLoc'}[nx.k];f&&document.getElementById(f)?.focus()},30);return}
+    case 'sp-weld':{const wd=Math.min(n(sp.weldsDone)+1,n(sp.weldsTotal));t.disabled=true;try{await saveSpool(sp,{...stripMeta(sp),weldsDone:wd})}catch{}return}
+    case 'sp-bulk':return openBulk(t.dataset.sys);
+    case 'bn-new':return openBn();
+    case 'bn-edit':return openBn(S.bottlenecks.find(x=>x.id===id));
+    case 'bn-clear':{const b=S.bottlenecks.find(x=>x.id===id);const end=localStamp();try{await save('bottlenecks',id,{end});log(`Bottleneck cleared after ${fmtDur(mins(b.start,end))}: ${b.title}`,{kind:'bn'});toast('Bottleneck cleared')}catch{}return}
+    case 'mat-new':return openMat(null,{status:t.dataset.status});
+    case 'mat-edit':return openMat(S.materials.find(x=>x.id===id));
+    case 'mat-recv':{const m=S.materials.find(x=>x.id===id);openMat(m);setTimeout(()=>{$('#f_status').value='received';$('#f_receivedAt').value=localStamp();$('#f_location').focus()},30);return}
+    case 'sample':return loadSample();
+    case 'unsample':return unSample();
+    case 'copy':return copyReport();
+    case 'rep-dl':return dl(`daily-report-${UI.reportDate}.txt`,reportText(UI.reportDate));
+    case 'csv':return dl(`spools-${today()}.csv`,csv());
+  }
+});
+function stripMeta(o){const {id,createdAt,updatedAt,updatedBy,...r}=o;return r}
+document.addEventListener('input',e=>{
+  if(e.target.id==='q'){UI.q=e.target.value;render()}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='sysFilter'){UI.sys=e.target.value;render()}
+  if(e.target.id==='repDate'){UI.reportDate=e.target.value||today();render()}
+});
+$('#jobBtn').addEventListener('click',openJob);
+boot();
+</script>
