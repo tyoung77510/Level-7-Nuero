@@ -2576,7 +2576,26 @@ function serveBlogIndex(req, res) {
     canonicalPath: '/blog',
     isArticle: false,
     active: 'blog',
-    bodyHtml
+    bodyHtml,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Blog',
+      name: 'Ordo7 Blog',
+      description: 'Practical guidance on construction schedule health, DCMA checks, and spotting a bad baseline before it costs you.',
+      url: 'https://www.ordo7.pro/blog',
+      publisher: {
+        '@type': 'Organization',
+        name: 'Ordo7',
+        url: 'https://www.ordo7.pro/',
+        logo: 'https://www.ordo7.pro/brand/musk/icon-512.png'
+      },
+      blogPost: allPosts.map(p => ({
+        '@type': 'BlogPosting',
+        headline: p.headline,
+        url: p.url,
+        datePublished: p.date.toISOString()
+      }))
+    }
   });
   res.writeHead(200, { 'Content-Type': 'text/html' });
   res.end(html);
